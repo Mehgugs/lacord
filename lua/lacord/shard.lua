@@ -302,7 +302,7 @@ function HEARTBEAT_ACK(state)
         logger.warn("%s is missing heartbeat acknowledgement! (deficit=%s)", state, -state.beats)
     end
     winddown(state)
-    state.emitter(state, "HEARTBEAT", state.beats)
+    state.loop:wrap(state.emitter, state, "HEARTBEAT", state.beats)
     return state
 end
 
@@ -321,7 +321,7 @@ end
 
 function DISPATCH(state, _, d, t, s)
     state._seq = s --+
-    return state.emitter(state, t, d)
+    return state.loop:wrap(state.emitter,state, t, d)
 end
 
 local function await_ready(state)

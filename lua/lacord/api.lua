@@ -33,6 +33,7 @@ local type = type
 local ipairs, pairs = ipairs, pairs
 local _VERSION = _VERSION
 local decode = json.decode
+local set = rawset
 
 local _ENV = util.interposable{}
 
@@ -49,6 +50,9 @@ URL = constants.api.endpoint
 -- @within Constants
 USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, _VERSION )
 
+
+GLOBAL_LOCK = mutex()
+
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))
 local BOUNDARY2 = "--" .. BOUNDARY1
 local BOUNDARY3 = BOUNDARY2 .. "--"
@@ -61,15 +65,17 @@ local with_payload = {
     POST = true,
 }
 
-local function mutex_cache()
-    return setmetatable({},
+local caches = {}
+
+local function mutex_cache(token)
+    return caches[token] or set(caches, token, setmetatable({},
     {
         __mode = "v",
         __index = function (self, k)
             self[k] = mutex(k)
             return self[k]
         end
-    })
+    }))[token]
 end
 
 
@@ -116,7 +122,7 @@ local function route_of(endpoint, method)
         return endpoint:match('.*/reactions')
     elseif method == "DELETE" and message_endpoint:match(endpoint) then
         return 'MESSAGE_DELETE-'..trailing_id:match(endpoint)
-    elseif endpoint:sub(1,9) == "/invites/" then
+    elseif startswith(endpoint,"/invites/") then
         return "/invites/"
     elseif is_major_route:match(endpoint) then
         return endpoint
@@ -158,8 +164,8 @@ function init(options)
         return logger.fatal("Please supply a bot token! It must start with $white;'Bot '$error;.")
     end
     state.token = options.token
-    state.routex = mutex_cache()
-    state.global_lock = mutex()
+    state.routex = mutex_cache(state.token)
+    state.global_lock = GLOBAL_LOCK
     state.precision = "second"
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, gzip-x"
@@ -183,6 +189,11 @@ local function get_routex(routes, key)
     if type(item) == 'string' then return get_routex(routes, item)
     else return item
     end
+end
+
+local function resolve_global_unlocks(global, bucket)
+    global.pollfd:wait() -- we must wait for the global limit to expire before potentially resuming a request
+    return bucket:unlock() -- now we can call unlock
 end
 
 local push
@@ -236,21 +247,33 @@ function request(state, method, endpoint, payload, query, files)
     end
 
     local route = route_of(endpoint, method)
-
+    state.global_lock:lock()
     get_routex(state.routex, route):lock()
 
-    local success, data, err, delay = xpcall(push, traceback, state, req, method, route, 0)
+    local success, data, err, delay, global = xpcall(push, traceback, state, req, method, route, 0)
     if not success then
         return logger.fatal("api.push failed %q", tostring(data))
     end
-
-    get_routex(state.routex, route):unlock_after(delay)
+    local bucket = get_routex(state.routex, route)
+    if global then
+        state.global_lock:unlock_after(delay)
+        cqueues.running():wrap(resolve_global_unlocks, state.global_lock, bucket)
+    else
+        bucket:unlock_after(delay)
+        state.global_lock:unlock()
+    end
 
     return not err, data, err
 end
 
+local function push_after_global(state, req, method,route, retries)
+    state.global_lock.pollfd:wait()
+    get_routex(state.routex, route).inuse = true
+    return push(state, req, method,route, retries)
+end
+
 function push(state, req, method,route, retries)
-    local delay = 1 -- seconds
+    local delay = 0 -- seconds
     local global = false -- whether the delay incurred is on the global limit
 
     local headers , stream , eno = req:go(60)
@@ -315,10 +338,12 @@ function push(state, req, method,route, retries)
             elseif code == 502 then
                 delay = delay + util.rand(0 , 2)
                 retry = retries < 5
+                global = headers:get"x-ratelimit-global"
             end
 
             if retry then
                 logger.warn("(%i, %q) :  retrying after %fsec : %s%s", code, reason[rawcode], delay, method, route)
+                if global then state.global_lock:unlock_after(delay) end
                 cqueues.sleep(delay)
                 return push(state, req, method,route, retries+1)
             end
@@ -334,6 +359,8 @@ function push(state, req, method,route, retries)
             end
 
             data = msg
+        else
+            global = headers:get"x-ratelimit-global"
         end
         logger.error("(%i, %q) : %s%s", code, reason[rawcode], method, route)
         return nil, data, delay, global
