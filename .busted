@@ -1,0 +1,13 @@
+return {
+    _all = {
+        coverage = true
+        ,lpath = "./lua/?.lua;./lua/?/init.lua"
+        ,shuffle = true
+        ,["auto-insulate"] = false
+    }
+    ,default = {}
+    ,ci = {
+	  	 coverage = false
+		,output = "TAP"
+	}
+}
