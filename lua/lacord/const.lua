@@ -1,6 +1,6 @@
 
 local _ENV = {}
-version = "1569435811"
+version = "1569631241"
 homepage = "https://github.com/Mehgugs/lacord"
 time_unit = "seconds"
 discord_epoch = 1420070400

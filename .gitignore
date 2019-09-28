@@ -2,3 +2,5 @@
 /generated/**
 /.circleci/**
 /.busted
+*.src.rock
+/rockspecs/**
