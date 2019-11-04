@@ -148,7 +148,7 @@ function throw(...)
     return err(f(...))
 end
 
---- Logs an error using `printf.error` and then exits with a non-zero exit code.
+--- Logs an error using `logger.error` and then exits with a non-zero exit code.
 -- @string str A format string.
 -- @param[opt] ... Values passed into `string.format`.
 function fatal(...)

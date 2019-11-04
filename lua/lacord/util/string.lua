@@ -52,9 +52,7 @@ function prefix (self, pre)
     return endswith(self, pre) and self:sub(1,-(#pre+1)) or self
 end
 
-levenshtein_cache = setmetatable({},{__mode = "k"})
-
-local cache_key = ("%s\0%s")
+local levenshtein_cache = setmetatable({},{__mode = "k"})
 
 --- Computes the Levenshtein distance between two strings.
 -- @string str1
@@ -71,7 +69,7 @@ function levenshtein(str1, str2)
 		return len1
     end
 
-    local key = cache_key:format(str1,str2)
+    local key = str1 .. '-' .. str2
     local cached = levenshtein_cache[key]
     if cached then
         return cached

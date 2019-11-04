@@ -3,6 +3,7 @@
 
 local ult, mtoint, mntype, max_int = math.ult, math.tointeger, math.type, math.maxinteger
 local setmetatable = setmetatable
+local tonumber = tonumber
 local type = type
 local time = os.time
 local lpeg = require"lpeglabel":locale()
@@ -20,7 +21,7 @@ local function to_integer_worker(s) -- string -> uint64
     local n = 0
     local l = #s
     for i = l -1,0, -1  do
-        n = n + by10(s:sub(i+1,i+1)|0, l-i-1)
+        n = n + by10(tonumber(s:sub(i+1,i+1)), l-i-1)
     end
     return n
 end
@@ -73,6 +74,22 @@ local function udiv (n, d)
     return q
 end
 
+do
+    local fnv_basis = touint"14695981039346656037"
+    local fnv_prime = 1099511628211
+    --- Computes the FNV-1a 64bit hash of the given string.
+    -- @str str The input string.
+    -- @treturn integer The hash.
+    function hash(str)
+        local hash = fnv_basis
+        for i = 1, #str do
+        hash = hash ~ str:byte(i)
+        hash = (hash * fnv_prime)
+        end
+        return hash
+    end
+end
+
 local epoch = constants.discord_epoch * 1000
 
 --- Computes the UNIX timestamp of a given uint64, using discord's bitfield format.
@@ -112,7 +129,7 @@ local inc = -1
 -- @int[opt] incr The increment. An internal incremented value is used if one is not provided.
 -- @treturn integer The snowflake.
 function synthesize(s, worker, pid, incr)
-    inc = inc + 1
+    inc = (inc + 1) & 0xFFF
     incr = (incr or inc) &  0xFFF
     worker = ((worker or 0) & 63) << 17
     pid = ((pid or 0) & 63) << 12

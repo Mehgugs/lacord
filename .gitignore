@@ -4,3 +4,4 @@
 /.busted
 *.src.rock
 /rockspecs/**
+/manual/**

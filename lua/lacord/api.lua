@@ -331,7 +331,11 @@ function push(state, name, req, method,route, retries)
             }
         end
         if state.routex[route] ~= bucket then
-            logger.info("%s grouping route $white;%q$info; into bucket $white;%s[%s]$info;.", state, route, route_id, bucket)
+            logger.info("%s grouping route $white;%q$info; into bucket $white;%s[%s]$info;.",
+                state,
+                route,
+                route_id,
+                bucket)
             local routex = state.routex[bucket]
             routex.inuse = true
             state.routex[route].handoff = routex.pollfd

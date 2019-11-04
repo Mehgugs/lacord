@@ -15,6 +15,7 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local USER_AGENT = require"lacord.api".USER_AGENT
 
+local require = require
 local setmetatable = setmetatable
 local pairs, ipairs = pairs, ipairs
 local poll = cqueues.poll
@@ -22,7 +23,7 @@ local encode, decode = json.encode, json.decode
 local identify_delay = constants.gateway.identify_delay
 local sleep = cqueues.sleep
 local insert, concat = table.insert, table.concat
-local floor = math.floor
+local type = type
 local traceback = debug.traceback
 local xpcall = xpcall
 local toquery = httputil.dict_to_query
@@ -95,7 +96,13 @@ function init(options, idmutex)
 end
 
 function connect(state)
-    local final_url = ("%s?%s"):format(state.options.gateway, state.url_options)
+    local final_url
+    if type(state.options.gateway) == 'function' then
+        logger.info("%s is regenerating gateway url.", state)
+        final_url = state.options.gateway(state) .. '?' .. state.url_options
+    else
+        final_url = state.options.gateway .. '?' .. state.url_options
+    end
 
     logger.info("%s is connecting to $white;%s", state, final_url)
     state.socket = websocket.new_from_uri(final_url) --++
@@ -221,6 +228,7 @@ function messages(state)
             local payload, cont = read_message(state, message, op)
             if cont then goto continue end
             if payload then
+                --if DEBUG then logger.info("$debug;%s", require"pl.pretty".write(payload)) end
                 local dop = ops[payload.op]
                 if _ENV[dop] then
                     _ENV[dop](state, payload.op, payload.d, payload.t, payload.s)

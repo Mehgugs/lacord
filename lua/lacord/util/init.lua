@@ -7,6 +7,19 @@ local setmetatable = setmetatable
 local P, Cc, V, Cs, C, Ct = lpeg.P, lpeg.Cc, lpeg.V, lpeg.Cs, lpeg.C, lpeg.Ct
 local _ENV = {}
 
+--- Implements the iterposable interface for the given module.
+-- This adds a single function `interpose` with the same behaviour as cqueues `interpose`.
+-- @tab _ENV The module.
+-- @treturn table The module, with a new method `interpose`.
+-- @usage
+--  local util = require"lacord.util" -- lacord modules are all interposable.
+--  do
+--    local old = util.interpose('hash', function(str)
+--      if str == '' then return error("Contrived example error!")
+--      else return old(str)
+--      end
+--    end)
+--  end
 function interposable(_ENV)
   function interpose(name, func)
       local old = _ENV[name]
@@ -18,6 +31,9 @@ end
 
 interposable(_ENV)
 
+--- Computes the FNV-1a 32bit hash of the given string.
+-- @str str The input string.
+-- @treturn integer The hash.
 function hash(str)
     local hash = 2166136261
     for i = 1, #str do
@@ -86,7 +102,7 @@ local function _platform()
   return res
 end
 
---- The operating system platform
+--- The operating system platform.
 -- @within Constants
 -- @string platform
 platform = _platform()
@@ -99,6 +115,11 @@ local function failure(self)
   return self
 end
 
+--- Implements the capturable interface for the given module.
+-- Makes a module's methods capturable, which makes chaining of multiple failable methods easy.
+-- @see capture
+-- @tab _ENV The module to make capturable.
+-- @treturn table _ENV with a new method `capture`
 function capturable(_ENV)
   local cpmt = {}
 
@@ -117,7 +138,28 @@ function capturable(_ENV)
       return failure
     end
   end
-
+  --- Creates a method chain.
+  -- @tab s The module, call capture using method call syntax.
+  -- @bool success The success state.
+  -- @param value The value state.
+  -- @param err The error state, usually a string by convention.
+  -- @treturn table The capture object.
+  -- @usage
+  --  local api = require"lacord.api"
+  --  local util = require"lacord.util"
+  --  util.capturable(api)
+  --
+  --  local R = discord_api
+  --    :capture(discord_api:get_gateway_bot())
+  --    :get_current_application_information()
+  --  if R.success then -- ALL methods succeeded
+  --    local results_list = R.result
+  --    local A, B, C = R:results()
+  --  else
+  --    local why = R.error
+  --    local partial = R.result -- There may be partial results collected before the error, you can use this to debug.
+  --    R:some_method() -- If there's been a faiure, calls like this are noop'd.
+  --  end
   function capture(s, success, value, err)
     return setmetatable({s, success = success, result = {value}, error = err, results = results}, cpmt)
   end
