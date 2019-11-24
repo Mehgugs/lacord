@@ -10,6 +10,7 @@ local setmetatable = setmetatable
 local _ENV = {}
 
 __index = _ENV
+__name  = 'lacord.mutex'
 
 --- Locks the mutex.
 -- @tparam mutex self
@@ -17,11 +18,6 @@ __index = _ENV
 function lock(self, timeout)
     if self.inuse then
         self.inuse = self.pollfd:wait(timeout)
-        local handoff = self.handoff
-        if handoff then
-            handoff:wait()
-            self.handoff = nil
-        end
     else
         self.inuse = true
     end

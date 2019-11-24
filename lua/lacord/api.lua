@@ -197,8 +197,11 @@ local function get_routex(routes, key)
     end
 end
 
-local function resolve_global_unlocks(global, bucket)
+local function resolve_global_unlocks(global, bucket, initial)
     global.pollfd:wait() -- we must wait for the global limit to expire before potentially resuming a request
+    if initial ~= bucket then
+        initial:unlock()
+    end
     return bucket:unlock() -- now we can call unlock
 end
 
@@ -256,18 +259,23 @@ function request(state, name, method, endpoint, payload, query, files)
     end
 
     local route = route_of(endpoint, method)
-    state.global_lock:lock()
-    get_routex(state.routex, route):lock()
+    if state.global_lock.inuse then state.global_lock.polldfd:wait() end
+    local initial = get_routex(state.routex, route)
+    initial:lock()
 
     local success, data, err, delay, global = xpcall(push, traceback, state, name, req, method, route, 0)
     if not success then
         return logger.fatal("api.push failed %q", tostring(data))
     end
+
     local bucket = get_routex(state.routex, route)
     if global then
         state.global_lock:unlock_after(delay)
-        cqueues.running():wrap(resolve_global_unlocks, state.global_lock, bucket)
+        cqueues.running():wrap(resolve_global_unlocks, state.global_lock, bucket, initial)
     else
+        if bucket ~= initial then
+           initial:unlock_after(delay)
+        end
         bucket:unlock_after(delay)
         state.global_lock:unlock()
     end
@@ -338,7 +346,6 @@ function push(state, name, req, method,route, retries)
                 bucket)
             local routex = state.routex[bucket]
             routex.inuse = true
-            state.routex[route].handoff = routex.pollfd
             state.routex[route] = bucket
         end
     end

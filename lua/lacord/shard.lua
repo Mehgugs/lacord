@@ -15,9 +15,9 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local USER_AGENT = require"lacord.api".USER_AGENT
 
-local require = require
+
 local setmetatable = setmetatable
-local pairs, ipairs = pairs, ipairs
+local pairs = pairs
 local poll = cqueues.poll
 local encode, decode = json.encode, json.decode
 local identify_delay = constants.gateway.identify_delay
@@ -35,7 +35,7 @@ local monotime = cqueues.monotime
 local _ENV = util.interposable{}
 
 __index = _ENV
-__name = "shard"
+__name = "lacord.shard"
 
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
 local GATEWAY_DELAY = constants.gateway.delay
@@ -64,6 +64,12 @@ local function load_options(into, o)
     return into
 end
 
+local messages, send, read_message, resume, identify, reconnect
+
+--- Construct a new shard object using the given options and identify mutex.
+-- @tab options Options to pass to the shard please see `options`.
+-- @mutex idmutex The mutex used to synchronize identify between multiple shards.
+-- @treturn tab The shard object.
 function init(options, idmutex)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
@@ -95,7 +101,12 @@ function init(options, idmutex)
     return state
 end
 
+--- Connects a shard to discord.
+-- This can be called in method form `s:connect()`.
+-- This function is asynchronous and should be run inside a continuation queue. (usually state.loop)
+-- @tab state The shard object.
 function connect(state)
+    -- step 1: get a gateway url.
     local final_url
     if type(state.options.gateway) == 'function' then
         logger.info("%s is regenerating gateway url.", state)
@@ -104,8 +115,9 @@ function connect(state)
         final_url = state.options.gateway .. '?' .. state.url_options
     end
 
+    -- step 2: connect
     logger.info("%s is connecting to $white;%s", state, final_url)
-    state.socket = websocket.new_from_uri(final_url) --++
+    state.socket = websocket.new_from_uri(final_url)
     logger.info("Using user-agent: $white;%s", USER_AGENT)
     state.socket.request.headers:upsert("user-agent", USER_AGENT)
 
@@ -116,32 +128,34 @@ function connect(state)
         return state, false
     else
         logger.info("%s has connected.", state)
-        state.connected = true --+
+        state.connected = true
         state.begin = monotime()
         state.raw_ready = promise.new()
         if state.options.transport_compression then
             state.transport_infl = zlib.inflate()
             state.transport_buffer = {}
         end
-
+        -- step 3: start receiving messages.
         state.loop:wrap(messages, state)
         return state, true
     end
 end
 
-function backoff(state)
+local function backoff(state)
     state.backoff = min(state.backoff * 2, 60)
 end
 
-function winddown(state)
+local function winddown(state)
     state.backoff = max(state.backoff / 2, 1)
 end
 
+
+local hb = ops.HEARTBEAT
 local function beat_loop(state, interval)
     while state.connected do
         logger.warn("Outgoing heart beating")
         state.beats = state.beats + 1
-        send(state, ops.HEARTBEAT, state._seq or json.null, true)
+        state:send(hb, state._seq or json.null, true)
         local r1,r2 = poll(state.stop_heart, interval)
         if r1 == state.stop_heart or r2 == state.stop_heart then
             logger.warn("%s heart was stopped via signal", state)
@@ -158,10 +172,28 @@ local function start_heartbeat(state, interval)
     state.loop:wrap(beat_loop, state, interval)
 end
 
+--- Triggers a disconnect.
+-- This can be called in method form `s:disconnect()`.
+-- This will not stop an automatically connecting shard, please see `shutdown`.
+-- @tab state The shard object.
+-- @str[opt="requested"] why The disconnect reason.
+-- @int[opt=1000] code The disconnect code.
+-- @treturn table The shard object.
 function disconnect(state, why, code)
     state.session_id = nil ---
     state.socket:close(code or 1000, why or 'requested')
     return state
+end
+
+--- This will terminate the shard's connection, clearing any reconnection flags and then disconnecting.
+-- This can be called in method form `s:shutdown()`.
+-- @tab state The shard object.
+-- @param[opt] ... Arguments to `disconnect`.
+-- @treturn table The shard object.
+function shutdown(state, ...)
+    state.options.auto_reconnect = nil
+    state.do_reconnect = nil
+    return disconnect(state, ...)
 end
 
 function read_message(state, message, op)
@@ -183,10 +215,10 @@ function read_message(state, message, op)
     end
 end
 
-function send(state, op, d, identify)
+function send(state, op, d, ident)
     state.shard_mutex:lock()
     local success, err
-    if identify or state.session_id then
+    if ident or state.session_id then
         if state.connected then
             success, err = state.socket:send(encode {op = op, d = d}, 0x1, state.options.rec_timeout or 60)
         else
@@ -216,7 +248,7 @@ local function should_reconnect(state, code)
    if code == 4004 then
        return logger.fatal("Token is invalid, shutting down.")
    end
-   return state.reconnect or state.options.auto_reconnect
+   return state.do_reconnect or state.options.auto_reconnect
 end
 
 function messages(state)
@@ -254,7 +286,7 @@ function messages(state)
         cqueues.monotime() - state.begin
     )
 
-    local reconnect = should_reconnect(state, state.socket.got_close_code)
+    local do_reconnect = should_reconnect(state, state.socket.got_close_code)
 
     if state.is_ready:status() == 'pending' and not reconnect then
         state.is_ready:set(false)
@@ -262,8 +294,8 @@ function messages(state)
 
     logger.warn("%s %s reconnect.", state, reconnect and "will" or "will not")
     local retry ::retry::
-    if reconnect and state.reconnect then
-        state.reconnect = nil
+    if do_reconnect and state.do_reconnect then
+        state.do_reconnect = nil
         sleep(util.rand(1, 5))
         local _, success = connect(state)
         if not success then
@@ -272,7 +304,7 @@ function messages(state)
             retry = true
             goto retry
         end
-    elseif retry or (reconnect and state.options.auto_reconnect) then
+    elseif retry or (do_reconnect and state.options.auto_reconnect) then
         repeat
             local time = util.rand(0.9, 1.1) * state.backoff
             backoff(state)
@@ -321,7 +353,7 @@ end
 
 function reconnect(state, resumable)
     stop_heartbeat(state)
-    state.reconnect = true
+    state.do_reconnect = true
     if resumable == nil then resumable = true end
     state.socket:close(resumable and 4000 or 1000)
     return state
@@ -372,20 +404,44 @@ function resume(state)
     })
 end
 
+--- Sends a REQUEST_GUILD_MEMBERS request.
+-- @tab state The shard object.
+-- @int id The guild id, this should be a encoded uint64.
+-- @treturn[1] bool true If the message was sent successfully.
+-- @treturn[1] table The json object response.
+-- @treturn[2] bool false If the message was not sent successfully.
+-- @return[2]  An error describing what went wrong.
 function request_guild_members(state, id)
     return send(state, ops.REQUEST_GUILD_MEMBERS, {
-        guild_id = id,
+        guild_id = ("%u"):format(id),
         query = '',
         limit = 0,
     })
 end
 
+--- Sends a STATUS_UPDATE request.
+-- @tab state The shard object.
+-- @tab presence The new presence for the bot. Please see the discord documentation.
+-- @treturn[1] bool true If the message was sent successfully.
+-- @treturn[1] table The json object response.
+-- @treturn[2] bool false If the message was not sent successfully.
+-- @return[2]  An error describing what went wrong.
 function update_status(state, presence)
-    return send(state, STATUS_UPDATE, presence)
+    return send(state, ops.STATUS_UPDATE, presence)
 end
 
+--- Sends a VOICE_STATE_UPDATE request.
+-- @tab state The shard object.
+-- @int guild_id The guild id of the guild the voice channel is in.
+-- @int channel_id The voice channel id.
+-- @bool self_mute Whether the bot is muted.
+-- @bool self_deaf Whether the bot is deafened.
+-- @treturn[1] bool true If the message was sent successfully.
+-- @treturn[1] table The json object response.
+-- @treturn[2] bool false If the message was not sent successfully.
+-- @return[2]  An error describing what went wrong.
 function update_voice(state, guild_id, channel_id, self_mute, self_deaf)
-    return send(state, VOICE_STATE_UPDATE, {
+    return send(state, ops.VOICE_STATE_UPDATE, {
         guild_id = util.uint.tostring(guild_id),
         channel_id = channel_id and util.uint.tostring(channel_id) or null,
         self_mute = self_mute or false,
