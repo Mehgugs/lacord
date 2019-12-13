@@ -78,13 +78,9 @@ function init(options, idmutex)
 
     state.shard_mutex = mutex() --+
     state.identify_mutex = idmutex
-    state.heart_acknowledged  = cond.new()
     state.stop_heart = cond.new()
     state.identify_wait = cond.new()
     state.is_ready = promise.new()
-    state.raw_ready = nil
-    state.to_load = -1
-    state.loaded = 0
     state.beats = 0
     state.backoff = 1
     logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.options.token))
@@ -130,7 +126,6 @@ function connect(state)
         logger.info("%s has connected.", state)
         state.connected = true
         state.begin = monotime()
-        state.raw_ready = promise.new()
         if state.options.transport_compression then
             state.transport_infl = zlib.inflate()
             state.transport_buffer = {}
