@@ -13,6 +13,7 @@ local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
+local intents = require"lacord.util.intents"
 local USER_AGENT = require"lacord.api".USER_AGENT
 
 
@@ -54,8 +55,9 @@ local _ops = {
 , HEARTBEAT_ACK         = 11 -- ✅
 }
 
-ops = {} for k, v in pairs(_ops) do ops[k] = v ops[v] = k end
+local ops = {} for k, v in pairs(_ops) do ops[k] = v ops[v] = k end
 
+_ENV.ops = ops
 
 local function load_options(into, o)
     for k, v in pairs(o) do
@@ -74,7 +76,7 @@ function init(options, idmutex)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
     end
-    local state = setmetatable({options = load_options({}, options)}, _ENV)
+    local state = setmetatable({options = load_options({intents = intents.normal}, options)}, _ENV)
 
     state.shard_mutex = mutex() --+
     state.identify_mutex = idmutex
@@ -150,7 +152,7 @@ local function beat_loop(state, interval)
     while state.connected do
         logger.warn("Outgoing heart beating")
         state.beats = state.beats + 1
-        state:send(hb, state._seq or json.null, true)
+        send(state, hb, state._seq or json.null, true)
         local r1,r2 = poll(state.stop_heart, interval)
         if r1 == state.stop_heart or r2 == state.stop_heart then
             logger.warn("%s heart was stopped via signal", state)
@@ -374,7 +376,7 @@ function identify(state)
 
     state._seq = nil ---
     state.session_id = nil
-
+    logger.info("%s has intents: %0#x", state, state.options.intents)
     return send(state, ops.IDENTIFY, {
         token = state.options.token,
         properties = {
@@ -387,7 +389,8 @@ function identify(state)
         compress = state.options.compress,
         large_threshold = state.options.large_threshold,
         shard = {state.options.id, state.options.total_shard_count},
-        presence = state.options.presence
+        presence = state.options.presence,
+        intents = state.options.intents
     }, true)
 end
 
