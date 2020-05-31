@@ -1,7 +1,7 @@
 ## lacord
 
 lacord is a small discord library providing low level clients for the discord rest and gateway API.
-All data is given to the user as raw JSON. The api methods expect ids to be integers (use `lacord.util.uint` to manipulate them).
+All data is given to the user as raw JSON.
 
 Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.
 
@@ -19,11 +19,9 @@ This library will remain mostly static. I plan to trim back the `lacord.util.*` 
 local cqs = require"cqueues"
 local api = require"lacord.api"
 local shard = require"lacord.shard"
-local write = require"pl.pretty".write
 local logger = require"lacord.util.logger"
 local util = require"lacord.util"
 local mutex = require"lacord.util.mutex"
-local uint = require"lacord.util.uint"
 
 logger.mode(8) -- nice colours!
 util.capturable(api) -- makes running a series of api requests that depend on each other easier
@@ -87,12 +85,11 @@ loop:wrap(function()
 end)
 
 function output(app)
-    logger.info("discord application: $white;%s", write(app))
     return function(_, event, data)
         logger.info("received %s", event)
         if event == 'MESSAGE_CREATE' and data.content == "!ping" then
             for i = 1, 10 do
-                discord_api:create_message(uint(data.channel_id), {content = "pong!"..i})
+                discord_api:create_message(data.channel_id, {content = "pong!"..i})
             end
         end
     end
