@@ -60,7 +60,7 @@ end
 
 --- uint64 tostring
 -- @int i An encoded uint64.
-function tostring(i) return ("%u"):format(i) end
+function tostring(i) return type(i) == 'string' and i or ("%u"):format(i) end
 
 local function udiv (n, d)
     if d < 0 then

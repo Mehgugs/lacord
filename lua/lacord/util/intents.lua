@@ -49,4 +49,4 @@ end
 intents.normal = intents.everything & ~intents.guild_presences & ~intents.guild_voice_states
 intents.unprivileged = intents.everything & ~intents.guild_members & ~intents.guild_presences
 
-return _ENV
+return intents

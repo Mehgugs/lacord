@@ -108,7 +108,7 @@ end
 
 local check_anywhere = function(p) return util.anywhere(util.check(p)) end
 local digits = lpeg.digit^1
-local message_endpoint = util.check("/channels" * digits * "/messages/" * digits * -1)
+local message_endpoint = util.check("/channels/" * digits * "/messages/" * digits * -1)
 local major_params = lpeg.P"channels" + "guilds" + "webhooks"
 local is_major_route = check_anywhere((lpeg.P"channels" + "guilds" + "webhooks") * "/" * digits * -1)
 local ends_in_id = check_anywhere("/" * digits * -1)
@@ -186,7 +186,7 @@ end
 
 local function mapquery(Q)
     local out = {}
-    for i, v in ipairs(Q) do out[i] = tostring(v) end
+    for i, v in pairs(Q) do out[i] = tostring(v) end
     return out
 end
 
@@ -404,66 +404,66 @@ function push(state, name, req, method,route, retries)
 end
 
 local endpoints = {
-    APPLICATION_ENTITLEMENT         = "/applications/%u/entitlements/%u",
-    APPLICATION_ENTITLEMENTS        = "/applications/%u/entitlements",
-    APPLICATION_ENTITLEMENT_        = "/applications/%u/entitlements/%u/",
-    APPLICATION_ENTITLEMENT_CONSUME = "/applications/%u/entitlements/%u/consume",
-    APPLICATION_SKUS                = "/applications/%u/skus",
-    CHANNEL                         = "/channels/%u",
-    CHANNEL_INVITES                 = "/channels/%u/invites",
-    CHANNEL_MESSAGE                 = "/channels/%u/messages/%u",
-    CHANNEL_MESSAGES                = "/channels/%u/messages",
-    CHANNEL_MESSAGES_BULK_DELETE    = "/channels/%u/messages/bulk-delete",
-    CHANNEL_MESSAGE_REACTION        = "/channels/%u/messages/%u/reactions/%s",
-    CHANNEL_MESSAGE_REACTIONS       = "/channels/%u/messages/%u/reactions",
-    CHANNEL_MESSAGE_REACTION_ME     = "/channels/%u/messages/%u/reactions/%s/@me",
-    CHANNEL_MESSAGE_REACTION_USER   = "/channels/%u/messages/%u/reactions/%u",
-    CHANNEL_PERMISSION              = "/channels/%u/permissions/%u",
-    CHANNEL_PIN                     = "/channels/%u/pins/%u",
-    CHANNEL_PINS                    = "/channels/%u/pins",
-    CHANNEL_RECIPIENT               = "/channels/%u/recipients/%u",
-    CHANNEL_TYPING                  = "/channels/%u/typing",
-    CHANNEL_WEBHOOKS                = "/channels/%u/webhooks",
+    APPLICATION_ENTITLEMENT         = "/applications/%s/entitlements/%s",
+    APPLICATION_ENTITLEMENTS        = "/applications/%s/entitlements",
+    APPLICATION_ENTITLEMENT_        = "/applications/%s/entitlements/%s/",
+    APPLICATION_ENTITLEMENT_CONSUME = "/applications/%s/entitlements/%s/consume",
+    APPLICATION_SKUS                = "/applications/%s/skus",
+    CHANNEL                         = "/channels/%s",
+    CHANNEL_INVITES                 = "/channels/%s/invites",
+    CHANNEL_MESSAGE                 = "/channels/%s/messages/%s",
+    CHANNEL_MESSAGES                = "/channels/%s/messages",
+    CHANNEL_MESSAGES_BULK_DELETE    = "/channels/%s/messages/bulk-delete",
+    CHANNEL_MESSAGE_REACTION        = "/channels/%s/messages/%s/reactions/%s",
+    CHANNEL_MESSAGE_REACTIONS       = "/channels/%s/messages/%s/reactions",
+    CHANNEL_MESSAGE_REACTION_ME     = "/channels/%s/messages/%s/reactions/%s/@me",
+    CHANNEL_MESSAGE_REACTION_USER   = "/channels/%s/messages/%s/reactions/%s",
+    CHANNEL_PERMISSION              = "/channels/%s/permissions/%s",
+    CHANNEL_PIN                     = "/channels/%s/pins/%s",
+    CHANNEL_PINS                    = "/channels/%s/pins",
+    CHANNEL_RECIPIENT               = "/channels/%s/recipients/%s",
+    CHANNEL_TYPING                  = "/channels/%s/typing",
+    CHANNEL_WEBHOOKS                = "/channels/%s/webhooks",
     GATEWAY                         = "/gateway",
     GATEWAY_BOT                     = "/gateway/bot",
-    GUILD                           = "/guilds/%u",
+    GUILD                           = "/guilds/%s",
     GUILDS                          = "/guilds",
-    GUILD_AUDIT_LOGS                = "/guilds/%u/audit-logs",
-    GUILD_BAN                       = "/guilds/%u/bans/%u",
-    GUILD_BANS                      = "/guilds/%u/bans",
-    GUILD_CHANNELS                  = "/guilds/%u/channels",
-    GUILD_EMBED                     = "/guilds/%u/embed",
-    GUILD_EMOJI                     = "/guilds/%u/emojis/%u",
-    GUILD_EMOJIS                    = "/guilds/%u/emojis",
-    GUILD_INTEGRATION               = "/guilds/%u/integrations/%u",
-    GUILD_INTEGRATIONS              = "/guilds/%u/integrations",
-    GUILD_INTEGRATION_SYNC          = "/guilds/%u/integrations/%u/sync",
-    GUILD_INVITES                   = "/guilds/%u/invites",
-    GUILD_MEMBER                    = "/guilds/%u/members/%u",
-    GUILD_MEMBERS                   = "/guilds/%u/members",
-    GUILD_MEMBERS_ME_NICK           = "/guilds/%u/members/@me/nick",
-    GUILD_MEMBER_ROLE               = "/guilds/%u/members/%u/roles/%u",
-    GUILD_PRUNE                     = "/guilds/%u/prune",
-    GUILD_REGIONS                   = "/guilds/%u/regions",
-    GUILD_ROLE                      = "/guilds/%u/roles/%u",
-    GUILD_ROLES                     = "/guilds/%u/roles",
-    GUILD_VANITY_URL                = "/guilds/%u/vanity-url",
-    GUILD_WEBHOOKS                  = "/guilds/%u/webhooks",
-    GUILD_WIDGET_PNG                = "/guilds/%u/widget.png",
+    GUILD_AUDIT_LOGS                = "/guilds/%s/audit-logs",
+    GUILD_BAN                       = "/guilds/%s/bans/%s",
+    GUILD_BANS                      = "/guilds/%s/bans",
+    GUILD_CHANNELS                  = "/guilds/%s/channels",
+    GUILD_EMBED                     = "/guilds/%s/embed",
+    GUILD_EMOJI                     = "/guilds/%s/emojis/%s",
+    GUILD_EMOJIS                    = "/guilds/%s/emojis",
+    GUILD_INTEGRATION               = "/guilds/%s/integrations/%s",
+    GUILD_INTEGRATIONS              = "/guilds/%s/integrations",
+    GUILD_INTEGRATION_SYNC          = "/guilds/%s/integrations/%s/sync",
+    GUILD_INVITES                   = "/guilds/%s/invites",
+    GUILD_MEMBER                    = "/guilds/%s/members/%s",
+    GUILD_MEMBERS                   = "/guilds/%s/members",
+    GUILD_MEMBERS_ME_NICK           = "/guilds/%s/members/@me/nick",
+    GUILD_MEMBER_ROLE               = "/guilds/%s/members/%s/roles/%s",
+    GUILD_PRUNE                     = "/guilds/%s/prune",
+    GUILD_REGIONS                   = "/guilds/%s/regions",
+    GUILD_ROLE                      = "/guilds/%s/roles/%s",
+    GUILD_ROLES                     = "/guilds/%s/roles",
+    GUILD_VANITY_URL                = "/guilds/%s/vanity-url",
+    GUILD_WEBHOOKS                  = "/guilds/%s/webhooks",
+    GUILD_WIDGET_PNG                = "/guilds/%s/widget.png",
     INVITE                          = "/invites/%s",
     OAUTH2_APPLICATIONS_ME          = "/oauth2/applications/@me",
-    STORE_SKU_DISCOUNT_             = "/store/skus/%u/discounts/%u/",
-    USER                            = "/users/%u",
+    STORE_SKU_DISCOUNT_             = "/store/skus/%s/discounts/%s/",
+    USER                            = "/users/%s",
     USERS_ME                        = "/users/@me",
     USERS_ME_CHANNELS               = "/users/@me/channels",
     USERS_ME_CONNECTIONS            = "/users/@me/connections",
-    USERS_ME_GUILD                  = "/users/@me/guilds/%u",
+    USERS_ME_GUILD                  = "/users/@me/guilds/%s",
     USERS_ME_GUILDS                 = "/users/@me/guilds",
     VOICE_REGIONS                   = "/voice/regions",
-    WEBHOOK                         = "/webhooks/%u",
-    WEBHOOK_TOKEN                   = "/webhooks/%u/%s",
-    WEBHOOK_TOKEN_GITHUB            = "/webhooks/%u/%s/github",
-    WEBHOOK_TOKEN_SLACK             = "/webhooks/%u/%s/slack",
+    WEBHOOK                         = "/webhooks/%s",
+    WEBHOOK_TOKEN                   = "/webhooks/%s/%s",
+    WEBHOOK_TOKEN_GITHUB            = "/webhooks/%s/%s/github",
+    WEBHOOK_TOKEN_SLACK             = "/webhooks/%s/%s/slack",
 }
 
 --- Request a specific resource.
@@ -886,14 +886,9 @@ function get_user_dMs(state)
     return request(state, "get_user_dMs", "GET", endpoint)
 end
 
-function create_dM(state, payload)
+function create_dM(state, recipient)
     local endpoint = endpoints.USERS_ME_CHANNELS
-    return request(state, "create_dM", "POST", endpoint, payload)
-end
-
-function create_group_dM(state, payload)
-    local endpoint = endpoints.USERS_ME_CHANNELS
-    return request(state, "create_group_dM", "POST", endpoint, payload)
+    return request(state, "create_dM", "POST", endpoint, {recipient_id = recipient})
 end
 
 function get_user_connections(state)

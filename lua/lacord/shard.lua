@@ -5,7 +5,7 @@ local cqueues = require"cqueues"
 local cond = require"cqueues.condition"
 local promise = require"cqueues.promise"
 local errno = require"cqueues.errno"
-local websocket = require"http.websocket"
+local websocket = require"lacord.websocket"
 local zlib = require"http.zlib"
 local httputil = require"http.util"
 local json = require"cjson"
@@ -174,11 +174,13 @@ end
 -- This will not stop an automatically connecting shard, please see `shutdown`.
 -- @tab state The shard object.
 -- @str[opt="requested"] why The disconnect reason.
--- @int[opt=1000] code The disconnect code.
+-- @int[opt=4009] code The disconnect code.
 -- @treturn table The shard object.
 function disconnect(state, why, code)
-    state.session_id = nil ---
-    state.socket:close(code or 1000, why or 'requested')
+    -- reset our session if we're not requesting a restart.
+    code = code or 4009
+    if code ~= 1012 and code < 4000 then state.session_id = nil end
+    state.socket:close(code, why or 'requested')
     return state
 end
 
@@ -191,6 +193,11 @@ function shutdown(state, ...)
     state.options.auto_reconnect = nil
     state.do_reconnect = nil
     return disconnect(state, ...)
+end
+
+function restart(state, why)
+    logger.info("%s is requesting a restart.", state)
+    return disconnect(state, why)
 end
 
 function read_message(state, message, op)
@@ -235,11 +242,14 @@ local never_reconnect = {
    ,[4010] = 'You sent us an invalid shard when identifying.'
    ,[4011] =
    'The session would have handled too many guilds - you are required to shard your connection in order to connect.'
+   ,[4013] = 'You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.'
+   ,[4014] = 'You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not whitelisted for.'
+
 }
 
 local function should_reconnect(state, code)
    if never_reconnect[code] then
-       logger.error("Shard-%s received irrecoverable error(%d): %q", state.options.id, code, never_reconnect[code])
+       logger.error("s received irrecoverable error(%d): %q", state, code, never_reconnect[code])
        return false
    end
    if code == 4004 then
@@ -250,7 +260,7 @@ end
 
 function messages(state)
     local rec_timeout = state.options.receive_timeout or 60
-    local err
+    local err, lua_err
     repeat
         local success, message, op, code = xpcall(state.socket.receive, traceback, state.socket, rec_timeout)
         if success and message ~= nil then
@@ -267,8 +277,10 @@ function messages(state)
             break end
         elseif success and message == nil then
             err = op
+            lua_err = false
         elseif not success then
             err = message
+            lua_err = true
         end
         ::continue::
     until state.socket.got_close_code or message == nil or not success
@@ -289,12 +301,20 @@ function messages(state)
         state.is_ready:set(false)
     end
 
-    logger.warn("%s %s reconnect.", state, reconnect and "will" or "will not")
+    state.loop:wrap(state.emitter,state, 'DISCONNECT', {
+         code = state.socket.got_close_code
+        ,lua_err = lua_err
+        ,error = err
+    })
+
+    logger.warn("%s %s reconnect.", state,
+        ((do_reconnect and state.do_reconnect) or (do_reconnect and state.options.auto_reconnect))
+        and "will" or "will not")
     local retry ::retry::
     if do_reconnect and state.do_reconnect then
         state.do_reconnect = nil
         sleep(util.rand(1, 5))
-        local _, success = connect(state)
+        local _, success = state:connect()
         if not success then
             backoff(state)
             sleep()
@@ -307,7 +327,7 @@ function messages(state)
             backoff(state)
             logger.info("%s will automatically reconnect in %.2fsec", state, time)
             sleep(time)
-            local _, success = connect(state)
+            local _, success = state:connect()
         until success or not state.options.auto_reconnect
     end
 end
@@ -315,7 +335,6 @@ end
 function HELLO(state, _, d)
     logger.info("discord said hello to %s.", state)
     start_heartbeat(state, d.heartbeat_interval/1e3)
-
     if state.session_id then
         return resume(state)
     else
@@ -323,13 +342,25 @@ function HELLO(state, _, d)
     end
 end
 
+function READY(state, _, d, t)
+    logger.info("%s is ready.", state)
+    state.session_id = d.session_id
+    state.loop:wrap(state.emitter,state, t, d)
+end
+
+function RESUMED(state, _, d, t)
+    logger.info("%s has resumed.", state)
+    state.loop:wrap(state.emitter,state, t, d)
+end
+
 function HEARTBEAT(state)
-    send(state, ops.HEARTBEAT, state._seq or json.null)
+    send( state, ops.HEARTBEAT, state._seq or json.null)
 end
 
 function INVALID_SESSION(state, _, d)
     logger.warn("%s has an invalid session, resumable=%q.", state, d and "true" or "false")
     if not d then state.session_id = nil end
+    state.loop:wrap(state.emitter, state, 'INVALID_SESSION', d)
     return reconnect(state, not not d)
 end
 
@@ -344,20 +375,20 @@ function HEARTBEAT_ACK(state)
 end
 
 function RECONNECT(state)
-    logger.warn("Shard-%s has received a reconnect request.", state)
+    logger.warn("%s has received a reconnect request from discord.", state)
     return reconnect(state)
 end
 
-function reconnect(state, resumable)
+function reconnect(state)
     stop_heartbeat(state)
     state.do_reconnect = true
-    if resumable == nil then resumable = true end
-    state.socket:close(resumable and 4000 or 1000)
+    state.socket:close(4009)
     return state
 end
 
 function DISPATCH(state, _, d, t, s)
     state._seq = s --+
+    if t == 'READY' then return READY(state, _, d, t) end
     return state.loop:wrap(state.emitter,state, t, d)
 end
 
@@ -404,14 +435,14 @@ end
 
 --- Sends a REQUEST_GUILD_MEMBERS request.
 -- @tab state The shard object.
--- @int id The guild id, this should be a encoded uint64.
+-- @int id The guild id.
 -- @treturn[1] bool true If the message was sent successfully.
 -- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
 function request_guild_members(state, id)
     return send(state, ops.REQUEST_GUILD_MEMBERS, {
-        guild_id = ("%u"):format(id),
+        guild_id = id,
         query = '',
         limit = 0,
     })
@@ -440,8 +471,8 @@ end
 -- @return[2]  An error describing what went wrong.
 function update_voice(state, guild_id, channel_id, self_mute, self_deaf)
     return send(state, ops.VOICE_STATE_UPDATE, {
-        guild_id = util.uint.tostring(guild_id),
-        channel_id = channel_id and util.uint.tostring(channel_id) or null,
+        guild_id = guild_id,
+        channel_id = channel_id and channel_id or null,
         self_mute = self_mute or false,
         self_deaf = self_deaf or false,
     })

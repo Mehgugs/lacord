@@ -145,7 +145,7 @@ end
 -- @param[opt] ... Values passed into `string.format`.
 function throw(...)
     error(...)
-    return err(f(...))
+    return err(f(...), 2)
 end
 
 --- Logs an error using `logger.error` and then exits with a non-zero exit code.
@@ -156,6 +156,15 @@ function fatal(...)
     error"Fatal error: quitting!"
     return exit(1)
 end
+
+--- Similar to lua's assert but uses logger.throw when an assertion fails.
+function assert(v, ...)
+    if v then return v 
+    else return throw(...) 
+    end
+end
+
+function ferror(...) return err(f(...), 2) end
 
 --- Logs to stdout, and the output file if set.
 -- @string str A format string.
