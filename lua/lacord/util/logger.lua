@@ -1,5 +1,3 @@
-local running = require"cqueues".running
-local signal = require"cqueues.signal"
 local insert, unpack = table.insert, table.unpack
 local f = string.format
 local date, exit = os.date, os.exit
@@ -159,8 +157,8 @@ end
 
 --- Similar to lua's assert but uses logger.throw when an assertion fails.
 function assert(v, ...)
-    if v then return v 
-    else return throw(...) 
+    if v then return v
+    else return throw(...)
     end
 end
 

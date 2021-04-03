@@ -1,10 +1,8 @@
-local lpeg = require"lpeglabel"
 local random = math.random
 local popen = io.popen
-local ipairs, select = ipairs, select
 local insert, unpack = table.insert, table.unpack
 local setmetatable = setmetatable
-local P, Cc, V, Cs, C, Ct = lpeg.P, lpeg.Cc, lpeg.V, lpeg.Cs, lpeg.C, lpeg.Ct
+
 local _ENV = {}
 
 --- Implements the iterposable interface for the given module.
@@ -51,54 +49,10 @@ function rand(A, B)
   return shift(random(), 0, 1, A, B)
 end
 
---- lpeg utilities
-
-function exactly(n, p)
-  local patt = P(p)
-  local out = patt
-  for _ = 1, n-1 do
-      out = out * patt
-  end
-  return out
-end
-
-local function truth() return true end
-
-function check(p) return  (P(p)/truth) + Cc(false) end
-
-function sepby(s, p) p = P(p) return p * (s * p)^0 end
-function endby(s, p) p = P(p) return (p * s)^1 end
-function between(b, s) s = P(s) return  b * ((s * b)^1) end
-function anywhere (p)
-  return P { p + 1 * V(1) }
-end
-
-function zipWith(f, ...) local p = f((...))
-  for _, q in ipairs{select(2, ...)} do
-      p = p * f(q)
-  end
-  return p
-end
-
-function combine(t)
-  local a = P(t[1])
-  for i = 2, #t do
-      a = a * t[i]
-  end
-  return a
-end
-
-function lazy(expr, cont)
-  return P{cont + expr * lpeg.V(1)}
-end
-
---- end of lpeg utilities
-
 local function _platform()
-  local f = popen('uname')
+  local f <close> = popen('uname')
   local res = f:read()
   if res == 'Darwin' then res = 'OSX' end
-  f:close()
   return res
 end
 
@@ -150,7 +104,8 @@ function capturable(_ENV)
   --  util.capturable(api)
   --
   --  local R = discord_api
-  --    :capture(discord_api:get_gateway_bot())
+  --    :capture()
+  --    :get_gateway_bot()
   --    :get_current_application_information()
   --  if R.success then -- ALL methods succeeded
   --    local results_list = R.result
@@ -160,8 +115,8 @@ function capturable(_ENV)
   --    local partial = R.result -- There may be partial results collected before the error, you can use this to debug.
   --    R:some_method() -- If there's been a faiure, calls like this are noop'd.
   --  end
-  function capture(s, success, value, err)
-    return setmetatable({s, success = success, result = {value}, error = err, results = results}, cpmt)
+  function capture(s)
+    return setmetatable({s, success = true, result = {}, results = results, error = false}, cpmt)
   end
 end
 

@@ -49,7 +49,8 @@ local loop = cqs.new() -- continuation queue for our shard + api.
 local output -- dispatch function
 loop:wrap(function()
     local R = discord_api
-        :capture(discord_api:get_gateway_bot())
+        :capture()
+        :get_gateway_bot()
         :get_current_application_information()
 
     if R.success then

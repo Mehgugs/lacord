@@ -1,15 +1,15 @@
 
 local _ENV = {}
-version = "1590965828"
+version = "1617477179"
 homepage = "https://github.com/Mehgugs/lacord"
 time_unit = "seconds"
 discord_epoch = 1420070400
 gateway_delay = .5
 identify_delay = 5
-api_version = 7
+api_version = 8
 
 api = {
-    base_endpoint = "https://discordapp.com/api"
+    base_endpoint = "https://discord.com/api"
    ,avatar_endpoint = "https://cdn.discordapp.com/avatars/%u/%s.%s"
    ,default_avatar_endpoint = "https://cdn.discordapp.com/embed/avatars/%s.png"
    ,emoji_endpoint = "https://cdn.discordapp.com/emojis/%s.%s"

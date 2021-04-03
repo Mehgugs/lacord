@@ -6,22 +6,17 @@ local setmetatable = setmetatable
 local tonumber = tonumber
 local type = type
 local time = os.time
-local lpeg = require"lpeglabel":locale()
 local constants = require"lacord.const"
 
 local _ENV = setmetatable({}, {__call = function(self,s) return self.touint(s) end})
 
-local function by10(n, i) i = i or 1
-    for _ = 1, i do n = (n << 4) - (n << 2) - (n << 1) end
-    return n
-end
-
-
 local function to_integer_worker(s) -- string -> uint64
     local n = 0
     local l = #s
+    local place = 1
     for i = l -1,0, -1  do
-        n = n + by10(tonumber(s:sub(i+1,i+1)), l-i-1)
+        n = n + tonumber(s:sub(i+1,i+1)) * place
+        place = place * 10
     end
     return n
 end
@@ -45,7 +40,10 @@ local function lnum_to_uint(l)
     end
 end
 
-local numeral = lpeg.digit^1 * -1
+local function numeral(str)
+    local s, e = str:find('%d+', 1)
+    return s == 1 and e == #str
+end
 
 --- Converts a number or string into an encoded uint64.
 -- @tparam number|string s
@@ -53,7 +51,7 @@ local numeral = lpeg.digit^1 * -1
 -- @treturn[2] nil
 function touint(s)
     if type(s) == 'number' then return lnum_to_uint(s)
-    elseif type(s) == 'string' and numeral:match(s) then
+    elseif type(s) == 'string' and numeral(s) then
         return to_integer_worker(s)
     end
 end
@@ -75,7 +73,7 @@ local function udiv (n, d)
 end
 
 do
-    local fnv_basis = touint"14695981039346656037"
+    local fnv_basis = -3750763034362895579
     local fnv_prime = 1099511628211
     --- Computes the FNV-1a 64bit hash of the given string.
     -- @str str The input string.

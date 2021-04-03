@@ -42,7 +42,6 @@ local new_headers = require "http.headers".new
 local http_request = require "http.request"
 local max = math.max
 
-local MAX_RA_TRIES = 10 -- Maximum read_again retries.
 local used_tries = 0
 
 local EOF = lpeg.P(-1)
