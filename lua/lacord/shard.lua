@@ -33,10 +33,12 @@ local null = json.null
 local min, max = math.min, math.max
 local monotime = cqueues.monotime
 
-local _ENV = util.interposable{}
+local _ENV = {}
 
-__index = _ENV
-__name = "lacord.shard"
+local shard = {__name = "lacord.shard"}
+
+shard.__index = shard
+
 
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
 local GATEWAY_DELAY = constants.gateway.delay
@@ -76,7 +78,7 @@ function init(options, idmutex)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
     end
-    local state = setmetatable({options = load_options({intents = intents.normal}, options)}, _ENV)
+    local state = setmetatable({options = load_options({intents = intents.normal}, options)}, shard)
 
     state.shard_mutex = mutex() --+
     state.identify_mutex = idmutex
@@ -103,38 +105,38 @@ end
 -- This can be called in method form `s:connect()`.
 -- This function is asynchronous and should be run inside a continuation queue. (usually state.loop)
 -- @tab state The shard object.
-function connect(state)
+function shard:connect()
     -- step 1: get a gateway url.
     local final_url
-    if type(state.options.gateway) == 'function' then
-        logger.info("%s is regenerating gateway url.", state)
-        final_url = state.options.gateway(state) .. '?' .. state.url_options
+    if type(self.options.gateway) == 'function' then
+        logger.info("%s is regenerating gateway url.", self)
+        final_url = self.options.gateway(self) .. '?' .. self.url_options
     else
-        final_url = state.options.gateway .. '?' .. state.url_options
+        final_url = self.options.gateway .. '?' .. self.url_options
     end
 
     -- step 2: connect
-    logger.info("%s is connecting to $white;%s", state, final_url)
-    state.socket = websocket.new_from_uri(final_url)
+    logger.info("%s is connecting to $white;%s", self, final_url)
+    self.socket = websocket.new_from_uri(final_url)
     logger.info("Using user-agent: $white;%s", USER_AGENT)
-    state.socket.request.headers:upsert("user-agent", USER_AGENT)
+    self.socket.request.headers:upsert("user-agent", USER_AGENT)
 
-    local success, str, err = state.socket:connect(3)
+    local success, str, err = self.socket:connect(3)
 
     if not success then
-        logger.error("%s had an error while connecting (%s - %q, %q)", state, errno[err], errno.strerror(err), str or "")
-        return state, false
+        logger.error("%s had an error while connecting (%s - %q, %q)", self, errno[err], errno.strerror(err), str or "")
+        return self, false
     else
-        logger.info("%s has connected.", state)
-        state.connected = true
-        state.begin = monotime()
-        if state.options.transport_compression then
-            state.transport_infl = zlib.inflate()
-            state.transport_buffer = {}
+        logger.info("%s has connected.", self)
+        self.connected = true
+        self.begin = monotime()
+        if self.options.transport_compression then
+            self.transport_infl = zlib.inflate()
+            self.transport_buffer = {}
         end
         -- step 3: start receiving messages.
-        state.loop:wrap(messages, state)
-        return state, true
+        self.loop:wrap(messages, self)
+        return self, true
     end
 end
 
@@ -176,12 +178,12 @@ end
 -- @str[opt="requested"] why The disconnect reason.
 -- @int[opt=4009] code The disconnect code.
 -- @treturn table The shard object.
-function disconnect(state, why, code)
+function shard:disconnect(why, code)
     -- reset our session if we're not requesting a restart.
     code = code or 4009
-    if code ~= 1012 and code < 4000 then state.session_id = nil end
-    state.socket:close(code, why or 'requested')
-    return state
+    if code ~= 1012 and code < 4000 then self.session_id = nil end
+    self.socket:close(code, why or 'requested')
+    return self
 end
 
 --- This will terminate the shard's connection, clearing any reconnection flags and then disconnecting.
@@ -189,15 +191,15 @@ end
 -- @tab state The shard object.
 -- @param[opt] ... Arguments to `disconnect`.
 -- @treturn table The shard object.
-function shutdown(state, ...)
-    state.options.auto_reconnect = nil
-    state.do_reconnect = nil
-    return disconnect(state, ...)
+function shard:shutdown(...)
+    self.options.auto_reconnect = nil
+    self.do_reconnect = nil
+    return self:disconnect(...)
 end
 
-function restart(state, why)
-    logger.info("%s is requesting a restart.", state)
-    return disconnect(state, why)
+function shard:restart(why)
+    logger.info("%s is requesting a restart.", self)
+    return self:disconnect(why)
 end
 
 function read_message(state, message, op)
@@ -267,13 +269,12 @@ function messages(state)
             local payload, cont = read_message(state, message, op)
             if cont then goto continue end
             if payload then
-                --if DEBUG then logger.info("$debug;%s", require"pl.pretty".write(payload)) end
                 local dop = ops[payload.op]
                 if _ENV[dop] then
                     _ENV[dop](state, payload.op, payload.d, payload.t, payload.s)
                 end
             else
-                disconnect(state, 4000, 'could not decode payload')
+                state:disconnect(4000, 'could not decode payload')
             break end
         elseif success and message == nil then
             err = op
@@ -332,51 +333,51 @@ function messages(state)
     end
 end
 
-function HELLO(state, _, d)
-    logger.info("discord said hello to %s.", state)
-    start_heartbeat(state, d.heartbeat_interval/1e3)
-    if state.session_id then
-        return resume(state)
+function shard:HELLO(_, d)
+    logger.info("discord said hello to %s.", self)
+    start_heartbeat(self, d.heartbeat_interval/1e3)
+    if self.session_id then
+        return resume(self)
     else
-        return identify(state)
+        return identify(self)
     end
 end
 
-function READY(state, _, d, t)
-    logger.info("%s is ready.", state)
-    state.session_id = d.session_id
-    state.loop:wrap(state.emitter,state, t, d)
+function shard:READY(_, d, t)
+    logger.info("%s is ready.", self)
+    self.session_id = d.session_id
+    self.loop:wrap(self.emitter,self, t, d)
 end
 
-function RESUMED(state, _, d, t)
-    logger.info("%s has resumed.", state)
-    state.loop:wrap(state.emitter,state, t, d)
+function shard:RESUMED(_, d, t)
+    logger.info("%s has resumed.", self)
+    self.loop:wrap(self.emitter,self, t, d)
 end
 
-function HEARTBEAT(state)
-    send( state, ops.HEARTBEAT, state._seq or json.null)
+function shard:HEARTBEAT()
+    send( self, ops.HEARTBEAT, self._seq or json.null)
 end
 
-function INVALID_SESSION(state, _, d)
-    logger.warn("%s has an invalid session, resumable=%q.", state, d and "true" or "false")
-    if not d then state.session_id = nil end
-    state.loop:wrap(state.emitter, state, 'INVALID_SESSION', d)
-    return reconnect(state, not not d)
+function shard:INVALID_SESSION(_, d)
+    logger.warn("%s has an invalid session, resumable=%q.", self, d and "true" or "false")
+    if not d then self.session_id = nil end
+    self.loop:wrap(self.emitter, self, 'INVALID_SESSION', d)
+    return reconnect(self, not not d)
 end
 
-function HEARTBEAT_ACK(state)
-    state.beats = state.beats -1
-    if state.beats < 0 then
-        logger.warn("%s is missing heartbeat acknowledgement! (deficit=%s)", state, -state.beats)
+function shard:HEARTBEAT_ACK()
+    self.beats = self.beats -1
+    if self.beats < 0 then
+        logger.warn("%s is missing heartbeat acknowledgement! (deficit=%s)", self, -self.beats)
     end
-    winddown(state)
-    state.loop:wrap(state.emitter, state, "HEARTBEAT", state.beats)
-    return state
+    winddown(self)
+    self.loop:wrap(self.emitter, self, "HEARTBEAT", self.beats)
+    return self
 end
 
-function RECONNECT(state)
-    logger.warn("%s has received a reconnect request from discord.", state)
-    return reconnect(state)
+function shard:RECONNECT()
+    logger.warn("%s has received a reconnect request from discord.", self)
+    return reconnect(self)
 end
 
 function reconnect(state)
@@ -386,10 +387,10 @@ function reconnect(state)
     return state
 end
 
-function DISPATCH(state, _, d, t, s)
-    state._seq = s --+
-    if t == 'READY' then return READY(state, _, d, t) end
-    return state.loop:wrap(state.emitter,state, t, d)
+function shard:DISPATCH(_, d, t, s)
+    self._seq = s --+
+    if t == 'READY' then return self:READY(_, d, t) end
+    return self.loop:wrap(self.emitter,self, t, d)
 end
 
 local function await_ready(state)
@@ -399,17 +400,17 @@ local function await_ready(state)
     return state.identify_mutex:unlock()
 end
 
-function identify(state)
-    state.identify_mutex:lock()
+function identify(self)
+    self.identify_mutex:lock()
 
 
-    state.loop:wrap(await_ready, state)
+    self.loop:wrap(await_ready, self)
 
-    state._seq = nil ---
-    state.session_id = nil
-    logger.info("%s has intents: %0#x", state, state.options.intents)
-    return send(state, ops.IDENTIFY, {
-        token = state.options.token,
+    self._seq = nil ---
+    self.session_id = nil
+    logger.info("%s has intents: %0#x", self, self.options.intents)
+    return send(self, ops.IDENTIFY, {
+        token = self.options.token,
         properties = {
             ['$os'] = util.platform,
             ['$browser'] = 'lacord',
@@ -417,19 +418,19 @@ function identify(state)
             ['$referrer'] = '',
             ['$referring_domain'] = '',
         },
-        compress = state.options.compress,
-        large_threshold = state.options.large_threshold,
-        shard = {state.options.id, state.options.total_shard_count},
-        presence = state.options.presence,
-        intents = state.options.intents
+        compress = self.options.compress,
+        large_threshold = self.options.large_threshold,
+        shard = {self.options.id, self.options.total_shard_count},
+        presence = self.options.presence,
+        intents = self.options.intents
     }, true)
 end
 
-function resume(state)
-    return send(state, ops.RESUME, {
-        token = state.options.token,
-        session_id = state.session_id,
-        seq = state._seq
+function resume(self)
+    return send(self, ops.RESUME, {
+        token = self.options.token,
+        session_id = self.session_id,
+        seq = self._seq
     })
 end
 
@@ -440,8 +441,8 @@ end
 -- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
-function request_guild_members(state, id)
-    return send(state, ops.REQUEST_GUILD_MEMBERS, {
+function shard:request_guild_members(id)
+    return send(self, ops.REQUEST_GUILD_MEMBERS, {
         guild_id = id,
         query = '',
         limit = 0,
@@ -455,8 +456,8 @@ end
 -- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
-function update_status(state, presence)
-    return send(state, ops.STATUS_UPDATE, presence)
+function shard:update_status(presence)
+    return send(self, ops.STATUS_UPDATE, presence)
 end
 
 --- Sends a VOICE_STATE_UPDATE request.
@@ -469,8 +470,8 @@ end
 -- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
-function update_voice(state, guild_id, channel_id, self_mute, self_deaf)
-    return send(state, ops.VOICE_STATE_UPDATE, {
+function shard:update_voice(guild_id, channel_id, self_mute, self_deaf)
+    return send(self, ops.VOICE_STATE_UPDATE, {
         guild_id = guild_id,
         channel_id = channel_id and channel_id or null,
         self_mute = self_mute or false,

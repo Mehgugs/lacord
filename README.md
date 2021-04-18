@@ -24,25 +24,9 @@ local util = require"lacord.util"
 local mutex = require"lacord.util.mutex"
 
 logger.mode(8) -- nice colours!
-util.capturable(api) -- makes running a series of api requests that depend on each other easier
-
--- good error handling
-local old_wrap do
-    local traceback = debug.traceback
-    old_wrap = cqs.interpose('wrap', function(self, ...)
-        return old_wrap(self, function(fn, ...)
-            local s, e = xpcall(fn, traceback, ...)
-            if not s then
-                logger.error(e)
-            end
-        end, ...)
-    end)
-end
 
 local discord_api = api.init{
      token = "Bot "..os.getenv"TOKEN"
-    ,precision = "millisecond"
-    ,accept_encoding = true
 }
 
 local loop = cqs.new() -- continuation queue for our shard + api.

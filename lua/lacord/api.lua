@@ -30,28 +30,29 @@ local xpcall = xpcall
 local traceback = debug.traceback
 local type = type
 local ipairs, pairs = ipairs, pairs
-local ulen = utf8.len
 local _VERSION = _VERSION
 local decode = json.decode
 local set = rawset
 
-local _ENV = util.interposable{}
+local _ENV = {}
 
-__index = _ENV
-__name = "lacord.api"
+local api = {__name = "lacord.api"}
+api.__index = api
+
 
 --- The api URL the client uses connect.
 -- @string URL
 -- @within Constants
-URL = constants.api.endpoint
+local URL = constants.api.endpoint
+_ENV.URL = URL
 
 --- The user-agent used to connect with. (mandated by discord)
 -- @string USER_AGENT
 -- @within Constants
-USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, _VERSION )
+local USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, _VERSION )
+_ENV.USER_AGENT = USER_AGENT
 
-
-GLOBAL_LOCK = mutex()
+local GLOBAL_LOCK = mutex()
 
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))
 local BOUNDARY2 = "--" .. BOUNDARY1
@@ -126,7 +127,7 @@ end
 -- @tab options The options table. Must contain a `token` field with the api token to use.
 -- @treturn api The api state object.
 function init(options)
-    local state = setmetatable({}, _ENV)
+    local state = setmetatable({}, api)
     local auth
     if options.client_credentials then
         auth = "Basic " .. base64(("%s:%s"):format(options.client_credentials[1], options.client_credentials[2]))
@@ -142,7 +143,6 @@ function init(options)
     state.track_rates = options.track_ratelimits
     state.use_legacy = options.legacy_ratelimits
     state.route_delay = options.route_delay and min(options.route_delay, 0) or 1
-    state.http_version = options.http_version
     state.api_timeout = tonumber(options.api_timeout)
     state.loud = not options.quiet
     if not not options.accept_encoding then
@@ -198,7 +198,7 @@ local push
 -- @treturn boolean Whether the request succeeded.
 -- @treturn table The decoded JSON data returned by discord.
 -- @return An error if the request did not succeed.
-function request(state,
+function api.request(state,
     name, -- function name
     method, -- http method
     endpoint, -- uninterpolated endpoint
@@ -211,26 +211,28 @@ function request(state,
     if not cqueues.running() then
         return logger.fatal("Please call REST methods asynchronously.")
     end
+    -- resolved ep is the endpoint with its :route_params substituted
     local resolved_ep = resolve_endpoint(endpoint, route_parameters)
     local url = URL .. resolved_ep
+
     if query and next(query) then
         url = ("%s?%s"):format(url, httputil.dict_to_query(mapquery(query)))
     end
+
     url = httputil.encodeURI(url)
     local req = newreq.new_from_uri(url)
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
     req.headers:append("authorization", state.token)
+
     if state.accept_encoding then
         req.headers:append("accept-encoding", state.accept_encoding)
     end
-    if state.http_version then
-        req.version = state.http_version
-    end
+
     if with_payload[method] then
         local mt = getmetatable(payload)
         local content_type
-        if mt and mt.__lacord_content_type then
+        if mt and mt.__lacord_content_type then -- this can be implemented in order to send user-defined objects to discord in multi part uploads
             payload = mt.__lacord_payload(payload)
             content_type = mt.__lacord_content_type
         else
@@ -401,45 +403,210 @@ end
 -- @usage
 --  api.get_channel(state, id)
 
+local request = api.request
+
 local empty_route = {}
-function get_current_application_information(state)
-    return request(state, 'get_current_application_information', 'GET', '/oauth2/applications/@me', empty_route)
+function api:get_current_application_information()
+    return request(self, 'get_current_application_information', 'GET', '/oauth2/applications/@me', empty_route)
 end
 
-function get_gateway_bot(state)
-    return request(state, 'get_gateway_bot', 'GET', '/gateway/bot', empty_route)
+function api:get_gateway_bot()
+    return request(self, 'get_gateway_bot', 'GET', '/gateway/bot', empty_route)
 end
 
-function create_message(state, channel_id, payload, files)
-    return request(state, 'create_message', 'POST', '/channels/:channel_id/messages', {
+function api:get_channel(channel_id)
+    return request(self, 'get_channel', 'GET', '/channels/:channel_id', {channel_id = channel_id})
+end
+
+function api:modify_channel(channel_id, payload)
+    return request(self, 'modify_channel', 'PATCH', '/channels/:channel_id', {channel_id = channel_id}, payload)
+end
+
+function api:delete_channel(channel_id)
+    return request(self, 'delete_channel', 'DELETE', '/channels/:channel_id', {channel_id = channel_id})
+end
+
+function api:get_channel_messages(channel_id, query)
+    return request(self, 'get_channel_messages', 'GET', '/channels/:channel_id/messages',
+        {channel_id = channel_id},
+        nil, query)
+end
+
+function api:get_channel_message(channel_id, message_id)
+    return request(self, 'get_channel_message', 'GET', '/channels/:channel_id/messages/:message_id',
+        {channel_id = channel_id, message_id = message_id})
+end
+
+function api:create_message(channel_id, payload, files)
+    return request(self, 'create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
     }, payload, nil, files)
 end
 
-function create_message_with_txt(state, channel_id, payload, files)
-    return request(state, 'create_message', 'POST', '/channels/:channel_id/messages', {
+function api:create_message_with_txt(channel_id, payload, files)
+    return request(self, 'create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
     }, payload, nil, files, true)
 end
 
-function delete_message(state, channel_id, message_id)
-    return request(state, 'delete_message', 'DELETE', '/channels/:channel_id/messages/:message_id', {
+function api:crosspost_message(channel_id, message_id)
+    return request(self, 'crosspost_message', 'POST', '/channels/:channel_id/messages/:message_id/crosspost',
+        {channel_id = channel_id, message_id = message_id})
+end
+
+function api:create_reaction(channel_id, message_id, emoji)
+    return request(self, 'create_reaction', 'PUT', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
+    {channel_id = channel_id, message_id = message_id, emoji = emoji})
+end
+
+function api:delete_own_reaction(channel_id, message_id, emoji)
+    return request(self, 'delete_own_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
+    {channel_id = channel_id, message_id = message_id, emoji = emoji})
+end
+
+function api:delete_user_reaction(channel_id, message_id, emoji, user_id)
+    return request(self, 'delete_user_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/:user_id',
+    {channel_id = channel_id, message_id = message_id, emoji = emoji, user_id = user_id})
+end
+
+function api:get_reactions(channel_id, message_id, emoji)
+    return request(self, 'get_reactions', 'GET', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
+    {channel_id = channel_id, message_id = message_id, emoji = emoji})
+end
+
+function api:delete_all_reactions(channel_id, message_id)
+    return request(self, 'delete_all_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions',
+    {channel_id = channel_id, message_id = message_id})
+end
+
+function api:delete_reactions(channel_id, message_id, emoji)
+    return request(self, 'delete_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
+    {channel_id = channel_id, message_id = message_id, emoji = emoji})
+end
+
+function api:edit_message(channel_id, message_id, edits)
+    return request(self, 'edit_message', 'PATCH', '/channels/:channel_id/messages/:message_id', {
+        channel_id = channel_id,
+        message_id = message_id
+    }, edits)
+end
+
+function api:delete_message(channel_id, message_id)
+    return request(self, 'delete_message', 'DELETE', '/channels/:channel_id/messages/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     })
 end
 
-function get_pinned_messages(state, channel_id)
-    return request(state, 'get_pinned_messages', 'GET', '/channels/:channel_id/pins', {
+function api:bulk_delete_messages(channel_id, query)
+    return request(self, 'bulk_delete_messages', 'DELETE', '/channels/:channel_id/messages/bulk-delete', {
+        channel_id = channel_id
+    }, nil, query)
+end
+
+function api:edit_channel_permissions(channel_id, overwrite_id, edits)
+    return request(self, 'edit_channel_permissions', 'PUT', '/channels/:channel_id/permissions/:overwrite_id', {
+        channel_id = channel_id, overwrite_id = overwrite_id
+    }, edits)
+end
+
+function api:delete_channel_permissions(channel_id, overwrite_id)
+    return request(self, 'delete_channel_permissions', 'DELETE', '/channels/:channel_id/permissions/:overwrite_id', {
+        channel_id = channel_id, overwrite_id = overwrite_id
+    })
+end
+
+function api:get_channel_invites(channel_id)
+    return request(self, 'get_channel_invites', 'GET', '/channels/:channel_id/invites', {
         channel_id = channel_id
     })
 end
 
-function delete_pinned_channel_message(state, channel_id, message_id)
-    return request(state, 'get_pinned_messages', 'DELETE', '/channels/:channel_id/pins/:message_id', {
+function api:create_channel_invite(channel_id, invite)
+    return request(self, 'create_channel_invite', 'POST', '/channels/:channel_id/invites', {
+        channel_id = channel_id
+    }, invite)
+end
+
+function api:follow_channel(channel_id, follower)
+    return request(self, 'follow_channel', 'POST', '/channels/:channel_id/followers', {
+        channel_id = channel_id
+    }, follower)
+end
+
+function api:trigger_typing_indicator(channel_id)
+    return request(self, 'trigger_typing_indicator', 'POST', '/channels/:channel_id/typing', {
+        channel_id = channel_id
+    })
+end
+
+function api:add_pinned_channel_message(channel_id, message_id)
+    return request(self, 'add_pinned_channel_message', 'PUT', '/channels/:channel_id/pins/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     })
+end
+
+function api:get_pinned_messages(channel_id)
+    return request(self, 'get_pinned_messages', 'GET', '/channels/:channel_id/pins', {
+        channel_id = channel_id
+    })
+end
+
+function api:delete_pinned_channel_message(channel_id, message_id)
+    return request(self, 'get_pinned_messages', 'DELETE', '/channels/:channel_id/pins/:message_id', {
+        channel_id = channel_id,
+        message_id = message_id
+    })
+end
+
+-- safe method chaining --
+
+local cpmt = {}
+
+local function results(self)
+    return unpack(self.result)
+end
+
+local function failure(self)
+    return self
+end
+
+function cpmt:__index(k)
+  if self.success then
+    local function method(this, ...)
+      local s, v, e = api[k](this[1], ...)
+      this.success = s
+      insert(this.result, v)
+      this.error = e or this.error
+      return this
+    end
+    self[k] = method
+    return method
+  else
+    return failure
+  end
+end
+
+--- Creates a method chain.
+-- @treturn table The capture object.
+-- @usage
+--  local api = require"lacord.api"
+--  local discord_api = api.init{blah}
+--  local R = discord_api
+--    :capture()
+--    :get_gateway_bot()
+--    :get_current_application_information()
+--  if R.success then -- ALL methods succeeded
+--    local results_list = R.result
+--    local A, B, C = R:results()
+--  else
+--    local why = R.error
+--    local partial = R.result -- There may be partial results collected before the error, you can use this to debug.
+--    R:some_method() -- If there's been a faiure, calls like this are noop'd.
+--  end
+function api:capture()
+  return setmetatable({self, success = true, result = {}, results = results, error = false}, cpmt)
 end
 
 return _ENV
