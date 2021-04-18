@@ -9,6 +9,7 @@ local reason = require"http.h1_reason_phrases"
 local httputil = require "http.util"
 local zlib = require"http.zlib"
 local json = require"cjson"
+local base64 = require"basexx".to_base64
 local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local Date = require"lacord.util.date".Date
@@ -29,6 +30,7 @@ local xpcall = xpcall
 local traceback = debug.traceback
 local type = type
 local ipairs, pairs = ipairs, pairs
+local ulen = utf8.len
 local _VERSION = _VERSION
 local decode = json.decode
 local set = rawset
@@ -76,21 +78,29 @@ local function mutex_cache(token)
     }))[token]
 end
 
-local function attachFiles(payload, files)
+local function attachContent(payload, files, ct, inner_ct)
     local ret = {
         BOUNDARY2,
         "Content-Disposition:form-data;name=\"payload_json\"",
-        "Content-Type:application/json\r\n",
+        ("Content-Type:%s\r\n"):format(ct),
         payload,
     }
     for i, v in ipairs(files) do
         insert(ret, BOUNDARY2)
         insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, v[1]))
-        insert(ret, "Content-Type:application/octet-stream\r\n")
+        insert(ret, ("Content-Type:%s\r\n"):format(inner_ct))
         insert(ret, v[2])
     end
     insert(ret, BOUNDARY3)
     return concat(ret, "\r\n")
+end
+
+local function attachFiles (payload, files, ct)
+    return attachContent(payload, files, ct, "application/octet-stream")
+end
+
+local function attachTextFiles(payload, files, ct)
+    return attachContent(payload, files, ct, "text/plain")
 end
 
 local function resolve_endpoint(ep, rp)
@@ -107,6 +117,7 @@ local function resolve_majors(ep, rp)
     end
     if ep:find('/webhooks/', 1, true) then
         insert(mp, rp.webhook_id)
+        insert(mp, rp.webhook_token)
     end
     return #mp == 0 and '' or concat(mp, ".")
 end
@@ -116,11 +127,16 @@ end
 -- @treturn api The api state object.
 function init(options)
     local state = setmetatable({}, _ENV)
-    if not (options.token and options.token:sub(1,4) == "Bot ") then
-        return logger.fatal("Please supply a bot token! It must start with $white;'Bot '$error;.")
+    local auth
+    if options.client_credentials then
+        auth = "Basic " .. base64(("%s:%s"):format(options.client_credentials[1], options.client_credentials[2]))
+    elseif options.token and options.token:sub(1,4) == "Bot " or options.token:sub(1,7) == "Bearer " then
+        auth = options.token
+    else
+        return logger.fatal("Please supply a token! It must start with $white;'Bot|Bearer '$error;.")
     end
-    state.token = options.token
-    state.routex = mutex_cache(state.token)
+    state.token = auth
+    state.routex = mutex_cache(auth)
     state.global_lock = GLOBAL_LOCK
     state.rates = {}
     state.track_rates = options.track_ratelimits
@@ -128,12 +144,17 @@ function init(options)
     state.route_delay = options.route_delay and min(options.route_delay, 0) or 1
     state.http_version = options.http_version
     state.api_timeout = tonumber(options.api_timeout)
+    state.loud = not options.quiet
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, x-gzip"
-        logger.info("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
+        if state.loud then
+            logger.info("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
+        end
     end
 
-    logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.token))
+    if state.loud then
+        logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.token))
+    end
     return state
 end
 
@@ -184,7 +205,8 @@ function request(state,
     route_parameters, -- a table of route parameters
     payload, -- a json payload
     query, -- a query string
-    files -- a list of files
+    files, -- a list of files
+    asText -- should it be text files or binary?
 )
     if not cqueues.running() then
         return logger.fatal("Please call REST methods asynchronously.")
@@ -206,12 +228,20 @@ function request(state,
         req.version = state.http_version
     end
     if with_payload[method] then
-        payload = payload and json.encode(payload) or '{}'
+        local mt = getmetatable(payload)
+        local content_type
+        if mt and mt.__lacord_content_type then
+            payload = mt.__lacord_payload(payload)
+            content_type = mt.__lacord_content_type
+        else
+            payload = payload and json.encode(payload) or '{}'
+            content_type = JSON
+        end
         if files and next(files) then
-            payload = attachFiles(payload, files)
+            payload = (asText and attachTextFiles or attachFiles)(payload, files, content_type)
             req.headers:append('content-type', MULTIPART)
         else
-            req.headers:append('content-type', JSON)
+            req.headers:append('content-type', content_type)
         end
         req.headers:append("content-length", #payload)
         req:set_body(payload)
@@ -386,6 +416,12 @@ function create_message(state, channel_id, payload, files)
     }, payload, nil, files)
 end
 
+function create_message_with_txt(state, channel_id, payload, files)
+    return request(state, 'create_message', 'POST', '/channels/:channel_id/messages', {
+        channel_id = channel_id
+    }, payload, nil, files, true)
+end
+
 function delete_message(state, channel_id, message_id)
     return request(state, 'delete_message', 'DELETE', '/channels/:channel_id/messages/:message_id', {
         channel_id = channel_id,
@@ -405,6 +441,5 @@ function delete_pinned_channel_message(state, channel_id, message_id)
         message_id = message_id
     })
 end
-
 
 return _ENV
