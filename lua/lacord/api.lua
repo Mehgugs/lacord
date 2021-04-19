@@ -23,6 +23,7 @@ local time = os.time
 local insert, concat = table.insert, table.concat
 local next, tonumber = next, tonumber
 local setmetatable = setmetatable
+local getmetatable = getmetatable
 local max = math.max
 local min = math.min
 local modf = math.modf
