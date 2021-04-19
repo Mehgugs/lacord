@@ -1,6 +1,6 @@
 
 local _ENV = {}
-version = "1617477179"
+version = "1618833413"
 homepage = "https://github.com/Mehgugs/lacord"
 time_unit = "seconds"
 discord_epoch = 1420070400
@@ -10,11 +10,11 @@ api_version = 8
 
 api = {
     base_endpoint = "https://discord.com/api"
-   ,avatar_endpoint = "https://cdn.discordapp.com/avatars/%u/%s.%s"
-   ,default_avatar_endpoint = "https://cdn.discordapp.com/embed/avatars/%s.png"
-   ,emoji_endpoint = "https://cdn.discordapp.com/emojis/%s.%s"
-   ,icon_endpoint = "https://cdn.discordapp.com/icons/%s/%s.png"
-   ,splash_endpoint = "https://cdn.discordapp.com/splashs/%s/%s.png"
+   ,avatar_endpoint = "https://cdn.discordapp.com/avatars"
+   ,default_avatar_endpoint = "https://cdn.discordapp.com/embed/avatars"
+   ,emoji_endpoint = "https://cdn.discordapp.com/emojis"
+   ,icon_endpoint = "https://cdn.discordapp.com/icons"
+   ,splash_endpoint = "https://cdn.discordapp.com/splashs"
    ,version = api_version
    ,max_retries = 6
 }
