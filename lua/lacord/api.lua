@@ -273,11 +273,11 @@ function api.request(state,
     local major_params = resolve_majors(endpoint, route_parameters)
     if state.global_lock.inuse then state.global_lock.polldfd:wait() end
 
-    local initial, bucket = get_routex(state.routex, method .. major_params .. name)
+    local initial, bucket = get_routex(state.routex,  major_params .. name)
 
     initial:lock()
 
-    local success, data, err, delay, global = xpcall(push, traceback, state, name, req, method, major_params, 0)
+    local success, data, err, delay, global = xpcall(push, traceback, state, name, req, major_params, 0)
     if not success then
         return logger.fatal("api.push failed %q", tostring(data))
     end
@@ -297,10 +297,10 @@ function api.request(state,
     return not err, data, err
 end
 
-function push(state, name, req, method, major_params, retries)
+function push(state, name, req, major_params, retries)
     local delay = state.route_delay -- seconds
     local global = false -- whether the delay incurred is on the global limit
-    local ID = method..major_params .. name
+    local ID = major_params .. name
     local headers , stream , eno = req:go(state.api_timeout or 60)
 
     if not headers and retries < constants.api.max_retries then
@@ -309,7 +309,7 @@ function push(state, name, req, method, major_params, retries)
             state, ID, tostring(stream), errno[eno], errno.strerror(eno), rsec
         )
         cqueues.sleep(rsec)
-        return push(state, name, req, method,major_params, retries+1)
+        return push(state, name, req,major_params, retries+1)
     elseif not headers and retries >= constants.api.max_retries then
         return nil, errno.strerror(eno), delay, global
     end
@@ -352,10 +352,6 @@ function push(state, name, req, method, major_params, retries)
             }
         end
         if state.routex[ID] ~= bucket then
-            logger.info("%s grouping route $white;%q$info; into bucket $white;%s$info;.",
-                state,
-                ID,
-                route_id)
             local routex = state.routex[bucket]
             routex.inuse = true
             state.routex[ID] = bucket
@@ -395,7 +391,7 @@ function push(state, name, req, method, major_params, retries)
                 logger.warn("(%i, %q) :  retrying after %fsec : %s", code, reason[rawcode], delay, ID)
                 if global then state.global_lock:unlock_after(delay) end
                 cqueues.sleep(delay)
-                return push(state, name, req, method, major_params, retries+1)
+                return push(state, name, req, major_params, retries+1)
             end
 
             local msg
