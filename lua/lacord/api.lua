@@ -624,6 +624,10 @@ function api:get_guild_preview(guild_id)
     })
 end
 
+function api:create_guild(payload)
+    return request(self, 'create_guild', 'POST', '/guilds', empty_route, payload)
+end
+
 function api:modify_guild(guild_id, edits)
     return request(self, 'modify_guild', 'PATCH', '/guilds/:guild_id/', {
         guild_id = guild_id
