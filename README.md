@@ -15,70 +15,59 @@ This library will remain mostly static. I plan to trim back the `lacord.util.*` 
 
 ## Example
 
+This example sends lines inputed at the terminal to discord over a supplied webhook.
+
+For examples using the gateway see my other project [lacord-client](https://github.com/Mehgugs/lacord-client).
+
 ```lua
-local cqs = require"cqueues"
 local api = require"lacord.api"
-local shard = require"lacord.shard"
+local cqs = require"cqueues"
+local errno = require"cqueues.errno"
+local thread = require"cqueues.thread"
 local logger = require"lacord.util.logger"
-local util = require"lacord.util"
-local mutex = require"lacord.util.mutex"
+local webhook = os.getenv"WEBHOOK"
 
-logger.mode(8) -- nice colours!
+local webhook_id, webhook_token = webhook:match"^(.+):(.+)$"
 
-local discord_api = api.init{
-     token = "Bot "..os.getenv"TOKEN"
-}
+local loop = cqs.new()
 
-local loop = cqs.new() -- continuation queue for our shard + api.
-local output -- dispatch function
-loop:wrap(function()
-    local R = discord_api
-        :capture()
-        :get_gateway_bot()
-        :get_current_application_information()
+local function starts(s, prefix)
+    return s:sub(1, #prefix) == prefix
+end
 
-    if R.success then
-        local gateway, app = R:results()
-        output = output(app)
-        local limit = gateway.session_start_limit
-        if limit then
-            logger.info("TOKEN-%s has used %d/%d sessions.",
-                util.hash(discord_api.token),
-                limit.total - limit.remaining,
-                limit.total)
-        else
-            util.fatal("Failed to retrieve valid information from GET /gateway/bot $white;%s$error;", write(data))
-        end
-        if limit.remaining > 0 then
-            local s = shard.init({
-                token = discord_api.token
-               ,id = 0
-               ,gateway = gateway.url
-               ,compress = false
-               ,transport_compression = true
-               ,total_shard_count = 1
-               ,large_threshold = 100
-               ,auto_reconnect = true
-               ,loop = cqs.running()
-               ,output = output
-           }, mutex.new())
-           s:connect()
-        end
-    else
-        logger.error(R.error)
+local function suffix(s, pre)
+    local len = #pre
+    return s:sub(1, len) == pre and s:sub(len + 1) or s
+end
+
+local thr, con = thread.start(function(con)
+    print"Write messages to send over the webhook here!"
+    for input in io.stdin:lines() do
+        if input == ":quit" then break end
+        con:write(input, "\n")
     end
 end)
 
-function output(app)
-    return function(_, event, data)
-        logger.info("received %s", event)
-        if event == 'MESSAGE_CREATE' and data.content == "!ping" then
-            for i = 1, 10 do
-                discord_api:create_message(data.channel_id, {content = "pong!"..i})
+loop:wrap(function()
+    local username = "lacord webhook example"
+    for line in con:lines() do
+        if starts(line, ":") then
+            if starts(line, ":username ") then
+                username = suffix(line, ":username ")
             end
+        else
+            local success = api.static:execute_webhook(webhook_id, webhook_token, {
+                content = line,
+                username = username,
+            })
+            if not success then io.stdin:write":quit" break end
         end
     end
-end
 
-loop:loop()
+    local ok, why = thr:join()
+
+    if not ok then logger.error("error in reader thread (%s, %q)", why, errno.strerror(why)) end
+end)
+
+assert(loop:loop())
 ```
