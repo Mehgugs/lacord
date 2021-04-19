@@ -158,6 +158,26 @@ function init(options)
     return state
 end
 
+local static_api, static_methods = setmetatable({}, api), {} do
+    static_api.routex = mutex_cache'static_api'
+    static_api.global_lock = GLOBAL_LOCK
+    static_api.rates = {}
+    static_api.track_rates = false
+    static_api.use_legacy = false
+    static_api.route_delay = 1
+    static_api.api_timeout = 60
+    static_api.accept_encoding = "gzip, deflate, x-gzip"
+
+    function static_api:request(name, ...)
+        if not static_methods[name] then return error(("requesting %s requires authentication!"):format(name))
+        else
+            return api.request(self, ...)
+        end
+    end
+end
+
+local function static(name) static_methods[name] = true end
+
 local function mapquery(Q)
     local out = {}
     for i, v in pairs(Q) do out[i] = tostring(v) end
@@ -223,7 +243,7 @@ function api.request(state,
     local req = newreq.new_from_uri(url)
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
-    req.headers:append("authorization", state.token)
+    if state.token then req.headers:append("authorization", state.token) end
 
     if state.accept_encoding then
         req.headers:append("accept-encoding", state.accept_encoding)
@@ -408,6 +428,10 @@ local request = api.request
 local empty_route = {}
 function api:get_current_application_information()
     return request(self, 'get_current_application_information', 'GET', '/oauth2/applications/@me', empty_route)
+end
+
+function api:get_current_authorization_information()
+    return request(self, 'get_current_authorization_information', 'GET', '/oauth2/@me', empty_route)
 end
 
 function api:get_gateway_bot()
@@ -856,6 +880,173 @@ function api:update_user_voice_state(guild_id, user_id, payload)
     }, payload)
 end
 
+function api:get_invite(invite_code,  query)
+    return request(self, 'get_invite', 'GET', '/invites/:invite_code', {
+       invite_code = invite_code,
+
+    }, nil,  query)
+end
+
+function api:delete_invite(invite_code)
+    return request(self, 'delete_invite', 'DELETE', '/invites/:invite_code', {
+       invite_code = invite_code,
+
+    })
+end
+
+function api:get_current_user()
+    return request(self, 'get_current_user', 'GET', '/users/@me', empty_route)
+end
+
+function api:get_user(user_is)
+    return request(self, 'get_user', 'GET', '/users/:user_id', {
+       user_is = user_is,
+    })
+end
+
+function api:modify_current_user(payload)
+    return request(self, 'modify_current_user', 'PATCH', '/users/@me', empty_route, payload)
+end
+
+function api:get_current_user_guilds()
+    return request(self, 'get_current_user_guilds', 'GET', '/users/@me/guilds', empty_route)
+end
+
+function api:leave_guild(guild_id)
+    return request(self, 'leave_guild', 'GET', '/users/@me/guilds/:guild_id', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:create_dm(payload)
+    return request(self, 'create_dm', 'POST', '/users/@me/channels', empty_route, payload)
+end
+
+function api:get_user_connections()
+    return request(self, 'get_user_connections', 'GET', '/users/@me/connections', empty_route)
+end
+
+function api:create_webhook(channel_id,  payload)
+    return request(self, 'create_webhook', 'POST', '/channels/:channel_id/webhooks', {
+       channel_id = channel_id,
+
+    }, payload)
+end
+
+function api:get_channel_webhooks(channel_id)
+    return request(self, 'get_channel_webhooks', 'GET', '/channels/:channel_id/webhooks', {
+       channel_id = channel_id,
+
+    })
+end
+
+function api:get_guild_webhooks(guild_id)
+    return request(self, 'get_guild_webhooks', 'GET', '/guilds/:guild_id/webhooks', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:get_webhook(webhook_id)
+    return request(self, 'get_webhook', 'GET', '/webhooks/:webhook_id', {
+       webhook_id = webhook_id,
+
+    })
+end
+
+static'get_webhook_with_token'
+
+function api:get_webhook_with_token(webhook_id, webhook_token)
+    return request(self, 'get_webhook_with_token', 'GET', '/webhooks/:webhook_id/:webhook_token', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    })
+end
+
+function api:modify_webhook(webhook_id,  payload)
+    return request(self, 'modify_webhook', 'POST', '/webhooks/:webhook_id', {
+       webhook_id = webhook_id,
+
+    }, payload)
+end
+
+static'modify_webhook_with_token'
+
+function api:modify_webhook_with_token(webhook_id, webhook_token, payload)
+    return request(self, 'modify_webhook_with_token', 'POST', '/webhooks/:webhook_id/:webhook_token', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token,
+    }, payload)
+end
+
+function api:delete_webhook(webhook_id)
+    return request(self, 'delete_webhook', 'DELETE', '/webhooks/:webhook_id', {
+       webhook_id = webhook_id,
+
+    })
+end
+
+static'delete_webhook_with_token'
+
+function api:delete_webhook_with_token(webhook_id, webhook_token)
+    return request(self, 'delete_webhook_with_token', ' DELETE', '/webhooks/:webhook_id/:webhook_token', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    })
+end
+
+static'execute_webhook'
+
+function api:execute_webhook(webhook_id, webhook_token, payload, query)
+    return request(self, 'execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload, query)
+end
+
+static'execute_slack_compatible_webhook'
+
+function api:execute_slack_compatible_webhook(webhook_id, webhook_token, payload, query)
+    return request(self, 'execute_slack_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/slack', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload, query)
+end
+
+static'execute_github_compatible_webhook'
+
+function api:execute_github_compatible_webhook(webhook_id, webhook_token, payload, query)
+    return request(self, 'execute_github_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/github', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload, query)
+end
+
+static'edit_webhook_message'
+
+function api:edit_webhook_message(webhook_id, webhook_token, message_id, payload)
+    return request(self, 'edit_webhook_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token,
+       message_id = message_id
+    }, payload)
+end
+
+static'delete_webhook_message'
+
+function api:delete_webhook_message(webhook_id, webhook_token, message_id)
+    return request(self, 'delete_webhook_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+        webhook_id = webhook_id,
+        webhook_token = webhook_token,
+        message_id = message_id
+     })
+end
+
+function api:list_voice_regions()
+    return request(self, 'list_voice_regions', 'GET', '/voice/regions',empty_route)
+end
+
 -- safe method chaining --
 
 local cpmt = {}
@@ -904,5 +1095,7 @@ end
 function api:capture()
   return setmetatable({self, success = true, result = {}, results = results, error = false}, cpmt)
 end
+
+_ENV.static = static_api
 
 return _ENV
