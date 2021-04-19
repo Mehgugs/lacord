@@ -414,6 +414,10 @@ function api:get_gateway_bot()
     return request(self, 'get_gateway_bot', 'GET', '/gateway/bot', empty_route)
 end
 
+function api:get_guild_audit_log(guild_id)
+    return request(self, 'get_guild_audit_log', 'GET', '/guilds/:guild_id/audit-logs', {guild_id = guild_id})
+end
+
 function api:get_channel(channel_id)
     return request(self, 'get_channel', 'GET', '/channels/:channel_id', {channel_id = channel_id})
 end
@@ -558,6 +562,298 @@ function api:delete_pinned_channel_message(channel_id, message_id)
         channel_id = channel_id,
         message_id = message_id
     })
+end
+
+function api:get_guild_emoji(guild_id, emoji_id)
+    return request(self, 'get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
+        guild_id = guild_id,
+        emoji_id = emoji_id
+    })
+end
+
+function api:create_guild_emoji(guild_id, emoji)
+    return request(self, 'create_guild_emoji', 'POST', '/guilds/:guild_id/emojis/', {
+        guild_id = guild_id
+    }, emoji)
+end
+
+function api:modify_guild_emoji(guild_id, emoji_id, edits)
+    return request(self, 'modify_guild_emoji', 'PATCH', '/guilds/:guild_id/emojis/:emoji_id', {
+        guild_id = guild_id,
+        emoji_id = emoji_id
+    }, edits)
+end
+
+function api:DELETE_guild_emoji(guild_id, emoji_id)
+    return request(self, 'delete_guild_emoji', 'DELETE', '/guilds/:guild_id/emojis/:emoji_id', {
+        guild_id = guild_id,
+        emoji_id = emoji_id
+    })
+end
+
+function api:get_guild(guild_id, with_counts)
+    return request(self, 'get_guild', 'GET', '/guilds/:guild_id/', {
+        guild_id = guild_id
+    }, nil, { with_counts = not not with_counts})
+end
+
+function api:get_guild_preview(guild_id)
+    return request(self, 'get_guild_preview', 'GET', '/guilds/:guild_id/preview', {
+        guild_id = guild_id
+    })
+end
+
+function api:modify_guild(guild_id, edits)
+    return request(self, 'modify_guild', 'PATCH', '/guilds/:guild_id/', {
+        guild_id = guild_id
+    }, edits)
+end
+
+function api:delete_guild(guild_id)
+    return request(self, 'delete_guild', 'DELETE', '/guilds/:guild_id/', {
+        guild_id = guild_id
+    })
+end
+
+function api:create_guild_channel(guild_id, channel)
+    return request(self, 'create_guild_channel', 'POST', '/guilds/:guild_id/channels', {
+        guild_id = guild_id
+    }, channel)
+end
+
+function api:modify_guild_channel_positions(guild_id, pos)
+    return request(self, 'modify_guild_channel_positions', 'PATCH', '/guilds/:guild_id/channels', {
+        guild_id = guild_id
+    }, pos)
+end
+
+function api:get_guild_member(guild_id, user_id)
+    return request(self, 'get_guild_member', 'GET', '/guilds/:guild_id/members/:user_id', {
+        guild_id = guild_id,
+        user_id = user_id
+    })
+end
+
+function api:list_guild_members(guild_id, params)
+    return request(self, 'list_guild_members', 'GET', '/guilds/:guild_id/members', {
+        guild_id = guild_id
+    }, nil, params)
+end
+
+function api:search_guild_members(guild_id, query)
+    return request(self, 'search_guild_members', 'GET', '/guilds/:guild_id/members/search', {
+       guild_id = guild_id
+    }, nil, query)
+end
+
+function api:add_guild_member(guild_id, user_id, payload)
+    return request(self, 'add_guild_member', 'PUT', '/guilds/:guild_id/members/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id,
+    }, payload)
+end
+
+function api:modify_guild_member(guild_id, user_id, payload)
+    return request(self, 'modify_guild_member', 'PATCH', '/guilds/:guild_id/members/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    }, payload)
+end
+
+function api:modify_current_user_nick(guild_id,  payload)
+    return request(self, 'modify_current_user_nick', 'PATCH', '/guilds/:guild_id/members/@me/nick', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:add_guild_member_role(guild_id, user_id, role_id)
+    return request(self, 'add_guild_member_role', 'PUT', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
+       guild_id = guild_id,
+       user_id = user_id,
+       role_id = role_id
+    })
+end
+
+function api:remove_guild_member_role(guild_id, user_id, role_id )
+    return request(self, 'remove_guild_member_role', 'DELETE', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
+       guild_id = guild_id,
+       user_id = user_id,
+       role_id = role_id
+    })
+end
+
+function api:remove_guild_member(guild_id, user_id )
+    return request(self, 'remove_guild_member', 'DELETE', '/guilds/:guild_id/members/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    }, nil)
+end
+
+function api:get_guild_bans(guild_id)
+    return request(self, 'get_guild_bans', 'GET', '/guilds/:guild_id/bans', {
+       guild_id = guild_id,
+    })
+end
+
+function api:get_guild_ban(guild_id, user_id)
+    return request(self, 'get_guild_ban', 'GET', '/guilds/:guild_id/bans/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    })
+end
+
+function api:create_guild_ban(guild_id, user_id, payload)
+    return request(self, 'create_guild_ban', 'POST', '/guilds/:guild_id/bans/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    }, payload)
+end
+
+function api:remove_guild_ban(guild_id, user_id)
+    return request(self, 'remove_guild_ban', 'DELETE', '/guilds/:guild_id/bans/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    })
+end
+
+function api:get_guild_roles(guild_id)
+    return request(self, 'get_guild_roles', 'GET', '/guilds/:guild_id/roles', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:create_guild_role(guild_id,  payload)
+    return request(self, 'create_guild_role', 'POST', '/guilds/:guild_id/roles', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:modify_guild_role_positions(guild_id,  payload)
+    return request(self, 'modify_guild_role_positions', 'PATH', '/guilds/:guild_id/roles', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:modify_guild_role(guild_id, role_id, payload)
+    return request(self, 'modify_guild_role', 'PATCH', '/guilds/:guild_id/roles/:role_id', {
+       guild_id = guild_id,
+       role_id = role_id
+    }, payload)
+end
+
+function api:delete_guild_role(guild_id, role_id)
+    return request(self, 'delete_guild_role', 'DELETE', '/guilds/:guild_id/roles/:role_id', {
+       guild_id = guild_id,
+       role_id = role_id
+    })
+end
+
+function api:get_guild_prune_count(guild_id,  query)
+    return request(self, 'get_guild_prune_count', 'GET', '/guilds/:guild_id/prune', {
+       guild_id = guild_id,
+
+    }, nil,  query)
+end
+
+function api:begin_guild_prune(guild_id,  payload)
+    return request(self, 'begin_guild_prune', 'POST', '/guilds/:guild_id/prune', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:get_guild_voice_regions(guild_id)
+    return request(self, 'get_guild_voice_regions', 'GET', '/guilds/:guild_id/regions', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:get_guild_invites(guild_id)
+    return request(self, 'get_guild_invites', 'GET', '/guilds/:guild_id/invites', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:get_guild_integrations(guild_id)
+    return request(self, 'get_guild_integrations', 'GET', '/guilds/:guild_id/integrations', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:delete_guild_integration(guild_id, integration_id)
+    return request(self, 'delete_guild_integration', 'DELETE', '/guilds/:guild_id/integrations/:integration_id', {
+       guild_id = guild_id,
+       integration_id = integration_id
+    })
+end
+
+function api:get_guild_widget_settings(guild_id)
+    return request(self, 'get_guild_widget_settings', 'GET', '/guilds/:guild_id/widget', {
+       guild_id = guild_id,
+    })
+end
+
+function api:modify_guild_widget(guild_id,  payload)
+    return request(self, 'modify_guild_widget', 'PATCH', '/guilds/:guild_id/widget', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:get_guild_widget(guild_id)
+    return request(self, 'get_guild_widget', 'GET', '/guilds/:guild_id/widget.json', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:get_guild_vanity_url(guild_id,  query)
+    return request(self, 'get_guild_vanity_url', 'GET', '/guilds/:guild_id/vanity-url', {
+       guild_id = guild_id,
+
+    }, nil,  query)
+end
+
+function api:get_guild_widget_image(guild_id,  query)
+    return request(self, 'get_guild_widget_image', 'GET', '/guilds/:guild_id/widget.png', {
+       guild_id = guild_id,
+
+    }, nil, query)
+end
+
+function api:get_guild_welcome_screen(guild_id)
+    return request(self, 'get_guild_welcome_screen', 'GET', '/guilds/:guild_id/welcome-screen', {
+       guild_id = guild_id,
+
+    })
+end
+
+function api:modify_guild_welcome_screen(guild_id,  payload)
+    return request(self, 'modify_guild_welcome_screen', 'PATCH', '/guilds/:guild_id/welcome-screen', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:update_current_user_voice_state(guild_id,  payload)
+    return request(self, 'update_current_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/@me', {
+       guild_id = guild_id,
+
+    }, payload)
+end
+
+function api:update_user_voice_state(guild_id, user_id, payload)
+    return request(self, 'update_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/:user_id', {
+       guild_id = guild_id,
+       user_id = user_id
+    }, payload)
 end
 
 -- safe method chaining --
