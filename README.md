@@ -31,6 +31,8 @@ local webhook_id, webhook_token = webhook:match"^(.+):(.+)$"
 
 local loop = cqs.new()
 
+local discord = api.webhook_init(webhook_token)
+
 local function starts(s, prefix)
     return s:sub(1, #prefix) == prefix
 end
@@ -56,7 +58,7 @@ loop:wrap(function()
                 username = suffix(line, ":username ")
             end
         else
-            local success = api.static:execute_webhook(webhook_id, webhook_token, {
+            local success = discord:execute_webhook(webhook_id, {
                 content = line,
                 username = username,
             })
