@@ -12,13 +12,11 @@ local json = require"cjson"
 local base64 = require"basexx".to_base64
 local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
-local Date = require"lacord.util.date".Date
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local inflate = zlib.inflate
 local JSON = "application/json"
 local tostring = tostring
-local difftime = os.difftime
 local time = os.time
 local insert, concat = table.insert, table.concat
 local next, tonumber = next, tonumber
@@ -26,7 +24,6 @@ local setmetatable = setmetatable
 local getmetatable = getmetatable
 local max = math.max
 local min = math.min
-local modf = math.modf
 local xpcall = xpcall
 local traceback = debug.traceback
 local type = type
@@ -323,17 +320,9 @@ function push(state, name, req, major_params, retries)
     local reset = headers:get"x-ratelimit-reset"
     local reset_after = headers:get"x-ratelimit-reset-after"
     reset = reset and tonumber(reset)
-    local drift
     if remaining == '0' and reset then
         reset_after = tonumber(reset_after)
-        if state.use_legacy then
-            local secs, rest = modf(reset)
-            local dt = difftime(secs, Date.parseHeader(date))
-            drift = reset_after - dt
-            delay = max(dt+rest, delay)
-        else
-            delay = max(delay, reset_after)
-        end
+        delay = max(delay, reset_after)
     end
 
     local route_id = headers:get"x-ratelimit-bucket"
@@ -348,7 +337,6 @@ function push(state, name, req, major_params, retries)
                 ,remaining = remaining
                 ,reset_after = headers:get"x-ratelimit-reset-after"
                 ,limit = headers:get"x-ratelimit-limit"
-                ,drift = drift or state.rates[name] and state.rates[name].drift
             }
         end
         if state.routex[ID] ~= bucket then
