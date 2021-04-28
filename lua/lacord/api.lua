@@ -31,6 +31,7 @@ local ipairs, pairs = ipairs, pairs
 local _VERSION = _VERSION
 local decode = json.decode
 local set = rawset
+local err = err
 
 local _ENV = {}
 
@@ -167,7 +168,7 @@ local static_api, static_methods = setmetatable({}, api), {} do
     static_api.accept_encoding = "gzip, deflate, x-gzip"
 
     function static_api:request(name, ...)
-        if not static_methods[name] then return error(("requesting %s requires authentication!"):format(name))
+        if not static_methods[name] then return logger.throw("requesting %s requires authentication!", name)
         else
             return api.request(self, ...)
         end
@@ -408,280 +409,278 @@ end
 -- @usage
 --  api.get_channel(state, id)
 
-local request = api.request
-
 local empty_route = {}
 function api:get_current_application_information()
-    return request(self, 'get_current_application_information', 'GET', '/oauth2/applications/@me', empty_route)
+    return self:request( 'get_current_application_information', 'GET', '/oauth2/applications/@me', empty_route)
 end
 
 function api:get_current_authorization_information()
-    return request(self, 'get_current_authorization_information', 'GET', '/oauth2/@me', empty_route)
+    return self:request('get_current_authorization_information', 'GET', '/oauth2/@me', empty_route)
 end
 
 function api:get_gateway_bot()
-    return request(self, 'get_gateway_bot', 'GET', '/gateway/bot', empty_route)
+    return self:request('get_gateway_bot', 'GET', '/gateway/bot', empty_route)
 end
 
 function api:get_guild_audit_log(guild_id)
-    return request(self, 'get_guild_audit_log', 'GET', '/guilds/:guild_id/audit-logs', {guild_id = guild_id})
+    return self:request('get_guild_audit_log', 'GET', '/guilds/:guild_id/audit-logs', {guild_id = guild_id})
 end
 
 function api:get_channel(channel_id)
-    return request(self, 'get_channel', 'GET', '/channels/:channel_id', {channel_id = channel_id})
+    return self:request('get_channel', 'GET', '/channels/:channel_id', {channel_id = channel_id})
 end
 
 function api:modify_channel(channel_id, payload)
-    return request(self, 'modify_channel', 'PATCH', '/channels/:channel_id', {channel_id = channel_id}, payload)
+    return self:request('modify_channel', 'PATCH', '/channels/:channel_id', {channel_id = channel_id}, payload)
 end
 
 function api:delete_channel(channel_id)
-    return request(self, 'delete_channel', 'DELETE', '/channels/:channel_id', {channel_id = channel_id})
+    return self:request('delete_channel', 'DELETE', '/channels/:channel_id', {channel_id = channel_id})
 end
 
 function api:get_channel_messages(channel_id, query)
-    return request(self, 'get_channel_messages', 'GET', '/channels/:channel_id/messages',
+    return self:request('get_channel_messages', 'GET', '/channels/:channel_id/messages',
         {channel_id = channel_id},
         nil, query)
 end
 
 function api:get_channel_message(channel_id, message_id)
-    return request(self, 'get_channel_message', 'GET', '/channels/:channel_id/messages/:message_id',
+    return self:request('get_channel_message', 'GET', '/channels/:channel_id/messages/:message_id',
         {channel_id = channel_id, message_id = message_id})
 end
 
 function api:create_message(channel_id, payload, files)
-    return request(self, 'create_message', 'POST', '/channels/:channel_id/messages', {
+    return self:request('create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
     }, payload, nil, files)
 end
 
 function api:create_message_with_txt(channel_id, payload, files)
-    return request(self, 'create_message', 'POST', '/channels/:channel_id/messages', {
+    return self:request('create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
     }, payload, nil, files, true)
 end
 
 function api:crosspost_message(channel_id, message_id)
-    return request(self, 'crosspost_message', 'POST', '/channels/:channel_id/messages/:message_id/crosspost',
+    return self:request('crosspost_message', 'POST', '/channels/:channel_id/messages/:message_id/crosspost',
         {channel_id = channel_id, message_id = message_id})
 end
 
 function api:create_reaction(channel_id, message_id, emoji)
-    return request(self, 'create_reaction', 'PUT', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
+    return self:request('create_reaction', 'PUT', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
     {channel_id = channel_id, message_id = message_id, emoji = emoji})
 end
 
 function api:delete_own_reaction(channel_id, message_id, emoji)
-    return request(self, 'delete_own_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
+    return self:request('delete_own_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/@me',
     {channel_id = channel_id, message_id = message_id, emoji = emoji})
 end
 
 function api:delete_user_reaction(channel_id, message_id, emoji, user_id)
-    return request(self, 'delete_user_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/:user_id',
+    return self:request('delete_user_reaction', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji/:user_id',
     {channel_id = channel_id, message_id = message_id, emoji = emoji, user_id = user_id})
 end
 
 function api:get_reactions(channel_id, message_id, emoji)
-    return request(self, 'get_reactions', 'GET', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
+    return self:request('get_reactions', 'GET', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
     {channel_id = channel_id, message_id = message_id, emoji = emoji})
 end
 
 function api:delete_all_reactions(channel_id, message_id)
-    return request(self, 'delete_all_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions',
+    return self:request('delete_all_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions',
     {channel_id = channel_id, message_id = message_id})
 end
 
 function api:delete_reactions(channel_id, message_id, emoji)
-    return request(self, 'delete_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
+    return self:request('delete_reactions', 'DELETE', '/channels/:channel_id/messages/:message_id/reactions/:emoji',
     {channel_id = channel_id, message_id = message_id, emoji = emoji})
 end
 
 function api:edit_message(channel_id, message_id, edits)
-    return request(self, 'edit_message', 'PATCH', '/channels/:channel_id/messages/:message_id', {
+    return self:request('edit_message', 'PATCH', '/channels/:channel_id/messages/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     }, edits)
 end
 
 function api:delete_message(channel_id, message_id)
-    return request(self, 'delete_message', 'DELETE', '/channels/:channel_id/messages/:message_id', {
+    return self:request('delete_message', 'DELETE', '/channels/:channel_id/messages/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     })
 end
 
 function api:bulk_delete_messages(channel_id, query)
-    return request(self, 'bulk_delete_messages', 'DELETE', '/channels/:channel_id/messages/bulk-delete', {
+    return self:request('bulk_delete_messages', 'DELETE', '/channels/:channel_id/messages/bulk-delete', {
         channel_id = channel_id
     }, nil, query)
 end
 
 function api:edit_channel_permissions(channel_id, overwrite_id, edits)
-    return request(self, 'edit_channel_permissions', 'PUT', '/channels/:channel_id/permissions/:overwrite_id', {
+    return self:request('edit_channel_permissions', 'PUT', '/channels/:channel_id/permissions/:overwrite_id', {
         channel_id = channel_id, overwrite_id = overwrite_id
     }, edits)
 end
 
 function api:delete_channel_permissions(channel_id, overwrite_id)
-    return request(self, 'delete_channel_permissions', 'DELETE', '/channels/:channel_id/permissions/:overwrite_id', {
+    return self:request('delete_channel_permissions', 'DELETE', '/channels/:channel_id/permissions/:overwrite_id', {
         channel_id = channel_id, overwrite_id = overwrite_id
     })
 end
 
 function api:get_channel_invites(channel_id)
-    return request(self, 'get_channel_invites', 'GET', '/channels/:channel_id/invites', {
+    return self:request('get_channel_invites', 'GET', '/channels/:channel_id/invites', {
         channel_id = channel_id
     })
 end
 
 function api:create_channel_invite(channel_id, invite)
-    return request(self, 'create_channel_invite', 'POST', '/channels/:channel_id/invites', {
+    return self:request('create_channel_invite', 'POST', '/channels/:channel_id/invites', {
         channel_id = channel_id
     }, invite)
 end
 
 function api:follow_channel(channel_id, follower)
-    return request(self, 'follow_channel', 'POST', '/channels/:channel_id/followers', {
+    return self:request('follow_channel', 'POST', '/channels/:channel_id/followers', {
         channel_id = channel_id
     }, follower)
 end
 
 function api:trigger_typing_indicator(channel_id)
-    return request(self, 'trigger_typing_indicator', 'POST', '/channels/:channel_id/typing', {
+    return self:request('trigger_typing_indicator', 'POST', '/channels/:channel_id/typing', {
         channel_id = channel_id
     })
 end
 
 function api:add_pinned_channel_message(channel_id, message_id)
-    return request(self, 'add_pinned_channel_message', 'PUT', '/channels/:channel_id/pins/:message_id', {
+    return self:request('add_pinned_channel_message', 'PUT', '/channels/:channel_id/pins/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     })
 end
 
 function api:get_pinned_messages(channel_id)
-    return request(self, 'get_pinned_messages', 'GET', '/channels/:channel_id/pins', {
+    return self:request('get_pinned_messages', 'GET', '/channels/:channel_id/pins', {
         channel_id = channel_id
     })
 end
 
 function api:delete_pinned_channel_message(channel_id, message_id)
-    return request(self, 'get_pinned_messages', 'DELETE', '/channels/:channel_id/pins/:message_id', {
+    return self:request('get_pinned_messages', 'DELETE', '/channels/:channel_id/pins/:message_id', {
         channel_id = channel_id,
         message_id = message_id
     })
 end
 
 function api:get_guild_emoji(guild_id, emoji_id)
-    return request(self, 'get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
+    return self:request('get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,
         emoji_id = emoji_id
     })
 end
 
 function api:create_guild_emoji(guild_id, emoji)
-    return request(self, 'create_guild_emoji', 'POST', '/guilds/:guild_id/emojis/', {
+    return self:request('create_guild_emoji', 'POST', '/guilds/:guild_id/emojis/', {
         guild_id = guild_id
     }, emoji)
 end
 
 function api:modify_guild_emoji(guild_id, emoji_id, edits)
-    return request(self, 'modify_guild_emoji', 'PATCH', '/guilds/:guild_id/emojis/:emoji_id', {
+    return self:request('modify_guild_emoji', 'PATCH', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,
         emoji_id = emoji_id
     }, edits)
 end
 
 function api:DELETE_guild_emoji(guild_id, emoji_id)
-    return request(self, 'delete_guild_emoji', 'DELETE', '/guilds/:guild_id/emojis/:emoji_id', {
+    return self:request('delete_guild_emoji', 'DELETE', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,
         emoji_id = emoji_id
     })
 end
 
 function api:get_guild(guild_id, with_counts)
-    return request(self, 'get_guild', 'GET', '/guilds/:guild_id/', {
+    return self:request('get_guild', 'GET', '/guilds/:guild_id/', {
         guild_id = guild_id
     }, nil, { with_counts = not not with_counts})
 end
 
 function api:get_guild_preview(guild_id)
-    return request(self, 'get_guild_preview', 'GET', '/guilds/:guild_id/preview', {
+    return self:request('get_guild_preview', 'GET', '/guilds/:guild_id/preview', {
         guild_id = guild_id
     })
 end
 
 function api:create_guild(payload)
-    return request(self, 'create_guild', 'POST', '/guilds', empty_route, payload)
+    return self:request('create_guild', 'POST', '/guilds', empty_route, payload)
 end
 
 function api:modify_guild(guild_id, edits)
-    return request(self, 'modify_guild', 'PATCH', '/guilds/:guild_id/', {
+    return self:request('modify_guild', 'PATCH', '/guilds/:guild_id/', {
         guild_id = guild_id
     }, edits)
 end
 
 function api:delete_guild(guild_id)
-    return request(self, 'delete_guild', 'DELETE', '/guilds/:guild_id/', {
+    return self:request('delete_guild', 'DELETE', '/guilds/:guild_id/', {
         guild_id = guild_id
     })
 end
 
 function api:create_guild_channel(guild_id, channel)
-    return request(self, 'create_guild_channel', 'POST', '/guilds/:guild_id/channels', {
+    return self:request('create_guild_channel', 'POST', '/guilds/:guild_id/channels', {
         guild_id = guild_id
     }, channel)
 end
 
 function api:modify_guild_channel_positions(guild_id, pos)
-    return request(self, 'modify_guild_channel_positions', 'PATCH', '/guilds/:guild_id/channels', {
+    return self:request('modify_guild_channel_positions', 'PATCH', '/guilds/:guild_id/channels', {
         guild_id = guild_id
     }, pos)
 end
 
 function api:get_guild_member(guild_id, user_id)
-    return request(self, 'get_guild_member', 'GET', '/guilds/:guild_id/members/:user_id', {
+    return self:request('get_guild_member', 'GET', '/guilds/:guild_id/members/:user_id', {
         guild_id = guild_id,
         user_id = user_id
     })
 end
 
 function api:list_guild_members(guild_id, params)
-    return request(self, 'list_guild_members', 'GET', '/guilds/:guild_id/members', {
+    return self:request('list_guild_members', 'GET', '/guilds/:guild_id/members', {
         guild_id = guild_id
     }, nil, params)
 end
 
 function api:search_guild_members(guild_id, query)
-    return request(self, 'search_guild_members', 'GET', '/guilds/:guild_id/members/search', {
+    return self:request('search_guild_members', 'GET', '/guilds/:guild_id/members/search', {
        guild_id = guild_id
     }, nil, query)
 end
 
 function api:add_guild_member(guild_id, user_id, payload)
-    return request(self, 'add_guild_member', 'PUT', '/guilds/:guild_id/members/:user_id', {
+    return self:request('add_guild_member', 'PUT', '/guilds/:guild_id/members/:user_id', {
        guild_id = guild_id,
        user_id = user_id,
     }, payload)
 end
 
 function api:modify_guild_member(guild_id, user_id, payload)
-    return request(self, 'modify_guild_member', 'PATCH', '/guilds/:guild_id/members/:user_id', {
+    return self:request('modify_guild_member', 'PATCH', '/guilds/:guild_id/members/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     }, payload)
 end
 
 function api:modify_current_user_nick(guild_id,  payload)
-    return request(self, 'modify_current_user_nick', 'PATCH', '/guilds/:guild_id/members/@me/nick', {
+    return self:request('modify_current_user_nick', 'PATCH', '/guilds/:guild_id/members/@me/nick', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:add_guild_member_role(guild_id, user_id, role_id)
-    return request(self, 'add_guild_member_role', 'PUT', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
+    return self:request('add_guild_member_role', 'PUT', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
        guild_id = guild_id,
        user_id = user_id,
        role_id = role_id
@@ -689,7 +688,7 @@ function api:add_guild_member_role(guild_id, user_id, role_id)
 end
 
 function api:remove_guild_member_role(guild_id, user_id, role_id )
-    return request(self, 'remove_guild_member_role', 'DELETE', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
+    return self:request('remove_guild_member_role', 'DELETE', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
        guild_id = guild_id,
        user_id = user_id,
        role_id = role_id
@@ -697,248 +696,248 @@ function api:remove_guild_member_role(guild_id, user_id, role_id )
 end
 
 function api:remove_guild_member(guild_id, user_id )
-    return request(self, 'remove_guild_member', 'DELETE', '/guilds/:guild_id/members/:user_id', {
+    return self:request('remove_guild_member', 'DELETE', '/guilds/:guild_id/members/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     }, nil)
 end
 
 function api:get_guild_bans(guild_id)
-    return request(self, 'get_guild_bans', 'GET', '/guilds/:guild_id/bans', {
+    return self:request('get_guild_bans', 'GET', '/guilds/:guild_id/bans', {
        guild_id = guild_id,
     })
 end
 
 function api:get_guild_ban(guild_id, user_id)
-    return request(self, 'get_guild_ban', 'GET', '/guilds/:guild_id/bans/:user_id', {
+    return self:request('get_guild_ban', 'GET', '/guilds/:guild_id/bans/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     })
 end
 
 function api:create_guild_ban(guild_id, user_id, payload)
-    return request(self, 'create_guild_ban', 'POST', '/guilds/:guild_id/bans/:user_id', {
+    return self:request('create_guild_ban', 'POST', '/guilds/:guild_id/bans/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     }, payload)
 end
 
 function api:remove_guild_ban(guild_id, user_id)
-    return request(self, 'remove_guild_ban', 'DELETE', '/guilds/:guild_id/bans/:user_id', {
+    return self:request('remove_guild_ban', 'DELETE', '/guilds/:guild_id/bans/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     })
 end
 
 function api:get_guild_roles(guild_id)
-    return request(self, 'get_guild_roles', 'GET', '/guilds/:guild_id/roles', {
+    return self:request('get_guild_roles', 'GET', '/guilds/:guild_id/roles', {
        guild_id = guild_id,
 
     })
 end
 
 function api:create_guild_role(guild_id,  payload)
-    return request(self, 'create_guild_role', 'POST', '/guilds/:guild_id/roles', {
+    return self:request('create_guild_role', 'POST', '/guilds/:guild_id/roles', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:modify_guild_role_positions(guild_id,  payload)
-    return request(self, 'modify_guild_role_positions', 'PATH', '/guilds/:guild_id/roles', {
+    return self:request('modify_guild_role_positions', 'PATH', '/guilds/:guild_id/roles', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:modify_guild_role(guild_id, role_id, payload)
-    return request(self, 'modify_guild_role', 'PATCH', '/guilds/:guild_id/roles/:role_id', {
+    return self:request('modify_guild_role', 'PATCH', '/guilds/:guild_id/roles/:role_id', {
        guild_id = guild_id,
        role_id = role_id
     }, payload)
 end
 
 function api:delete_guild_role(guild_id, role_id)
-    return request(self, 'delete_guild_role', 'DELETE', '/guilds/:guild_id/roles/:role_id', {
+    return self:request('delete_guild_role', 'DELETE', '/guilds/:guild_id/roles/:role_id', {
        guild_id = guild_id,
        role_id = role_id
     })
 end
 
 function api:get_guild_prune_count(guild_id,  query)
-    return request(self, 'get_guild_prune_count', 'GET', '/guilds/:guild_id/prune', {
+    return self:request('get_guild_prune_count', 'GET', '/guilds/:guild_id/prune', {
        guild_id = guild_id,
 
     }, nil,  query)
 end
 
 function api:begin_guild_prune(guild_id,  payload)
-    return request(self, 'begin_guild_prune', 'POST', '/guilds/:guild_id/prune', {
+    return self:request('begin_guild_prune', 'POST', '/guilds/:guild_id/prune', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:get_guild_voice_regions(guild_id)
-    return request(self, 'get_guild_voice_regions', 'GET', '/guilds/:guild_id/regions', {
+    return self:request('get_guild_voice_regions', 'GET', '/guilds/:guild_id/regions', {
        guild_id = guild_id,
 
     })
 end
 
 function api:get_guild_invites(guild_id)
-    return request(self, 'get_guild_invites', 'GET', '/guilds/:guild_id/invites', {
+    return self:request('get_guild_invites', 'GET', '/guilds/:guild_id/invites', {
        guild_id = guild_id,
 
     })
 end
 
 function api:get_guild_integrations(guild_id)
-    return request(self, 'get_guild_integrations', 'GET', '/guilds/:guild_id/integrations', {
+    return self:request('get_guild_integrations', 'GET', '/guilds/:guild_id/integrations', {
        guild_id = guild_id,
 
     })
 end
 
 function api:delete_guild_integration(guild_id, integration_id)
-    return request(self, 'delete_guild_integration', 'DELETE', '/guilds/:guild_id/integrations/:integration_id', {
+    return self:request('delete_guild_integration', 'DELETE', '/guilds/:guild_id/integrations/:integration_id', {
        guild_id = guild_id,
        integration_id = integration_id
     })
 end
 
 function api:get_guild_widget_settings(guild_id)
-    return request(self, 'get_guild_widget_settings', 'GET', '/guilds/:guild_id/widget', {
+    return self:request('get_guild_widget_settings', 'GET', '/guilds/:guild_id/widget', {
        guild_id = guild_id,
     })
 end
 
 function api:modify_guild_widget(guild_id,  payload)
-    return request(self, 'modify_guild_widget', 'PATCH', '/guilds/:guild_id/widget', {
+    return self:request('modify_guild_widget', 'PATCH', '/guilds/:guild_id/widget', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:get_guild_widget(guild_id)
-    return request(self, 'get_guild_widget', 'GET', '/guilds/:guild_id/widget.json', {
+    return self:request('get_guild_widget', 'GET', '/guilds/:guild_id/widget.json', {
        guild_id = guild_id,
 
     })
 end
 
 function api:get_guild_vanity_url(guild_id,  query)
-    return request(self, 'get_guild_vanity_url', 'GET', '/guilds/:guild_id/vanity-url', {
+    return self:request('get_guild_vanity_url', 'GET', '/guilds/:guild_id/vanity-url', {
        guild_id = guild_id,
 
     }, nil,  query)
 end
 
 function api:get_guild_widget_image(guild_id,  query)
-    return request(self, 'get_guild_widget_image', 'GET', '/guilds/:guild_id/widget.png', {
+    return self:request('get_guild_widget_image', 'GET', '/guilds/:guild_id/widget.png', {
        guild_id = guild_id,
 
     }, nil, query)
 end
 
 function api:get_guild_welcome_screen(guild_id)
-    return request(self, 'get_guild_welcome_screen', 'GET', '/guilds/:guild_id/welcome-screen', {
+    return self:request('get_guild_welcome_screen', 'GET', '/guilds/:guild_id/welcome-screen', {
        guild_id = guild_id,
 
     })
 end
 
 function api:modify_guild_welcome_screen(guild_id,  payload)
-    return request(self, 'modify_guild_welcome_screen', 'PATCH', '/guilds/:guild_id/welcome-screen', {
+    return self:request('modify_guild_welcome_screen', 'PATCH', '/guilds/:guild_id/welcome-screen', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:update_current_user_voice_state(guild_id,  payload)
-    return request(self, 'update_current_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/@me', {
+    return self:request('update_current_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/@me', {
        guild_id = guild_id,
 
     }, payload)
 end
 
 function api:update_user_voice_state(guild_id, user_id, payload)
-    return request(self, 'update_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/:user_id', {
+    return self:request('update_user_voice_state', 'PATCH', '/guilds/:guild_id/voice-states/:user_id', {
        guild_id = guild_id,
        user_id = user_id
     }, payload)
 end
 
 function api:get_invite(invite_code,  query)
-    return request(self, 'get_invite', 'GET', '/invites/:invite_code', {
+    return self:request('get_invite', 'GET', '/invites/:invite_code', {
        invite_code = invite_code,
 
     }, nil,  query)
 end
 
 function api:delete_invite(invite_code)
-    return request(self, 'delete_invite', 'DELETE', '/invites/:invite_code', {
+    return self:request('delete_invite', 'DELETE', '/invites/:invite_code', {
        invite_code = invite_code,
 
     })
 end
 
 function api:get_current_user()
-    return request(self, 'get_current_user', 'GET', '/users/@me', empty_route)
+    return self:request('get_current_user', 'GET', '/users/@me', empty_route)
 end
 
 function api:get_user(user_is)
-    return request(self, 'get_user', 'GET', '/users/:user_id', {
+    return self:request('get_user', 'GET', '/users/:user_id', {
        user_is = user_is,
     })
 end
 
 function api:modify_current_user(payload)
-    return request(self, 'modify_current_user', 'PATCH', '/users/@me', empty_route, payload)
+    return self:request('modify_current_user', 'PATCH', '/users/@me', empty_route, payload)
 end
 
 function api:get_current_user_guilds()
-    return request(self, 'get_current_user_guilds', 'GET', '/users/@me/guilds', empty_route)
+    return self:request('get_current_user_guilds', 'GET', '/users/@me/guilds', empty_route)
 end
 
 function api:leave_guild(guild_id)
-    return request(self, 'leave_guild', 'GET', '/users/@me/guilds/:guild_id', {
+    return self:request('leave_guild', 'GET', '/users/@me/guilds/:guild_id', {
        guild_id = guild_id,
 
     })
 end
 
 function api:create_dm(payload)
-    return request(self, 'create_dm', 'POST', '/users/@me/channels', empty_route, payload)
+    return self:request('create_dm', 'POST', '/users/@me/channels', empty_route, payload)
 end
 
 function api:get_user_connections()
-    return request(self, 'get_user_connections', 'GET', '/users/@me/connections', empty_route)
+    return self:request('get_user_connections', 'GET', '/users/@me/connections', empty_route)
 end
 
 function api:create_webhook(channel_id,  payload)
-    return request(self, 'create_webhook', 'POST', '/channels/:channel_id/webhooks', {
+    return self:request('create_webhook', 'POST', '/channels/:channel_id/webhooks', {
        channel_id = channel_id,
 
     }, payload)
 end
 
 function api:get_channel_webhooks(channel_id)
-    return request(self, 'get_channel_webhooks', 'GET', '/channels/:channel_id/webhooks', {
+    return self:request('get_channel_webhooks', 'GET', '/channels/:channel_id/webhooks', {
        channel_id = channel_id,
 
     })
 end
 
 function api:get_guild_webhooks(guild_id)
-    return request(self, 'get_guild_webhooks', 'GET', '/guilds/:guild_id/webhooks', {
+    return self:request('get_guild_webhooks', 'GET', '/guilds/:guild_id/webhooks', {
        guild_id = guild_id,
 
     })
 end
 
 function api:get_webhook(webhook_id)
-    return request(self, 'get_webhook', 'GET', '/webhooks/:webhook_id', {
+    return self:request('get_webhook', 'GET', '/webhooks/:webhook_id', {
        webhook_id = webhook_id,
 
     })
@@ -947,14 +946,14 @@ end
 static'get_webhook_with_token'
 
 function api:get_webhook_with_token(webhook_id, webhook_token)
-    return request(self, 'get_webhook_with_token', 'GET', '/webhooks/:webhook_id/:webhook_token', {
+    return self:request('get_webhook_with_token', 'GET', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
     })
 end
 
 function api:modify_webhook(webhook_id,  payload)
-    return request(self, 'modify_webhook', 'POST', '/webhooks/:webhook_id', {
+    return self:request('modify_webhook', 'POST', '/webhooks/:webhook_id', {
        webhook_id = webhook_id,
 
     }, payload)
@@ -963,14 +962,14 @@ end
 static'modify_webhook_with_token'
 
 function api:modify_webhook_with_token(webhook_id, webhook_token, payload)
-    return request(self, 'modify_webhook_with_token', 'POST', '/webhooks/:webhook_id/:webhook_token', {
+    return self:request('modify_webhook_with_token', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token,
     }, payload)
 end
 
 function api:delete_webhook(webhook_id)
-    return request(self, 'delete_webhook', 'DELETE', '/webhooks/:webhook_id', {
+    return self:request('delete_webhook', 'DELETE', '/webhooks/:webhook_id', {
        webhook_id = webhook_id,
 
     })
@@ -979,7 +978,7 @@ end
 static'delete_webhook_with_token'
 
 function api:delete_webhook_with_token(webhook_id, webhook_token)
-    return request(self, 'delete_webhook_with_token', ' DELETE', '/webhooks/:webhook_id/:webhook_token', {
+    return self:request('delete_webhook_with_token', ' DELETE', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
     })
@@ -988,7 +987,7 @@ end
 static'execute_webhook'
 
 function api:execute_webhook(webhook_id, webhook_token, payload, query)
-    return request(self, 'execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
+    return self:request('execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
     }, payload, query)
@@ -997,7 +996,7 @@ end
 static'execute_slack_compatible_webhook'
 
 function api:execute_slack_compatible_webhook(webhook_id, webhook_token, payload, query)
-    return request(self, 'execute_slack_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/slack', {
+    return self:request('execute_slack_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/slack', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
     }, payload, query)
@@ -1006,7 +1005,7 @@ end
 static'execute_github_compatible_webhook'
 
 function api:execute_github_compatible_webhook(webhook_id, webhook_token, payload, query)
-    return request(self, 'execute_github_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/github', {
+    return self:request('execute_github_compatible_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token/github', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
     }, payload, query)
@@ -1015,7 +1014,7 @@ end
 static'edit_webhook_message'
 
 function api:edit_webhook_message(webhook_id, webhook_token, message_id, payload)
-    return request(self, 'edit_webhook_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+    return self:request('edit_webhook_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
        webhook_id = webhook_id,
        webhook_token = webhook_token,
        message_id = message_id
@@ -1025,7 +1024,7 @@ end
 static'delete_webhook_message'
 
 function api:delete_webhook_message(webhook_id, webhook_token, message_id)
-    return request(self, 'delete_webhook_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+    return self:request('delete_webhook_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
         webhook_id = webhook_id,
         webhook_token = webhook_token,
         message_id = message_id
@@ -1033,7 +1032,7 @@ function api:delete_webhook_message(webhook_id, webhook_token, message_id)
 end
 
 function api:list_voice_regions()
-    return request(self, 'list_voice_regions', 'GET', '/voice/regions',empty_route)
+    return self:request('list_voice_regions', 'GET', '/voice/regions',empty_route)
 end
 
 -- safe method chaining --
@@ -1084,6 +1083,57 @@ end
 function api:capture()
   return setmetatable({self, success = true, result = {}, results = results, error = false}, cpmt)
 end
+
+local webhookm = {} for k, v in pairs(api) do
+    webhookm[k] = v
+end
+
+webhookm.__index = webhookm
+
+for k in pairs(static_methods) do
+    if util.endswith(k, "_with_token") then
+        local raw = webhookm[k]
+        local function wrapped(self, id, ...)
+            return raw(self, id, self.webhook_token, ...)
+        end
+        webhookm[util.prefix(k, "_with_token")] = wrapped
+    end
+end
+
+function webhookm:execute_webhook(id, ...)
+    return api.execute_webhook(self, id, self.webhook_token, ...)
+end
+
+function webhookm:execute_github_compatible_webhook(id, ...)
+    return api.execute_github_compatible_webhook(self, id, self.webhook_token, ...)
+end
+
+function webhookm:execute_slack_compatible_webhook(id, ...)
+    return api.execute_slack_compatible_webhook(self, id, self.webhook_token, ...)
+end
+
+function webhookm:request(name, ...)
+    if not static_methods[name] then return logger.throw("requesting %s requires authentication!", name)
+    else
+        return api.request(self, name, ...)
+    end
+end
+
+local function webhook_init(webhook_token)
+    local webhook_api = setmetatable({}, webhookm)
+    webhook_api.routex = mutex_cache(webhook_token)
+    webhook_api.global_lock = GLOBAL_LOCK
+    webhook_api.rates = {}
+    webhook_api.track_rates = false
+    webhook_api.use_legacy = false
+    webhook_api.route_delay = 1
+    webhook_api.api_timeout = 60
+    webhook_api.accept_encoding = "gzip, deflate, x-gzip"
+    webhook_api.webhook_token = webhook_token
+
+    return webhook_api
+end
+_ENV.webhook_init = webhook_init
 
 _ENV.static = static_api
 

@@ -39,4 +39,38 @@ end
 -- @string platform
 platform = _platform()
 
+--- Tests whether a string starts with a given prefix.
+-- @str s The string to check.
+-- @str prefix The prefix.
+-- @treturn bool True if s starts with the prefix.
+function startswith(s, prefix)
+  return s:sub(1, #prefix) == prefix
+end
+
+--- Returns the suffix of `pre` in `s`.
+-- @str s The string to check.
+-- @str pre The prefix.
+-- @treturn string The suffix of `pre` in `s` or `s` if `s` does not start with `pre`.
+function suffix(s, pre)
+  local len = #pre
+  return s:sub(1, len) == pre and s:sub(len + 1) or s
+end
+
+--- Tests whether a string ends with a given suffix.
+-- @str s The string to check.
+-- @str suffix The suffix.
+-- @treturn bool True if s starts with the suffix.
+function endswith(s, suffix)
+  return s:sub(-#suffix) == suffix
+end
+
+--- Returns the prefix of `suf` in `s`.
+-- @str s The string to check.
+-- @str suf The suffix.
+-- @treturn string The prefix of `suf` in `s` or `s` if `s` does not end with `suf`.
+function prefix(s, suf)
+  local len = #suf
+  return s:sub(-len) == suf and s:sub(1, -len -1) or s
+end
+
 return _ENV
