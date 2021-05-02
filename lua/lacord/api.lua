@@ -8,7 +8,6 @@ local newreq = require"http.request"
 local reason = require"http.h1_reason_phrases"
 local httputil = require "http.util"
 local zlib = require"http.zlib"
-local json = require"cjson"
 local base64 = require"basexx".to_base64
 local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
@@ -19,6 +18,7 @@ local JSON = "application/json"
 local tostring = tostring
 local time = os.time
 local insert, concat = table.insert, table.concat
+local unpack = table.unpack
 local next, tonumber = next, tonumber
 local setmetatable = setmetatable
 local getmetatable = getmetatable
@@ -29,9 +29,11 @@ local traceback = debug.traceback
 local type = type
 local ipairs, pairs = ipairs, pairs
 local _VERSION = _VERSION
-local decode = json.decode
 local set = rawset
 local err = err
+
+local encode = require"dkjson".encode
+local decode = require"dkjson".decode
 
 local _ENV = {}
 
@@ -255,7 +257,7 @@ function api.request(state,
             payload = mt.__lacord_payload(payload)
             content_type = mt.__lacord_content_type
         else
-            payload = payload and json.encode(payload) or '{}'
+            payload = payload and encode(payload) or '{}'
             content_type = JSON
         end
         if files and next(files) then
@@ -641,6 +643,56 @@ function api:list_joined_private_archived_threads(channel_id, query)
     }, nil,  query)
 end
 
+function api:create_interaction_response(webhook_id, webhook_token, payload)
+    return self:request('create_interaction_response', 'POST', '/interactions/:webhook_id/:webhook_token/callback', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload)
+end
+
+function api:get_original_interaction_response(webhook_id, webhook_token)
+    return self:request('get_original_interaction_response', 'GET', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    })
+end
+
+function api:edit_original_interaction_response(webhook_id, webhook_token, payload)
+    return self:request('edit_original_interaction_response', 'POST', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload)
+end
+
+function api:delete_original_interaction_response(webhook_id, webhook_token)
+    return self:request('delete_original_interaction_response', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    })
+end
+
+function api:create_followup_message(webhook_id, webhook_token,  payload)
+    return self:request('create_followup_message', 'POST', '/webhooks/:webhook_id/:webhook_token', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload)
+end
+
+function api:edit_followup_message(webhook_id, webhook_token, message_id, payload)
+    return self:request('edit_followup_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token,
+       message_id = message_id
+    }, payload)
+end
+
+function api:delete_followup_message(webhook_id, webhook_token, message_id)
+    return self:request('delete_followup_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token,
+       message_id = message_id
+    })
+end
 function api:get_guild_emoji(guild_id, emoji_id)
     return self:request('get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,

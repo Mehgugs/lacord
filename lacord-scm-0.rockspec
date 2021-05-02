@@ -24,6 +24,7 @@ dependencies = {
     ,'http'
     ,'lua-zlib'
     ,'lua-cjson == 2.1.0-1'
+    ,'dkjson'
 }
 
 build = {

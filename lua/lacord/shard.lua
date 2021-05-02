@@ -8,7 +8,6 @@ local errno = require"cqueues.errno"
 local websocket = require"lacord.websocket"
 local zlib = require"http.zlib"
 local httputil = require"http.util"
-local json = require"cjson"
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local constants = require"lacord.const"
@@ -20,7 +19,6 @@ local USER_AGENT = require"lacord.api".USER_AGENT
 local setmetatable = setmetatable
 local pairs = pairs
 local poll = cqueues.poll
-local encode, decode = json.encode, json.decode
 local identify_delay = constants.gateway.identify_delay
 local sleep = cqueues.sleep
 local insert, concat = table.insert, table.concat
@@ -29,15 +27,20 @@ local traceback = debug.traceback
 local xpcall = xpcall
 local toquery = httputil.dict_to_query
 local tostring = tostring
-local null = json.null
 local min, max = math.min, math.max
 local monotime = cqueues.monotime
+
+local encode = require"dkjson".encode
+local decode = require"dkjson".decode
+local null = require"dkjson".null
 
 local _ENV = {}
 
 local shard = {__name = "lacord.shard"}
 
 shard.__index = shard
+
+function shard:__tostring() return "lacord.shard: "..self.options.id end
 
 
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
@@ -154,7 +157,7 @@ local function beat_loop(state, interval)
     while state.connected do
         logger.warn("Outgoing heart beating")
         state.beats = state.beats + 1
-        send(state, hb, state._seq or json.null, true)
+        send(state, hb, state._seq or null, true)
         local r1,r2 = poll(state.stop_heart, interval)
         if r1 == state.stop_heart or r2 == state.stop_heart then
             logger.warn("%s heart was stopped via signal", state)
@@ -251,7 +254,7 @@ local never_reconnect = {
 
 local function should_reconnect(state, code)
    if never_reconnect[code] then
-       logger.error("s received irrecoverable error(%d): %q", state, code, never_reconnect[code])
+       logger.error("%s received irrecoverable error(%d): %q", state, code, never_reconnect[code])
        return false
    end
    if code == 4004 then
@@ -270,8 +273,8 @@ function messages(state)
             if cont then goto continue end
             if payload then
                 local dop = ops[payload.op]
-                if _ENV[dop] then
-                    _ENV[dop](state, payload.op, payload.d, payload.t, payload.s)
+                if shard[dop] then
+                    shard[dop](state, payload.op, payload.d, payload.t, payload.s)
                 end
             else
                 state:disconnect(4000, 'could not decode payload')
@@ -355,7 +358,7 @@ function shard:RESUMED(_, d, t)
 end
 
 function shard:HEARTBEAT()
-    send( self, ops.HEARTBEAT, self._seq or json.null)
+    send( self, ops.HEARTBEAT, self._seq or null)
 end
 
 function shard:INVALID_SESSION(_, d)
