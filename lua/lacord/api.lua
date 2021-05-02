@@ -572,6 +572,75 @@ function api:delete_pinned_channel_message(channel_id, message_id)
     })
 end
 
+function api:start_public_thread(channel_id, message_id, payload)
+    return self:request('start_public_thread', 'POST', '/channels/:channel_id/messages/:message_id/threads', {
+       channel_id = channel_id,
+       message_id = message_id,
+    }, payload)
+end
+
+function api:start_private_thread(channel_id, payload)
+    return self:request('start_private_thread', 'POST', '/channels/:channel_id/threads', {
+       channel_id = channel_id
+    }, payload)
+end
+
+function api:join_thread(channel_id)
+    return self:request('join_thread', 'PUT', '/channels/:channel_id/thread-members/@me', {
+       channel_id = channel_id
+    })
+end
+
+function api:add_user_to_thread(channel_id, user_id)
+    return self:request('add_user_to_thread', 'GET', '/channels/:channel_id/thread-members/:user_id', {
+       channel_id = channel_id,
+       user_id = user_id
+    })
+end
+
+function api:leave_thread(channel_id)
+    return self:request('leave_thread', 'DELETE', '/channels/:channel_id/thread-members/@me', {
+       channel_id = channel_id
+    })
+end
+
+function api:remove_user_from_thread(channel_id,user_id)
+    return self:request('remove_user_from_thread', 'DELETE', '/channels/:channel_id/thread-members/:user_id', {
+       channel_id = channel_id,
+       user_id = user_id
+    })
+end
+
+function api:list_thread_members(channel_id)
+    return self:request('list_thread_members', 'GET', '/channels/:channel_id/thread-members', {
+       channel_id = channel_id
+    })
+end
+
+function api:list_active_threads(channel_id)
+    return self:request('list_active_threads', 'GET', '/channels/:channel_id/threads/', {
+       channel_id = channel_id,
+    })
+end
+
+function api:list_public_archived_threads(channel_id,  query)
+    return self:request('list_public_archived_threads', 'GET', '/channels/:channel_id/threads/archived/public', {
+       channel_id = channel_id
+    }, nil,  query)
+end
+
+function api:list_private_archived_threads(channel_id,  query)
+    return self:request('list_private_archived_threads', 'GET', '/channels/:channel_id/threads/archived/private', {
+       channel_id = channel_id
+    }, nil,  query)
+end
+
+function api:list_joined_private_archived_threads(channel_id, query)
+    return self:request('list_joined_private_archived_threads', 'GET', '/channels/:channel_id/users/@me/threads/archived/private', {
+       channel_id = channel_id
+    }, nil,  query)
+end
+
 function api:get_guild_emoji(guild_id, emoji_id)
     return self:request('get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,
