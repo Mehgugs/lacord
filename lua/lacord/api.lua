@@ -693,6 +693,7 @@ function api:delete_followup_message(webhook_id, webhook_token, message_id)
        message_id = message_id
     })
 end
+
 function api:get_guild_emoji(guild_id, emoji_id)
     return self:request('get_guild_emoji', 'GET', '/guilds/:guild_id/emojis/:emoji_id', {
         guild_id = guild_id,

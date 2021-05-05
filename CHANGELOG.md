@@ -2,6 +2,34 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### 1618833413 -> 1619975269
+
+#### [lacord.api](lua/lacord/api.lua)
+
+- Added requests for threads and interactions. This is **not stable**.
+- Deprecated `api.static` in favour of a webhook client (it can only use "static" methods as before but ratelimit caches are by webhook token).
+- Introduced dkjson as the encoder/decoder, this means lua's empty table `{}` is now treated as `[]` by the json encoder.
+- This is **temporary** as cjson needs to have its latest version published. If that is held up I will fork and publish my own rock.
+
+#### [lacord.util](lua/lacord/util/init.lua)
+
+- Added some string helpers.
+
+#### [lacord.util.date]()
+
+- REMOVED module.
+
+#### [lacord.util.plcompat]()
+
+- REMOVED module.
+
+#### [lacord.shard](lua/lacord/shard.lua)
+
+- Introduced dkjson as the encoder/decoder, this means lua's empty table `{}` is now treated as `[]` by the json encoder.
+- This is **temporary** as cjson needs to have its latest version published.
+
+- Fixed shards stalling due to a typo in messages.
+
 ### 1617477179 -> 1618833413
 
 #### global changes

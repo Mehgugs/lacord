@@ -46,18 +46,18 @@ function shard:__tostring() return "lacord.shard: "..self.options.id end
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
 local GATEWAY_DELAY = constants.gateway.delay
 local _ops = {
-  DISPATCH              = 0  -- ✅
-, HEARTBEAT             = 1  -- ✅
-, IDENTIFY              = 2  -- ✅
+  DISPATCH              = 0
+, HEARTBEAT             = 1
+, IDENTIFY              = 2
 , STATUS_UPDATE         = 3
 , VOICE_STATE_UPDATE    = 4
 , VOICE_SERVER_PING     = 5
 , RESUME                = 6
-, RECONNECT             = 7  -- ✅
+, RECONNECT             = 7
 , REQUEST_GUILD_MEMBERS = 8
-, INVALID_SESSION       = 9  -- ✅
-, HELLO                 = 10 -- ✅
-, HEARTBEAT_ACK         = 11 -- ✅
+, INVALID_SESSION       = 9
+, HELLO                 = 10
+, HEARTBEAT_ACK         = 11
 }
 
 local ops = {} for k, v in pairs(_ops) do ops[k] = v ops[v] = k end
@@ -207,7 +207,7 @@ end
 
 function read_message(state, message, op)
     if op == "text" then
-        return decode(message)
+        return (decode(message))
     elseif op == "binary" then
         if state.options.transport_compression then
             insert(state.transport_buffer, message)
@@ -216,10 +216,10 @@ function read_message(state, message, op)
             end
             local msg =  state.transport_infl(concat(state.transport_buffer))
             state.transport_buffer = {}
-            return decode(msg)
+            return (decode(msg))
         else
             local infl = zlib.inflate()
-            return  decode(infl(message, true))
+            return  (decode(infl(message, true)))
         end
     end
 end
