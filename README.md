@@ -73,3 +73,27 @@ end)
 
 assert(loop:loop())
 ```
+
+## Installation
+
+This project depends on [`lua-http`](https://github.com/daurnimator/lua-http) and thus [`cqueues`](https://25thandclement.com/~william/projects/cqueues.html). This means that you must
+be able to install `cqueues` on your platform.
+
+You can consult the respective projects for
+detailed instructions but as a general guide the following tools/libraries should be installed and available on your system:
+
+- m4
+- awk
+- zlib-dev
+- openssl-dev (or equiv.)
+
+Once you have the pre-requisites in order you can install this library with luarocks:
+
+- Directly `luarocks install lacord`
+- Via this repository
+    - `git clone https://github.com/Mehgugs/lacord.git && cd lacord`
+    - *optionally checkout a specific commit*
+    - `luarocks make`
+
+NB. In these example I have shown installs to the global rocktree, this may need `sudo` permission on your system.
+Luarocks can install and build modules to a local rocktree with some simple configuration.
