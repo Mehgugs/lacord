@@ -2,6 +2,26 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### 1619975269 -> 1622157568
+
+- The dependencies list now contains an incompatibility with the rock `lua-cjson`.
+  you may need to do a fresh install of `lacord` after removing it if there's an issue.
+
+#### NEW [lacord.util.json](lua/lacord/util/json.lua)
+
+- Added a util module which controls the json encoder / decoder used by lacord.
+- This module provides the usual `encode()`, `decode()`, and `null` features.
+- Empty tables are configured to be parsed as empty json arrays.
+- A set of extra utilities are also provided: `jarray` will construct a new table
+  which will always be parsed as a json array; `empty_array` is an opaque table
+  that represents an empty json array.
+
+#### [lacord.const](lua/lacord/const.lua)
+
+- Added a flag `use_cjson` which governs what json library `lacord.json` becomes.
+- This flag is not intended for end users, and is used to modify the library's behaviour
+  should the need arise.
+
 ### 1618833413 -> 1619975269
 
 #### [lacord.api](lua/lacord/api.lua)
