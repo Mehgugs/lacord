@@ -30,9 +30,9 @@ local tostring = tostring
 local min, max = math.min, math.max
 local monotime = cqueues.monotime
 
-local encode = require"dkjson".encode
-local decode = require"dkjson".decode
-local null = require"dkjson".null
+local encode = require"lacord.util.json".encode
+local decode = require"lacord.util.json".decode
+local null = require"lacord.util.json".null
 
 local _ENV = {}
 

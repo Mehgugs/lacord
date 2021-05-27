@@ -23,7 +23,7 @@ dependencies = {
     ,'cqueues'
     ,'http'
     ,'lua-zlib'
-    ,'lua-cjson == 2.1.0-1'
+    ,'lua-cjson-219'
     ,'dkjson'
 }
 

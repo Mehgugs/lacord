@@ -31,5 +31,6 @@ api.endpoint = ("%s/v%s"):format(api.base_endpoint, api.version)
 
 default_avatars = 5
 
+use_cjson = true
 
 return _ENV

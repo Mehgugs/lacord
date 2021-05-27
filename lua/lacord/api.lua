@@ -32,8 +32,8 @@ local _VERSION = _VERSION
 local set = rawset
 local err = err
 
-local encode = require"dkjson".encode
-local decode = require"dkjson".decode
+local encode = require"lacord.util.json".encode
+local decode = require"lacord.util.json".decode
 
 local _ENV = {}
 
