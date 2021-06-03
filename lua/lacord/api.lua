@@ -643,11 +643,18 @@ function api:list_joined_private_archived_threads(channel_id, query)
     }, nil,  query)
 end
 
-function api:create_interaction_response(webhook_id, webhook_token, payload)
+function api:create_interaction_response(webhook_id, webhook_token, payload, files)
     return self:request('create_interaction_response', 'POST', '/interactions/:webhook_id/:webhook_token/callback', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
-    }, payload)
+    }, payload, nil, files)
+end
+
+function api:create_interaction_response_with_txt(webhook_id, webhook_token, payload, files)
+    return self:request('create_interaction_response', 'POST', '/interactions/:webhook_id/:webhook_token/callback', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token
+    }, payload, nil, files, true)
 end
 
 function api:get_original_interaction_response(webhook_id, webhook_token)
