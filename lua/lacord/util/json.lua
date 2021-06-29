@@ -7,7 +7,7 @@ local _ENV = {}
 --luacheck: ignore 111
 
 if const.use_cjson then
-    local cjson = req"cjson"
+    local cjson = req"cjson".new()
     cjson.encode_empty_table_as_object(false)
     cjson.decode_array_with_array_mt(true)
 
