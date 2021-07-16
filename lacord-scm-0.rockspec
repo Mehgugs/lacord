@@ -25,6 +25,7 @@ dependencies = {
     ,'lua-zlib'
     ,'lua-cjson-219'
     ,'dkjson'
+    ,'luatweetnacl'
 }
 
 build = {

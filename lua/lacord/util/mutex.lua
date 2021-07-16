@@ -9,13 +9,15 @@ local setmetatable = setmetatable
 
 local _ENV = {}
 
-__index = _ENV
-__name  = 'lacord.mutex'
+local mutex = {}
+
+mutex.__index = mutex
+mutex.__name  = 'lacord.mutex'
 
 --- Locks the mutex.
 -- @tparam mutex self
 -- @tparam[opt] number timeout an optional timeout to wait.
-function lock(self, timeout)
+function mutex:lock(timeout)
     if self.inuse then
         self.inuse = self.pollfd:wait(timeout)
     else
@@ -25,7 +27,7 @@ end
 
 --- Unlocks the mutex.
 -- @tparam mutex self
-function unlock(self)
+function mutex:unlock()
     if self.inuse then
         self.inuse = false
         self.pollfd:signal(1)
@@ -40,7 +42,7 @@ end
 --- Unlocks the mutex after the specified time in seconds.
 -- @tparam mutex self
 -- @tparam number time The time to unlock after, in seconds.
-function unlock_after(self, time)
+function mutex:unlock_after(time)
     me():wrap(unlockAfter, self, time)
 end
 
@@ -51,7 +53,7 @@ end
 
 --- Unlocks the mutex on the next schedule.
 -- @tparam mutex self
-function defer_unlock(self)
+function mutex:defer_unlock()
     me():wrap(defered, self)
 end
 
@@ -65,7 +67,6 @@ function new()
 end
 
 --- Mutex Object.
--- All functions which take a mutex as their first argument can be called from the mutex in method form.
 -- @table mutex
 -- @within Objects
 -- @bool inuse

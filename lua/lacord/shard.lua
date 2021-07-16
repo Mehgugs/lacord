@@ -205,6 +205,7 @@ function shard:restart(why)
     return self:disconnect(why)
 end
 
+-- note: the () around decode is a lua-ism to adjust the returns to 1 value, so that they dont trip `cont' checking.
 function read_message(state, message, op)
     if op == "text" then
         return (decode(message))

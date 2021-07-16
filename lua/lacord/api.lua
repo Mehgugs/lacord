@@ -1164,6 +1164,113 @@ function api:list_voice_regions()
     return self:request('list_voice_regions', 'GET', '/voice/regions',empty_route)
 end
 
+function api:get_global_application_commands(application_id)
+    return self:request('get_global_application_commands', 'GET', '/applications/:application_id/commands', {
+       application_id = application_id
+    })
+end
+
+function api:create_global_application_command(application_id,  payload)
+    return self:request('create_global_application_command', 'POST', '/applications/:application_id/commands', {
+       application_id = application_id
+    }, payload)
+end
+
+function api:get_global_application_command(application_id, command_id)
+    return self:request('get_global_application_command', 'GET', '/applications/:application_id/commands/:command_id', {
+       application_id = application_id,
+       command_id = command_id
+    })
+end
+
+function api:edit_global_application_command(application_id, command_id, payload)
+    return self:request('edit_global_application_command', 'PATCH', '/applications/:application_id/commands/:command_id', {
+       application_id = application_id,
+       command_id = command_id
+    }, payload)
+end
+
+function api:delete_global_application_command(application_id, command_id)
+    return self:request('delete_global_application_command', 'DELETE', '/applications/:application_id/commands/:command_id', {
+       application_id = application_id,
+       command_id = command_id
+    })
+end
+
+function api:bulk_overwrite_global_application_commands(application_id, payload)
+    return self:request('bulk_overwrite_global_application_commands', 'PUT', '/applications/:application_id/commands', {
+       application_id = application_id
+    }, payload)
+end
+
+function api:create_guild_application_command(application_id, guild_id, payload)
+    return self:request('create_guild_application_command', 'POST', '/applications/:application_id/guilds/:guild_id/commands', {
+       application_id = application_id,
+       guild_id = guild_id
+    }, payload)
+end
+
+function api:get_guild_application_command(application_id, guild_id, command_id)
+    return self:request('get_guild_application_command', 'GET', '/applications/:application_id/guilds/:guild_id/commands/:command_id', {
+       application_id = application_id,
+       guild_id = guild_id,
+       command_id = command_id
+    })
+end
+
+function api:edit_guild_application_command(application_id, guild_id, command_id, payload)
+    return self:request('edit_guild_application_command', 'PATCH', '/applications/:application_id/guilds/:guild_id/commands/:command_id', {
+       application_id = application_id,
+       guild_id = guild_id,
+       command_id = command_id
+    }, payload)
+end
+
+function api:delete_guild_application_command(application_id, guild_id, command_id)
+    return self:request('delete_guild_application_command', 'DELETE', '/applications/:application_id/guilds/:guild_id/commands/:command_id', {
+        application_id = application_id,
+        guild_id = guild_id,
+        command_id = command_id
+    })
+end
+
+function api:bulk_overwrite_guild_application_commands(application_id, guild_id, payload)
+    return self:request('bulk_overwrite_guild_application_commands', 'PUT', '/applications/:application_id/guilds/:guild_id/commands', {
+       application_id = application_id,
+       guild_id = guild_id
+    }, payload)
+end
+
+function api:get_guild_application_command_permissions(application_id, guild_id)
+    return self:request('get_guild_application_command_permissions', 'GET', '/applications/:application_id/guilds/:guild_id/commands/permissions', {
+       application_id = application_id,
+       guild_id = guild_id
+    })
+end
+
+function api:get_application_command_permissions(application_id, guild_id, command_id)
+    return self:request('get_application_command_permissions', 'GET', '/applications/:application_id/guilds/:guild_id/commands/:command_id/permissions', {
+       application_id = application_id,
+       guild_id = guild_id,
+       command_id = command_id
+    })
+end
+
+function api:edit_application_command_permissions(application_id, guild_id, command_id, payload)
+    return self:request('edit_application_command_permissions', 'PUT', '/applications/:application_id/guilds/:guild_id/commands/:command_id/permissions', {
+       application_id = application_id,
+       guild_id = guild_id,
+       command_id = command_id
+    }, payload)
+end
+
+function api:batch_edit_application_command_permissions(application_id, guild_id, payload)
+    return self:request('batch_edit_application_command_permissions', 'PUT', '/applications/:application_id/guilds/:guild_id/commands/permissions', {
+       application_id = application_id,
+       guild_id = guild_id
+    }, payload)
+end
+
 -- safe method chaining --
 
 local cpmt = {}
