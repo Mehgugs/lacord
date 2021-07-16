@@ -63,7 +63,7 @@ function new()
     return setmetatable({
          pollfd = cond.new()
         ,inuse= false
-    }, _ENV)
+    }, mutex)
 end
 
 --- Mutex Object.

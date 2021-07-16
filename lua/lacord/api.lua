@@ -13,6 +13,7 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
+local content_typed = util.content_typed
 local inflate = zlib.inflate
 local JSON = "application/json"
 local tostring = tostring
@@ -251,12 +252,9 @@ function api.request(state,
     end
 
     if with_payload[method] then
-        local mt = getmetatable(payload)
         local content_type
-        if mt and mt.__lacord_content_type then -- this can be implemented in order to send user-defined objects to discord in multi part uploads
-            payload = mt.__lacord_payload(payload)
-            content_type = mt.__lacord_content_type
-        else
+        payload,content_type = content_typed(payload)
+        if not content_type then
             payload = payload and encode(payload) or '{}'
             content_type = JSON
         end
