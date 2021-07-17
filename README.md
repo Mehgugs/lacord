@@ -81,7 +81,7 @@ detailed instructions but as a general guide the following tools/libraries shoul
 - m4
 - awk
 - zlib-dev
-- libssl-dev (or equiv.)[¹](#note1)
+- libssl-dev (or equiv.)[¹](#note-1)
 
 Once you have the pre-requisites in order you can install this library with luarocks:
 
