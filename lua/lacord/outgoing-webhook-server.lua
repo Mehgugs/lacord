@@ -68,7 +68,7 @@ end
 local function decode_hex(str)
     local bytes = {}
     for i = 1, #str, 2 do
-        bytes[i] = to_n(str:sub(i, i + 1), 16)
+        insert(bytes, to_n(str:sub(i, i + 1), 16))
     end
     return char(unpak(bytes))
 end
@@ -89,11 +89,12 @@ local function decode_fullchain(crtfile)
 	until st == nil
 	crtf:close()
 	local chain = Chain.new()
-	for _ , individual in iiter(crts) do
-		local crt = asserts(Crt.new(individual))
+	local primary = asserts(Crt.new(crts[1]))
+	for i = 2, #crts do
+		local crt = asserts(Crt.new(crts[i]))
 		chain:add(crt)
 	end
-	return chain
+	return primary,chain
 end
 
 local function new_ctx(version, crtpath, keypath)
@@ -105,8 +106,9 @@ local function new_ctx(version, crtpath, keypath)
 		ctx:setOptions(openssl_ctx.OP_NO_TLSv1 + openssl_ctx.OP_NO_TLSv1_1)
 	end
 	local keyfile = asserts(openf(keypath, "r"))
-	local crt = asserts(decode_fullchain(crtpath))
+	local primary,crt = decode_fullchain(crtpath)
 	asserts(ctx:setPrivateKey(Pkey.new(keyfile:read"a")))
+	asserts(ctx:setCertificate(primary))
 	asserts(ctx:setCertificateChain(crt))
 	keyfile:close()
 	return ctx
@@ -294,6 +296,7 @@ function new(options, crtfile, keyfile)
 				req_headers:get"x-signature-ed25519",
 				req_headers:get"x-signature-timestamp"
 			if sig ~= "" and timestamp ~= "" then
+				logger.info("using sig timestamp %s - %s", sig, timestamp)
 				verified = nacl.sign_open(decode_hex(sig) .. timestamp .. raw, pubkey) ~= nil
 			end
 

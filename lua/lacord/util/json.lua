@@ -33,6 +33,9 @@ if const.use_cjson then
 
     ja_mt.__lacord_content_type = "application/json"
     ja_mt.__lacord_payload = _ENV.encode
+    jo_mt = {}
+    jo_mt.__lacord_content_type = "application/json"
+    jo_mt.__lacord_payload = _ENV.encode
 
     function with_empty_as_object(data)
         return cjson_obj_encoder.encode(data)
