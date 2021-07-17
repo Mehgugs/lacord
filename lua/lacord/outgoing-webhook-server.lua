@@ -7,16 +7,25 @@ local server = require "http.server"
 local http_util = require "http.util"
 local zlib = require "http.zlib"
 local http_tls = require "http.tls"
-local new_ctx = http_tls.new_server_context
 local openssl_ssl = require "openssl.ssl"
+local openssl_ctx = require "openssl.ssl.context"
 local Pkey = require "openssl.pkey"
 local Crt = require "openssl.x509"
+local Chain = require"openssl.x509.chain"
 
 local const = require"lacord.const"
 local logger = require"lacord.util.logger"
 local nacl = require"luatweetnacl"
 local json = require"lacord.util.json"
 local util = require"lacord.util"
+
+local tls13suites = {
+	'TLS_AES_256_GCM_SHA384',
+    'TLS_CHACHA20_POLY1305_SHA256',
+    'TLS_AES_128_GCM_SHA256',
+    'TLS_AES_128_CCM_8_SHA256',
+    'TLS_AES_128_CCM_SHA256',
+}
 
 
 local asserts = assert
@@ -26,6 +35,7 @@ local setm = setmetatable
 local to_s = tostring
 local to_n = tonumber
 local typ = type
+local insert = table.insert
 local traceback = debug.traceback
 local openf = io.open
 local date = os.date
@@ -34,13 +44,13 @@ local char = string.char
 local unpak = table.unpack
 local content_typed = util.content_typed
 local default_server = "lacord " .. const.version
+local iiter = ipairs
 
 --luacheck: ignore 111
 local _ENV = {}
 
--- Prefer whichever comes first
 local function alpn_select(ssl, protos, version)
-	for _, proto in ipairs(protos) do
+	for _, proto in iiter(protos) do
 		if proto == "h2" and (version == nil or version == 2) then
 			-- HTTP2 only allows >= TLSv1.2
 			-- allow override via version
@@ -61,6 +71,45 @@ local function decode_hex(str)
         bytes[i] = to_n(str:sub(i, i + 1), 16)
     end
     return char(unpak(bytes))
+end
+
+local function decode_fullchain(crtfile)
+	local crtf  = asserts(openf(crtfile, "r"))
+	local crttxt = crtf:read"a"
+	local crts, pos = {}, 1
+	repeat
+		local st, ed = crttxt:find("-----BEGIN CERTIFICATE-----", pos, true)
+		if st then
+			local st2, ed2 = crttxt:find("-----END CERTIFICATE-----", ed + 1, true)
+			if st2 then
+				insert(crts, crttxt:sub(st, ed2))
+				pos = ed2+1
+			end
+		end
+	until st == nil
+	crtf:close()
+	local chain = Chain.new()
+	for _ , individual in iiter(crts) do
+		local crt = asserts(Crt.new(individual))
+		chain:add(crt)
+	end
+	return chain
+end
+
+local function new_ctx(version, crtpath, keypath)
+	local ctx = http_tls.new_server_context()
+	if http_tls.has_alpn then
+		ctx:setAlpnSelect(alpn_select, version)
+	end
+	if version == 2 then
+		ctx:setOptions(openssl_ctx.OP_NO_TLSv1 + openssl_ctx.OP_NO_TLSv1_1)
+	end
+	local keyfile = asserts(openf(keypath, "r"))
+	local crt = asserts(decode_fullchain(crtpath))
+	asserts(ctx:setPrivateKey(Pkey.new(keypath:read"a")))
+	asserts(ctx:setCertificateChain(crt))
+	keyfile:close()
+	return ctx
 end
 
 local function check_compressed(headers, raw)
@@ -214,23 +263,9 @@ function new(options, crtfile, keyfile)
 	local log = options.log or default_log
 
 	pubkey = decode_hex(pubkey)
-
+	if options.version == nil then options.version = 1.1 end
 	if crtfile then
-		options.ctx = new_ctx()
-		if http_tls.has_alpn then
-			options.ctx:setAlpnSelect(alpn_select, 1.1)
-		end
-		local crttxt  = asserts(openf(crtfile, "r"))
-		local pemtxt  = asserts(openf(keyfile, "r"))
-
-		local crt = Crt.new(crttxt:read"a")
-		local pkey = Pkey.new(pemtxt:read"a")
-
-		options.ctx:setCertificate(crt)
-		options.ctx:setPrivateKey(pkey)
-		options.tls = true
-        crttxt:close()
-        pemtxt:close()
+		options.ctx = new_ctx(options.version, crtfile, keyfile)
 	else
 		if options.tls then
 			logger.warn("No openssl certificate provided TLS will use a self-signed certificate.")
@@ -250,8 +285,6 @@ function new(options, crtfile, keyfile)
 		end
 
 		local resp = new_response(req_headers, stream)
-
-		log(resp)
 
 		local ok,err2
 		if resp.path == discordpath and resp.method == "POST" then
@@ -296,6 +329,7 @@ function new(options, crtfile, keyfile)
 			end
 		end
 		stream:shutdown()
+		log(resp)
 		if not ok then
 			onerror("stream error: %s", to_s(err2))
 		end
