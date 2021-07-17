@@ -19,15 +19,6 @@ local nacl = require"luatweetnacl"
 local json = require"lacord.util.json"
 local util = require"lacord.util"
 
-local tls13suites = {
-	'TLS_AES_256_GCM_SHA384',
-    'TLS_CHACHA20_POLY1305_SHA256',
-    'TLS_AES_128_GCM_SHA256',
-    'TLS_AES_128_CCM_8_SHA256',
-    'TLS_AES_128_CCM_SHA256',
-}
-
-
 local asserts = assert
 local errors = error
 local try = pcall
@@ -264,15 +255,15 @@ function new(options, crtfile, keyfile)
 	local onerror = options.onerror or default_onerror
 	local log = options.log or default_log
 
+	options.tls = true
 	pubkey = decode_hex(pubkey)
 	if options.version == nil then options.version = 1.1 end
 	if crtfile then
 		options.ctx = new_ctx(options.version, crtfile, keyfile)
 	else
-		if options.tls then
-			logger.warn("No openssl certificate provided TLS will use a self-signed certificate.")
+		if not options.ctx then
+			logger.fatal("Cannot use a self-signed certificate; it will be rejected by discord.")
 		end
-		options.tls = not not options.tls
 	end
 
 	local function onstream(_, stream)
@@ -310,7 +301,11 @@ function new(options, crtfile, keyfile)
 					if not ok_ then ok, err2 = false, res
 					else
 						ok = true
-						resp:set_ok_and_reply(json.encode(res), "application/json")
+						if res then
+							resp:set_ok_and_reply(json.encode(res), "application/json")
+						elseif not resp.body then -- they didn't set anything
+							resp:set_code_and_reply(500, "No response available.", "text/plain; charset=UTF-8")
+						end
 					end
 				end
 			else
