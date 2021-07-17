@@ -8,6 +8,7 @@ local http_util = require "http.util"
 local zlib = require "http.zlib"
 local http_tls = require "http.tls"
 local new_ctx = http_tls.new_server_context
+local openssl_ssl = require "openssl.ssl"
 local Pkey = require "openssl.pkey"
 local Crt = require "openssl.x509"
 
@@ -36,6 +37,23 @@ local default_server = "lacord " .. const.version
 
 --luacheck: ignore 111
 local _ENV = {}
+
+-- Prefer whichever comes first
+local function alpn_select(ssl, protos, version)
+	for _, proto in ipairs(protos) do
+		if proto == "h2" and (version == nil or version == 2) then
+			-- HTTP2 only allows >= TLSv1.2
+			-- allow override via version
+			if ssl:getVersion() >= openssl_ssl.TLS1_2_VERSION or version == 2 then
+				return proto
+			end
+		elseif (proto == "http/1.1" and (version == nil or version == 1.1))
+			or (proto == "http/1.0" and (version == nil or version == 1.0)) then
+			return proto
+		end
+	end
+	return nil
+end
 
 local function decode_hex(str)
     local bytes = {}
@@ -199,6 +217,9 @@ function new(options, crtfile, keyfile)
 
 	if crtfile then
 		options.ctx = new_ctx()
+		if http_tls.has_alpn then
+			options.ctx:setAlpnSelect(alpn_select, 1.1)
+		end
 		local crttxt  = asserts(openf(crtfile, "r"))
 		local pemtxt  = asserts(openf(keyfile, "r"))
 
