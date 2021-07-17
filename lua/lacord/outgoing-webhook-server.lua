@@ -106,7 +106,7 @@ local function new_ctx(version, crtpath, keypath)
 	end
 	local keyfile = asserts(openf(keypath, "r"))
 	local crt = asserts(decode_fullchain(crtpath))
-	asserts(ctx:setPrivateKey(Pkey.new(keypath:read"a")))
+	asserts(ctx:setPrivateKey(Pkey.new(keyfile:read"a")))
 	asserts(ctx:setCertificateChain(crt))
 	keyfile:close()
 	return ctx
