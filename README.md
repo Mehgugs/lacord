@@ -81,7 +81,7 @@ detailed instructions but as a general guide the following tools/libraries shoul
 - m4
 - awk
 - zlib-dev
-- libssl-dev (or equiv.)[¹](#Note.1)
+- libssl-dev (or equiv.)[¹](#note1)
 
 Once you have the pre-requisites in order you can install this library with luarocks:
 
@@ -151,6 +151,6 @@ The `loop` object has `.cq` field which can be used to `:wrap` asynchronous code
 
 ## Notes
 
-#### Note.1
+#### Note 1
 I would recommend manually installing openssl with a version in the current stable series.
 At the time of writing this is the **1.1.1** series.
