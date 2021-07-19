@@ -69,10 +69,15 @@ local function decode_hex(str)
 end
 
 -- takes a file of one of more PEM encoded certificates and splits them into a primary cert and a chain of intermediates.
-local function decode_fullchain(crtfile)
-    local crtf  = asserts(openf(crtfile, "r"))
-    local crttxt = crtf:read"a"
+local function decode_fullchain(crtfile, iscontent)
+    local crttxt
+    if iscontent then crttxt = crtfile else
+        local crtf  = asserts(openf(crtfile, "r"))
+        crttxt = crtf:read"a"
+        crtf:close()
+    end
     local crts, pos = {}, 1
+
     repeat
         local st, ed = crttxt:find("-----BEGIN CERTIFICATE-----", pos, true)
         if st then
@@ -83,7 +88,7 @@ local function decode_fullchain(crtfile)
             end
         end
     until st == nil
-    crtf:close()
+
     local chain = Chain.new()
     local primary = asserts(Crt.new(crts[1]))
     for i = 2, #crts do
@@ -108,6 +113,25 @@ local function new_ctx(version, crtpath, keypath)
     asserts(ctx:setCertificate(primary))
     asserts(ctx:setCertificateChain(crt))
     keyfile:close()
+    return ctx
+end
+
+-- construct a openssl context using the user's crtfile and keyfile.
+local function new_ctxlit(options)
+    local version = options.version or 1.1
+    local ctx = http_tls.new_server_context()
+    if http_tls.has_alpn then
+        ctx:setAlpnSelect(alpn_select, version)
+    end
+    if version == 2 then
+        ctx:setOptions(openssl_ctx.OP_NO_TLSv1 + openssl_ctx.OP_NO_TLSv1_1)
+    end
+
+    local primary,crt = decode_fullchain(options.crt)
+    asserts(ctx:setPrivateKey(Pkey.new(options.pkey)))
+    asserts(ctx:setCertificate(primary))
+    asserts(ctx:setCertificateChain(crt))
+
     return ctx
 end
 
@@ -328,5 +352,7 @@ function new(options, crtfile, keyfile)
 
     return myserver
 end
+
+_ENV.diy_tls = new_ctxlit
 
 return _ENV
