@@ -1,1 +1,3 @@
-*lua filter=untab
+* text=auto
+
+*.lua filter=untab
