@@ -3,8 +3,13 @@ local popen = io.popen
 local assert = assert
 local error = error
 local getm = getmetatable
+local setm = setmetatable
+local encodeURIComponent = require"http.util".encodeURIComponent
+local dict_to_query = require"http.util".dict_to_query
 
 local _ENV = {}
+
+-- luacheck: ignore 111
 
 --- Computes the FNV-1a 32bit hash of the given string.
 -- @str str The input string.
@@ -18,12 +23,9 @@ function hash(str)
     return hash
 end
 
-function shift(n, start1, stop1, start2, stop2)
-    return (n - start1) / (stop1 - start1) * (stop2 - start2) + start2
-end
-
+--- Produces a random double between `A` and `B`.
 function rand(A, B)
-    return shift(random(), 0, 1, A, B)
+    return random() * (A - B) + A
 end
 
 local function _platform()
@@ -74,13 +76,39 @@ function prefix(s, suf)
   return s:sub(-len) == suf and s:sub(1, -len -1) or s
 end
 
-function content_typed(payload)
+--- Resolve a prospective payload w.r.t lacord content types.
+--  Users can check the 2nd return value to see if any processing was done.
+function content_typed(payload, ...)
     local mt = getm(payload)
-    if mt and mt.__lacord_content_type then -- this can be implemented in order to send user-defined objects to discord in multi part uploads
-        return mt.__lacord_payload(payload),mt.__lacord_content_type
+    if mt and mt.__lacord_content_type then
+        return mt.__lacord_payload(payload, ...),mt.__lacord_content_type
     else
         return payload
     end
 end
+
+--- Some common content types.
+_ENV.content_types = {
+    JSON = "application/json",
+    TEXT = "text/plain; charset=UTF-8",
+    URLENCODED = "application/x-www-form-urlencoded",
+    BYTES = "application/octet-stream",
+}
+
+local txt = {
+    __lacord_content_type = _ENV.content_types.TEXT,
+    __lacord_payload = function(x) return x[1] end,
+    __tostring = function(x) return x[1] end,
+}
+
+function plaintext(str) return setm({str}, txt) end
+
+local urlencoded_t = {__lacord_content_type = "application/x-www-form-urlencoded"}
+
+function urlencoded_t:__lacord_payload()
+    return encodeURIComponent(dict_to_query(self))
+end
+
+function urlencoded(t) return setm(t or {}, urlencoded_t) end
 
 return _ENV

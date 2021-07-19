@@ -13,16 +13,18 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
+
+local sleep = cqueues.sleep
+local monotime = cqueues.monotime
 local content_typed = util.content_typed
 local inflate = zlib.inflate
-local JSON = "application/json"
+local JSON = util.content_types.JSON
 local tostring = tostring
 local time = os.time
 local insert, concat = table.insert, table.concat
 local unpack = table.unpack
 local next, tonumber = next, tonumber
-local setmetatable = setmetatable
-local getmetatable = getmetatable
+local setm = setmetatable
 local max = math.max
 local min = math.min
 local xpcall = xpcall
@@ -31,7 +33,7 @@ local type = type
 local ipairs, pairs = ipairs, pairs
 local _VERSION = _VERSION
 local set = rawset
-local err = err
+local err = error
 
 local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
@@ -54,8 +56,6 @@ _ENV.URL = URL
 local USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, _VERSION )
 _ENV.USER_AGENT = USER_AGENT
 
-local GLOBAL_LOCK = mutex()
-
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))
 local BOUNDARY2 = "--" .. BOUNDARY1
 local BOUNDARY3 = BOUNDARY2 .. "--"
@@ -70,15 +70,20 @@ local with_payload = {
 
 local caches = {}
 
+local function mutexindexer(self, k)
+    self[k] = mutex(k)
+    return self[k]
+end
+
+local mutexc_t = {__mode = "v", __index = mutexindexer}
+
 local function mutex_cache(token)
-    return caches[token] or set(caches, token, setmetatable({},
-    {
-        __mode = "v",
-        __index = function (self, k)
-            self[k] = mutex(k)
-            return self[k]
-        end
-    }))[token]
+    local ch = caches[token]
+    if not ch then
+        ch = setm({}, mutexc_t)
+        set(caches, token, ch)
+    end
+    return ch
 end
 
 local function attachContent(payload, files, ct, inner_ct)
@@ -99,11 +104,30 @@ local function attachContent(payload, files, ct, inner_ct)
 end
 
 local function attachFiles (payload, files, ct)
-    return attachContent(payload, files, ct, "application/octet-stream")
+    return attachContent(payload, files, ct, util.content_types.BYTES)
 end
 
 local function attachTextFiles(payload, files, ct)
-    return attachContent(payload, files, ct, "text/plain")
+    return attachContent(payload, files, ct, util.content_types.TEXT)
+end
+
+local function handle_payload(req, method, name, payload, files, asText)
+    if with_payload[method] then
+        local content_type
+        payload,content_type = content_typed(payload, name)
+        if not content_type then
+            payload = payload and encode(payload) or '{}'
+            content_type = JSON
+        end
+        if files and next(files) then
+            payload = (asText and attachTextFiles or attachFiles)(payload, files, content_type)
+            req.headers:append('content-type', MULTIPART)
+        else
+            req.headers:append('content-type', content_type)
+        end
+        req.headers:append("content-length", #payload)
+        req:set_body(payload)
+    end
 end
 
 local function resolve_endpoint(ep, rp)
@@ -122,25 +146,30 @@ local function resolve_majors(ep, rp)
         insert(mp, rp.webhook_id)
         insert(mp, rp.webhook_token)
     end
-    return #mp == 0 and '' or concat(mp, ".")
+    return (not mp[1]) and '' or concat(mp, ".")
 end
 
 --- Creates a new api state for connecting to discord.
 -- @tab options The options table. Must contain a `token` field with the api token to use.
 -- @treturn api The api state object.
 function init(options)
-    local state = setmetatable({}, api)
+    local state = setm({}, api)
     local auth
     if options.client_credentials then
         auth = "Basic " .. base64(("%s:%s"):format(options.client_credentials[1], options.client_credentials[2]))
-    elseif options.token and options.token:sub(1,4) == "Bot " or options.token:sub(1,7) == "Bearer " then
+        state.auth_kind = "client_credentials"
+    elseif options.token and options.token:sub(1,4) == "Bot " then
         auth = options.token
+        state.auth_kind = "bot"
+    elseif options.token and options.token:sub(1,7) == "Bearer " then
+        auth = options.token
+        state.auth_kind = "bearer"
     else
         return logger.fatal("Please supply a token! It must start with $white;'Bot|Bearer '$error;.")
     end
     state.token = auth
     state.routex = mutex_cache(auth)
-    state.global_lock = GLOBAL_LOCK
+    state.global_deadline = 0
     state.rates = {}
     state.track_rates = options.track_ratelimits
     state.use_legacy = options.legacy_ratelimits
@@ -160,9 +189,8 @@ function init(options)
     return state
 end
 
-local static_api, static_methods = setmetatable({}, api), {} do
+local static_api, static_methods = setm({}, api), {} do
     static_api.routex = mutex_cache'static_api'
-    static_api.global_lock = GLOBAL_LOCK
     static_api.rates = {}
     static_api.track_rates = false
     static_api.use_legacy = false
@@ -191,14 +219,6 @@ local function get_routex(ratelimits, key)
     if type(item) == 'string' then return get_routex(ratelimits, item)
     else return item, key
     end
-end
-
-local function resolve_global_unlocks(global, bucket, initial)
-    global.pollfd:wait() -- we must wait for the global limit to expire before potentially resuming a request
-    if initial ~= bucket then
-        initial:unlock()
-    end
-    return bucket:unlock() -- now we can call unlock
 end
 
 local push
@@ -233,7 +253,7 @@ function api.request(state,
     if not cqueues.running() then
         return logger.fatal("Please call REST methods asynchronously.")
     end
-    -- resolved ep is the endpoint with its :route_params substituted
+
     local resolved_ep = resolve_endpoint(endpoint, route_parameters)
     local url = URL .. resolved_ep
 
@@ -241,8 +261,8 @@ function api.request(state,
         url = ("%s?%s"):format(url, httputil.dict_to_query(mapquery(query)))
     end
 
-    url = httputil.encodeURI(url)
-    local req = newreq.new_from_uri(url)
+    local req = newreq.new_from_uri(httputil.encodeURI(url))
+
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
     if state.token then req.headers:append("authorization", state.token) end
@@ -251,53 +271,34 @@ function api.request(state,
         req.headers:append("accept-encoding", state.accept_encoding)
     end
 
-    if with_payload[method] then
-        local content_type
-        payload,content_type = content_typed(payload)
-        if not content_type then
-            payload = payload and encode(payload) or '{}'
-            content_type = JSON
-        end
-        if files and next(files) then
-            payload = (asText and attachTextFiles or attachFiles)(payload, files, content_type)
-            req.headers:append('content-type', MULTIPART)
-        else
-            req.headers:append('content-type', content_type)
-        end
-        req.headers:append("content-length", #payload)
-        req:set_body(payload)
-    end
+    handle_payload(req, method, name, payload, files, asText)
 
     local major_params = resolve_majors(endpoint, route_parameters)
-    if state.global_lock.inuse then state.global_lock.polldfd:wait() end
-
     local initial, bucket = get_routex(state.routex,  major_params .. name)
 
     initial:lock()
 
-    local success, data, err, delay, global = xpcall(push, traceback, state, name, req, major_params, 0)
+    local global_remaining = state.global_deadline - monotime()
+
+    if global_remaining > 0 then sleep(global_remaining) end
+
+    local success, data, erro, delay = xpcall(push, traceback, state, name, req, major_params, 0)
+
     if not success then
         return logger.fatal("api.push failed %q", tostring(data))
     end
 
     local final = get_routex(state.routex, bucket)
-    if global then
-        state.global_lock:unlock_after(delay)
-        cqueues.running():wrap(resolve_global_unlocks, state.global_lock, final, initial)
-    else
-        if final ~= initial then
-           initial:unlock_after(delay)
-        end
-        final:unlock_after(delay)
-        state.global_lock:unlock()
+    if final ~= initial then
+        initial:unlock_after(delay)
     end
+    final:unlock_after(delay)
 
-    return not err, data, err
+    return not erro, data, erro
 end
 
 function push(state, name, req, major_params, retries)
     local delay = state.route_delay -- seconds
-    local global = false -- whether the delay incurred is on the global limit
     local ID = major_params .. name
     local headers , stream , eno = req:go(state.api_timeout or 60)
 
@@ -309,8 +310,9 @@ function push(state, name, req, major_params, retries)
         cqueues.sleep(rsec)
         return push(state, name, req,major_params, retries+1)
     elseif not headers and retries >= constants.api.max_retries then
-        return nil, errno.strerror(eno), delay, global
+        return nil, errno.strerror(eno), delay
     end
+
     local code, rawcode,stat
 
     stat = headers:get":status"
@@ -357,8 +359,8 @@ function push(state, name, req, major_params, retries)
 
     local data = state.raw and raw or headers:get"content-type" == JSON and decode(raw) or raw
     if code < 300 then
-        if code == 204 then return true, nil, delay, global
-        else return data, nil, delay, global
+        if code == 204 then return true, nil, delay
+        else return data, nil, delay
         end
     else
         if state.raw then
@@ -368,17 +370,20 @@ function push(state, name, req, major_params, retries)
             local retry;
             if code == 429 then
                 delay = data.retry_after
-                global = data.global
+                if data.global or headers:get"x-ratelimit-global" then
+                    state.global_deadline = monotime() + delay
+                end
                 retry = retries < 5
             elseif code == 502 then
                 delay = delay + util.rand(0 , 2)
                 retry = retries < 5
-                global = headers:get"x-ratelimit-global"
+                if headers:get"x-ratelimit-global" then
+                    state.global_deadline = monotime() + delay
+                end
             end
 
             if retry then
                 logger.warn("(%i, %q) :  retrying after %fsec : %s", code, reason[rawcode], delay, ID)
-                if global then state.global_lock:unlock_after(delay) end
                 cqueues.sleep(delay)
                 return push(state, name, req, major_params, retries+1)
             end
@@ -392,10 +397,12 @@ function push(state, name, req, major_params, retries)
             --TODO: handle data.errors again
             data = msg
         else
-            global = headers:get"x-ratelimit-global"
+            if headers:get"x-ratelimit-global" then
+                state.global_deadline = monotime() + delay
+            end
         end
         logger.error("(%i, %q) : %s", code, reason[rawcode], ID)
-        return nil, data, delay, global
+        return nil, data, delay
     end
 end
 
@@ -1269,6 +1276,11 @@ function api:batch_edit_application_command_permissions(application_id, guild_id
     }, payload)
 end
 
+function api:get_token(data)
+    return self:request('get_token', 'POST', '/oauth2/token/', {}, nil, data)
+end
+
+
 -- safe method chaining --
 
 local cpmt = {}
@@ -1315,7 +1327,7 @@ end
 --    R:some_method() -- If there's been a faiure, calls like this are noop'd.
 --  end
 function api:capture()
-  return setmetatable({self, success = true, result = {}, results = results, error = false}, cpmt)
+  return setm({self, success = true, result = {}, results = results, error = false}, cpmt)
 end
 
 local webhookm = {} for k, v in pairs(api) do
@@ -1354,9 +1366,9 @@ function webhookm:request(name, ...)
 end
 
 local function webhook_init(webhook_token)
-    local webhook_api = setmetatable({}, webhookm)
+    local webhook_api = setm({}, webhookm)
     webhook_api.routex = mutex_cache(webhook_token)
-    webhook_api.global_lock = GLOBAL_LOCK
+
     webhook_api.rates = {}
     webhook_api.track_rates = false
     webhook_api.use_legacy = false
