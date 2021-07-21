@@ -4,6 +4,8 @@ local assert = assert
 local error = error
 local getm = getmetatable
 local setm = setmetatable
+local vstring = _VERSION
+local to_n = tonumber
 local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
 
@@ -41,6 +43,14 @@ end
 -- @within Constants
 -- @string platform
 platform = _platform()
+
+do
+    local vmj, vmn = vstring:match('Lua (%d)%.(%d)')
+
+    _ENV.version_major = to_n(vmj)
+    _ENV.version_minor = to_n(vmn)
+    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
+end
 
 --- Tests whether a string starts with a given prefix.
 -- @str s The string to check.
