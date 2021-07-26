@@ -127,7 +127,7 @@ local function new_ctxlit(options)
         ctx:setOptions(openssl_ctx.OP_NO_TLSv1 + openssl_ctx.OP_NO_TLSv1_1)
     end
 
-    local primary,crt = decode_fullchain(options.crt)
+    local primary,crt = decode_fullchain(options.crt, true)
     asserts(ctx:setPrivateKey(Pkey.new(options.pkey)))
     asserts(ctx:setCertificate(primary))
     asserts(ctx:setCertificateChain(crt))
@@ -209,6 +209,12 @@ function response_methods:set_503()
     self:set_body"Internal server error."
 end
 
+function response_methods:set_500()
+    self.headers:upsert(":status", "500")
+    self.headers:upsert("content-type", TEXT)
+    self:set_body"Internal server error."
+end
+
 function response_methods:set_401()
     self.headers:upsert(":status", "401")
     self.headers:upsert("content-type", TEXT)
@@ -266,14 +272,22 @@ function new(options, crtfile, keyfile)
     local onerror = options.onerror or default_onerror
     local log = options.log or default_log
 
-    options.tls = true
+    options.tls = nil
     pubkey = decode_hex(pubkey)
     if options.version == nil then options.version = 1.1 end
     if crtfile then
         options.ctx = new_ctx(options.version, crtfile, keyfile)
+        options.tls = true
     else
-        if not options.ctx then
-            logger.fatal("Cannot use a self-signed certificate; it will be rejected by discord.")
+        if options.ctx then
+            options.tls = true
+        else
+            options.tls = false
+            if not options.ikwid then
+                logger.warn("* You've not provided any TLS configuration to use")
+                logger.warn("  this means that this connection will be rejected by discord")
+                logger.warn("  unless you have configured a https layer outside this application.")
+            end
         end
     end
 
@@ -298,7 +312,6 @@ function new(options, crtfile, keyfile)
                 req_headers:get"x-signature-ed25519",
                 req_headers:get"x-signature-timestamp"
             if sig ~= "" and timestamp ~= "" then
-                logger.info("using sig timestamp %s - %s", sig, timestamp)
                 verified = nacl.sign_open(decode_hex(sig) .. timestamp .. raw, pubkey) ~= nil
             end
 
@@ -313,9 +326,14 @@ function new(options, crtfile, keyfile)
                     else
                         ok = true
                         if res then
-                            resp:set_ok_and_reply(json.encode(res), JSON)
+                            local respayload,content_type = content_typed(res)
+                            if not content_type then
+                                respayload = respayload and json.encode(respayload)
+                                content_type = JSON
+                            end
+                            resp:set_ok_and_reply(respayload, content_type)
                         elseif not resp.body then -- they didn't set anything
-                            resp:set_code_and_reply(500, "No response available.", TEXT)
+                            resp:set_code_and_reply(501, "No response available.", TEXT)
                         end
                     end
                 end
@@ -329,7 +347,7 @@ function new(options, crtfile, keyfile)
 
         if stream.state ~= "closed" and stream.state ~= "half closed (local)" then
             if not ok then
-                resp:set_503()
+                resp:set_500()
             end
             local send_body = resp.body and req_headers:get ":method" ~= "HEAD"
             resp.headers:upsert("date", http_util.imf_date())
