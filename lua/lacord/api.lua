@@ -20,6 +20,7 @@ local content_typed = util.content_typed
 local inflate = zlib.inflate
 local JSON = util.content_types.JSON
 local tostring = tostring
+local remove = table.remove
 local time = os.time
 local insert, concat = table.insert, table.concat
 local unpack = table.unpack
@@ -221,7 +222,14 @@ local function get_routex(ratelimits, key)
     end
 end
 
+local function check_global(state)
+    local global_remaining = state.global_deadline - monotime()
+    if global_remaining > 0 then sleep(global_remaining) end
+end
+
 local push
+
+local reason_thrs = setm({}, {__mode = "k"})
 
 --- The api state object.
 -- @table api
@@ -250,7 +258,8 @@ function api.request(state,
     files, -- a list of files
     asText -- should it be text files or binary?
 )
-    if not cqueues.running() then
+    local reqthr = cqueues.running()
+    if not reqthr then
         return logger.fatal("Please call REST methods asynchronously.")
     end
 
@@ -271,6 +280,11 @@ function api.request(state,
         req.headers:append("accept-encoding", state.accept_encoding)
     end
 
+    local reasons =reason_thrs[reqthr]
+    if reasons and reasons[1] then
+        req.headers:append("x-audit-log-reason", tostring(remove(reasons)))
+    end
+
     handle_payload(req, method, name, payload, files, asText)
 
     local major_params = resolve_majors(endpoint, route_parameters)
@@ -278,9 +292,7 @@ function api.request(state,
 
     initial:lock()
 
-    local global_remaining = state.global_deadline - monotime()
-
-    if global_remaining > 0 then sleep(global_remaining) end
+    check_global(state)
 
     local success, data, erro, delay = xpcall(push, traceback, state, name, req, major_params, 0)
 
@@ -308,6 +320,7 @@ function push(state, name, req, major_params, retries)
             state, ID, tostring(stream), errno[eno], errno.strerror(eno), rsec
         )
         cqueues.sleep(rsec)
+        check_global(state)
         return push(state, name, req,major_params, retries+1)
     elseif not headers and retries >= constants.api.max_retries then
         return nil, errno.strerror(eno), delay
@@ -371,6 +384,7 @@ function push(state, name, req, major_params, retries)
             if code == 429 then
                 delay = data.retry_after
                 if data.global or headers:get"x-ratelimit-global" then
+                    check_global(state)
                     state.global_deadline = monotime() + delay
                 end
                 retry = retries < 5
@@ -378,6 +392,7 @@ function push(state, name, req, major_params, retries)
                 delay = delay + util.rand(0 , 2)
                 retry = retries < 5
                 if headers:get"x-ratelimit-global" then
+                    check_global(state)
                     state.global_deadline = monotime() + delay
                 end
             end
@@ -398,6 +413,7 @@ function push(state, name, req, major_params, retries)
             data = msg
         else
             if headers:get"x-ratelimit-global" then
+                check_global(state)
                 state.global_deadline = monotime() + delay
             end
         end
@@ -579,15 +595,15 @@ function api:delete_pinned_channel_message(channel_id, message_id)
     })
 end
 
-function api:start_public_thread(channel_id, message_id, payload)
-    return self:request('start_public_thread', 'POST', '/channels/:channel_id/messages/:message_id/threads', {
+function api:start_thread_with_message(channel_id, message_id, payload)
+    return self:request('start_thread_with_message', 'POST', '/channels/:channel_id/messages/:message_id/threads', {
        channel_id = channel_id,
        message_id = message_id,
     }, payload)
 end
 
-function api:start_private_thread(channel_id, payload)
-    return self:request('start_private_thread', 'POST', '/channels/:channel_id/threads', {
+function api:start_thread_without_message(channel_id, payload)
+    return self:request('start_thread_without_message', 'POST', '/channels/:channel_id/threads', {
        channel_id = channel_id
     }, payload)
 end
@@ -598,8 +614,8 @@ function api:join_thread(channel_id)
     })
 end
 
-function api:add_user_to_thread(channel_id, user_id)
-    return self:request('add_user_to_thread', 'GET', '/channels/:channel_id/thread-members/:user_id', {
+function api:add_thread_member(channel_id, user_id)
+    return self:request('add_thread_member', 'GET', '/channels/:channel_id/thread-members/:user_id', {
        channel_id = channel_id,
        user_id = user_id
     })
@@ -611,8 +627,8 @@ function api:leave_thread(channel_id)
     })
 end
 
-function api:remove_user_from_thread(channel_id,user_id)
-    return self:request('remove_user_from_thread', 'DELETE', '/channels/:channel_id/thread-members/:user_id', {
+function api:remove_thread_member(channel_id,user_id)
+    return self:request('remove_thread_member', 'DELETE', '/channels/:channel_id/thread-members/:user_id', {
        channel_id = channel_id,
        user_id = user_id
     })
@@ -1280,6 +1296,48 @@ function api:get_token(data)
     return self:request('get_token', 'POST', '/oauth2/token/', {}, nil, data)
 end
 
+function api:get_sticker(sticker_id)
+    return self:request('get_sticker', 'GET', '/stickers/:sticker_id', {
+       sticker_id = sticker_id
+    })
+end
+
+function api:list_nitro_sticker_packs()
+    return self:request('list_nitro_sticker_packs', 'GET', '/sticker-packs', empty_route)
+end
+
+function api:list_guild_stickers(guild_id)
+    return self:request('list_guild_stickers', 'GET', '/guilds/:guild_id/stickers', {
+       guild_id = guild_id
+    })
+end
+
+function api:get_guild_sticker(guild_id, sticker_id)
+    return self:request('get_guild_sticker', 'GET', '/guilds/:guild_id/stickers/:sticker_id', {
+       guild_id = guild_id,
+       sticker_id = sticker_id
+    })
+end
+
+function api:create_guild_sticker(guild_id,  payload)
+    return self:request('create_guild_sticker', 'POST', '/guilds/:guild_id/stickers', {
+       guild_id = guild_id
+    }, payload)
+end
+
+function api:modify_guild_sticker(guild_id, sticker_id, payload)
+    return self:request('modify_guild_sticker', 'PATCH', '/guilds/guild_id/stickers/:sticker_id', {
+       guild_id = guild_id,
+       sticker_id = sticker_id
+    }, payload)
+end
+
+function api:delete_guild_sticker(guild_id, sticker_id)
+    return self:request('delete_guild_sticker', 'DELETE', '/guilds/:guild_id/stickers/:sticker_id', {
+       guild_id = guild_id,
+       sticker_id = sticker_id
+    })
+end
 
 -- safe method chaining --
 
@@ -1382,5 +1440,13 @@ end
 _ENV.webhook_init = webhook_init
 
 _ENV.static = static_api
+
+function with_reason(txt)
+    local thr = cqueues.running()
+    if not thr then err("Cannot add a contextual reason without a cqueues thread (using api methods outside a coroutine?).") end
+    reason_thrs[thr] = reason_thrs[thr] or {}
+    insert(reason_thrs[thr], 1, txt)
+    return txt
+end
 
 return _ENV
