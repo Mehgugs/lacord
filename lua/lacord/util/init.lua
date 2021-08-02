@@ -6,8 +6,12 @@ local getm = getmetatable
 local setm = setmetatable
 local vstring = _VERSION
 local to_n = tonumber
+local to_s = tostring
+local set = rawset
+local typ = type
 local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
+local _platform = require"lacord.util.archp".os
 
 local _ENV = {}
 
@@ -30,19 +34,10 @@ function rand(A, B)
     return random() * (A - B) + A
 end
 
-local function _platform()
-    local f = assert(popen('uname'))
-    local res, m = f:read()
-    if not res then f:close() return error(m) end
-
-    if res == 'Darwin' then res = 'OSX' end
-    return res
-end
-
 --- The operating system platform.
 -- @within Constants
 -- @string platform
-platform = _platform()
+platform = _platform
 
 do
     local vmj, vmn = vstring:match('Lua (%d)%.(%d)')

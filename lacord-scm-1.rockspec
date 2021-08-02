@@ -30,5 +30,7 @@ dependencies = {
 
 build = {
      type = "builtin"
-    ,modules = {}
+    ,modules = {
+        ["lacord.util.archp"] = "src/archp.c"
+    }
 }
