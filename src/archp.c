@@ -49,7 +49,7 @@
 #define ARCHP_OS	"Other"
 #endif
 
-LUALIB_API  int luaopen_lacord_archp(lua_State* L) {
+LUALIB_API  int luaopen_lacord_util_archp(lua_State* L) {
     lua_createtable(L, 0, 0);
     lua_pushstring(L, "os");
     lua_pushstring(L, ARCHP_OS);
