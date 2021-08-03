@@ -15,7 +15,7 @@ local iiter = ipairs
 local iter = pairs
 local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
-local _platform = require"lacord.util.archp".os
+local archp = require"lacord.util.archp"
 local mime = require"lacord.util.mime"
 
 local _ENV = {}
@@ -42,15 +42,12 @@ end
 --- The operating system platform.
 -- @within Constants
 -- @string platform
-platform = _platform
+platform = archp.os
 
-do
-    local vmj, vmn = vstring:match('Lua (%d)%.(%d)')
-
-    _ENV.version_major = to_n(vmj)
-    _ENV.version_minor = to_n(vmn)
-    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
-end
+_ENV.version_major = to_n(archp.lua.major)
+_ENV.version_minor = to_n(archp.lua.minor)
+_ENV.version_release = to_n(archp.lua.release_num)
+_ENV.version = _ENV.version_major + _ENV.version_minor / 10
 
 --- Tests whether a string starts with a given prefix.
 -- @str s The string to check.
@@ -208,7 +205,24 @@ end
 
 function file_name(cted)
     local mt = getm(cted)
-    return mt and mt.__lacord_file_name and mt.__lacord_file_name(cted) or ""
+    local curname = mt and mt.__lacord_file_name and mt.__lacord_file_name(cted) or ""
+
+    local base,ext = curname:match"^(.+)(%..+)"
+    if not ext then
+        if curname:sub(1,1) == "." then
+            base = ""
+            ext = curname
+        else
+            base = curname
+            local ct = _ENV.the_content_type(cted)
+            if ct and mime.exts[ct] then
+                ext = mime.exts[ct]
+            else
+                ext = ""
+            end
+        end
+    end
+    return base .. ext, base, ext
 end
 
 function set_file_name(cted, name)
@@ -243,13 +257,18 @@ function a_blob_of(content_type, data, name)
 end
 
 function blob_for_file(blob, name)
-    local curname = _ENV.file_name(blob)
+    local _, curname, curext = _ENV.file_name(blob)
     if not curname or curname == "" then curname = name or "" end
+
     local base,ext = curname:match"^(.+)(%..+)"
+
     if not ext then
         if curname:sub(1,1) == "." then
             base = ""
             ext = curname
+        elseif curext then
+            base = curname
+            ext = curext
         else
             base = curname
             local ct = _ENV.the_content_type(blob)

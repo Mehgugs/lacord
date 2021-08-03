@@ -64,5 +64,29 @@ LUALIB_API  int luaopen_lacord_util_archp(lua_State* L) {
     lua_pushstring(L, ARCHP_ARCH_NAME);
     lua_settable(L, -3);
 
+    lua_pushstring(L, "lua");
+    lua_createtable(L, 0, 0);
+
+    lua_pushstring(L, "release");
+    lua_pushstring(L, LUA_RELEASE);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "vm");
+    lua_pushinteger(L, LUA_VERSION_NUM);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "major");
+    lua_pushstring(L, LUA_VERSION_MAJOR);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "minor");
+    lua_pushstring(L, LUA_VERSION_MINOR);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "release_num");
+    lua_pushstring(L, LUA_VERSION_RELEASE);
+    lua_settable(L, -3);
+
+    lua_settable(L, -3);
     return 1;
 }

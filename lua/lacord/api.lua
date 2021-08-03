@@ -36,7 +36,7 @@ local xpcall = xpcall
 local traceback = debug.traceback
 local type = type
 local ipairs, pairs = ipairs, pairs
-local _VERSION = _VERSION
+local ver = concat({util.version_major, util.version_minor, util.version_release}, ".")
 local set = rawset
 local err = error
 
@@ -58,7 +58,7 @@ _ENV.URL = URL
 --- The user-agent used to connect with. (mandated by discord)
 -- @string USER_AGENT
 -- @within Constants
-local USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, _VERSION )
+local USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, ver )
 _ENV.USER_AGENT = USER_AGENT
 
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))

@@ -2,6 +2,72 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### 1622157568 -> 1627995481
+
+- The dependencies list now contains `luatweetnacl` and `inspect`.
+- Removed the crude websocket patch.
+
+#### NEW [lacord.util.archp](src/archp.c)
+
+- Added a util module for platform fingerprinting, this is now what `util.platform` is initialized from.
+
+#### NEW [lacord.cdn](lua/lacord/cdn.lua)
+
+- Added a CDN client for obtaining urls and resources from the discord CDN.
+- This module provides a client at `cdn.new{options...}`.
+- This module provides `cdn.resouce_url(parameters..., ext, size)` see discord's reference section
+  of the documentation for a list of cdn resources.
+
+#### [lacord.const](lua/lacord/const.lua)
+
+- Removed cdn URLS. see [lacord.cdn](lua/lacord/cdn.lua).
+- Using api version 9.
+
+#### NEW [lacord.outgoing-webhook-server](lua/lacord/outgoing-webhook-server.lua)
+
+- Added a new module for hosting an outgoing webhook for slash commands.
+- This module provides `outgoing_webhook_server.new(options, crtpath, keypath)`.
+  This returns a cqueues server object suitable for accepting slash commands.
+  Refer to the [README](README.md#slash-commands).
+
+
+
+#### [lacord.util](lua/lacord/util/init.lua)
+
+- Added support for content typed file objects.
+  These are lightweight containers which associate a content type with data.
+  These file containers are used to send files to discord in attachments.
+- Improved `util.platform`.
+- Added `util.version` for detecting lua version more easily.
+- Added `util.a_blob_of` for constructing content typed containers for raw data with
+  an associated mime type.
+- Added `util.blob_for_file` for preparing a content typed file for serializing as a file with name.
+- Added `util.content_typed` to resolve an object with respect to content type tags.
+  This returns `payload, cotnent_type` and is suitable for serialization or sending if the content type is present, if not content type is returned then it may have ignored incompatible objects.
+- Added `util.the_content_type` to get the content type of a content typed object.
+- Added `util.plaintext` `util.binary` `util.urlencoded` `util.png` `util.json_string`
+  as common content type constructors.
+- Added `util.form` for marking POST bodies as form data, this is only respected when attaching files.
+
+#### [lacord.api](lua/lacord/api.lua)
+
+- Added global ratelimit support. (needs testing)
+- Removed `api.static`
+- Added sticker methods.
+- Added stage instance methods.
+- Added misc. methods like GET `oauth2/token`
+- Added contextual audit log reasons:
+  ```lua
+    api.with_reason "The reason I'm doing the action"
+    api_client:auditloggable(...)
+  ```
+- Added / fixed thread methods.
+- Added some more api client options mostly for debugging.
+- Changed how file uploads are structured:
+  - Pass in an array of content typed files instead of `{name, data}` pairs.
+  - Set file names with `util.set_file_name(content_typed)`.
+
+
 ### 1619975269 -> 1622157568
 
 - The dependencies list now contains an incompatibility with the rock `lua-cjson`.
