@@ -26,6 +26,7 @@ dependencies = {
     ,'lua-cjson-219'
     ,'dkjson'
     ,'luatweetnacl'
+    ,'inspect'
 }
 
 build = {

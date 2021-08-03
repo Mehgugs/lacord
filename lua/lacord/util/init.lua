@@ -9,9 +9,14 @@ local to_n = tonumber
 local to_s = tostring
 local set = rawset
 local typ = type
+local insert = table.insert
+local concat = table.concat
+local iiter = ipairs
+local iter = pairs
 local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
 local _platform = require"lacord.util.archp".os
+local mime = require"lacord.util.mime"
 
 local _ENV = {}
 
@@ -92,21 +97,47 @@ function content_typed(payload, ...)
     end
 end
 
+function the_content_type(payload)
+    local mt = getm(payload)
+    if mt and mt.__lacord_content_type then
+        return mt.__lacord_content_type
+    end
+end
+
 --- Some common content types.
 _ENV.content_types = {
     JSON = "application/json",
     TEXT = "text/plain; charset=UTF-8",
     URLENCODED = "application/x-www-form-urlencoded",
     BYTES = "application/octet-stream",
+    PNG = "image/png",
 }
+
 
 local txt = {
     __lacord_content_type = _ENV.content_types.TEXT,
     __lacord_payload = function(x) return x[1] end,
     __tostring = function(x) return x[1] end,
+    __lacord_file_name = function(x) return x.name end,
+    __lacord_set_file_name = function(self, value) self.name = value end,
 }
 
 function plaintext(str) return setm({str}, txt) end
+
+
+local bin = {
+    __lacord_content_type = _ENV.content_types.BYTES,
+    __lacord_payload = function(x) return x[1] end,
+    __tostring = function(x) return x[1] end,
+    __lacord_file_name = function(x) return x.name end,
+    __lacord_set_file_name = function(self, value) self.name = value end,
+}
+
+function binary(str) return setm({str}, bin) end
+
+
+local virtual_filenames = setm({}, {__mode = "k"})
+
 
 local urlencoded_t = {__lacord_content_type = "application/x-www-form-urlencoded"}
 
@@ -114,6 +145,123 @@ function urlencoded_t:__lacord_payload()
     return encodeURIComponent(dict_to_query(self))
 end
 
+function urlencoded_t:__lacord_file_name()
+    return virtual_filenames[self]
+end
+
+function urlencoded_t:__lacord_set_file_name(value)
+    virtual_filenames[self] = value
+end
+
 function urlencoded(t) return setm(t or {}, urlencoded_t) end
+
+
+local form_t = {__lacord_content_type = "form"}
+
+function form_t:__lacord_file_name()
+    return virtual_filenames[self]
+end
+
+function form_t:__lacord_set_file_name(value)
+    virtual_filenames[self] = value
+end
+
+function form(t)
+    return setm(t or {}, form_t)
+end
+
+function form_t:__lacord_payload() return self end
+
+function form_t:__newindex(k, v)
+    if typ(k) ~= "string" then return error("Cannot set non string keys on a form!") end
+    set(self, k, to_s(v))
+end
+
+function is_form(f) return getm(f) == form_t end
+
+
+local png_t = {
+    __lacord_content_type = "image/png",
+    __lacord_payload = function(self) return self[1] end,
+    __tostring = function(self) return self[1] end,
+    __lacord_file_name = function(self) return self.name end,
+    __lacord_set_file_name = function(self, value) self.name = value end,
+}
+
+function png(str, name)
+    return setm({str, name = name ..".png"}, png_t)
+end
+
+
+local json_str = {
+    __lacord_content_type = _ENV.content_types.JSON,
+    __lacord_payload = function(x) return x[1] end,
+    __tostring = function(x) return x[1] end,
+    __lacord_file_name = function(x) return x.name end,
+    __lacord_set_file_name = function(self, value) self.name = value end,
+}
+
+function json_string(data, name)
+    return setm({data, name = name}, json_str)
+end
+
+
+function file_name(cted)
+    local mt = getm(cted)
+    return mt and mt.__lacord_file_name and mt.__lacord_file_name(cted) or ""
+end
+
+function set_file_name(cted, name)
+    local mt = getm(cted)
+    return mt and mt.__lacord_set_file_name and mt.__lacord_set_file_name(cted, name)
+end
+
+local mime_blob_ts = {}
+
+local function new_mime_blob(content_type)
+    if mime_blob_ts[content_type] then return mime_blob_ts[content_type]
+    else
+        local new = {
+            __lacord_content_type = content_type,
+            __lacord_payload = function(x) return x[1] end,
+            __tostring = function(x) return x[1] end,
+            __lacord_file_name = function(x) return x.name end,
+            __lacord_set_file_name = function(self, value) self.name = value end,
+        }
+        mime_blob_ts[content_type] = new
+        return new
+    end
+end
+
+mime_blob_ts[_ENV.content_types.JSON] = json_str
+mime_blob_ts[_ENV.content_types.TEXT] = txt
+mime_blob_ts[_ENV.content_types.BYTES] = bin
+mime_blob_ts[_ENV.content_types.PNG] = png_t
+
+function a_blob_of(content_type, data, name)
+    return setm({data, name = name}, new_mime_blob(content_type))
+end
+
+function blob_for_file(blob, name)
+    local curname = _ENV.file_name(blob)
+    if not curname or curname == "" then curname = name or "" end
+    local base,ext = curname:match"^(.+)(%..+)"
+    if not ext then
+        if curname:sub(1,1) == "." then
+            base = ""
+            ext = curname
+        else
+            base = curname
+            local ct = _ENV.the_content_type(blob)
+            if mime.exts[ct] then
+                ext = mime.exts[ct]
+            else
+                ext = ""
+            end
+        end
+    end
+    return base .. ext, (_ENV.content_typed(blob))
+end
+
 
 return _ENV

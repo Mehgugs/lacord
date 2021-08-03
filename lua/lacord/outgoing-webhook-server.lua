@@ -237,17 +237,6 @@ function response_methods:set_code_and_reply(code, body, content_type)
     if content_type then  self.headers:upsert("content-type", content_type) end
 end
 
-function response_methods:enable_compression()
-    if self.headers:has("content-encoding") then
-        return false
-    end
-    local deflater = zlib.deflate()
-    local new_body = deflater(self.body, true)
-    self.headers:append("content-encoding", "gzip")
-    self.body = new_body
-    return true
-end
-
 local function default_onerror(_, ...)
     logger.error(...)
 end

@@ -5,3 +5,6 @@
 *.src.rock
 /rockspecs/**
 /manual/**
+*.o
+*.so
+.vscode/**

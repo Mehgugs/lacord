@@ -5,10 +5,16 @@ local tonumber = tonumber
 local _stdout, _stderr = io.stdout, io.stderr
 local err = error
 
+local LACORD_DEBUG = os.getenv"LACORD_DEBUG"
+
 local _ENV = {}
+
+--luacheck: ignore 111
 
 stdout = _stdout
 stderr = _stderr
+
+local _mode = 0
 
 --- An optional lua file object to write output to, must be opened in a write mode.
 fd = nil
@@ -46,16 +52,18 @@ local function highlight_code_to_seq(body)
     return rb and gb and bb and rf and gf and bf and ('\27[0m\27[48;2;%s;%s;%sm\27[38;2;%s;%s;%sm'):format(rb,gb,bb,rf,gf,bf) or ''
 end
 
-colors = {}
+local colors = {}
 
 colors[0] = {
     info  = ""
     ,warn  = ""
     ,error = ""
     ,white = ""
+    ,debug = ""
     ,info_highlight  = ""
     ,warn_highlight  = ""
     ,error_highlight = ""
+    ,debug_highlight = ""
 }
 
 colors[24] = {
@@ -63,9 +71,11 @@ colors[24] = {
    ,warn  = color_code_to_seq"#ef5"
    ,error = color_code_to_seq"#f14"
    ,white = color_code_to_seq"#fff"
+   ,debug = color_code_to_seq"#0ff"
    ,info_highlight  = highlight_code_to_seq"highlight:#1a6:#000"
-   ,warn_highlight  =  highlight_code_to_seq"highlight:#ef5:#000"
+   ,warn_highlight  = highlight_code_to_seq"highlight:#ef5:#000"
    ,error_highlight = highlight_code_to_seq"highlight:#f14:#000"
+   ,debug_highlight = highlight_code_to_seq"highlight:#0ff:#000"
 }
 
 colors[3] = {
@@ -73,9 +83,11 @@ colors[3] = {
     ,warn  = "\27[0m\27[33m"
     ,error = "\27[0m\27[31m"
     ,white = "\27[0m\27[1;37m"
-    ,info_highlight  = "\27[0m\27[1;32m"
-    ,warn_highlight  = "\27[0m\27[1;33m"
-    ,error_highlight = "\27[0m\27[1;31m"
+    ,debug = "\27[0m\27[1;36m"
+    ,info_highlight  = "\27[0m\27[1;92m"
+    ,warn_highlight  = "\27[0m\27[1;93m"
+    ,error_highlight = "\27[0m\27[1;91m"
+    ,debug_highlight = "\27[0m\27[1;96m"
 }
 
 colors[8] = {
@@ -90,9 +102,7 @@ colors[8] = {
     ,debug_highlight = "\27[0m\27[38;5;123m"
 }
 
-_mode = 0
-
-function paint(str)
+local function paint(str)
     return str:gsub("($([^;]+);)", function(_, body)
         if body == 'reset' then
             return '\27[0m'
@@ -106,11 +116,13 @@ function paint(str)
     end)
 end
 
+_ENV.paint = paint
+
 local function writef(ifd,...)
     local raw = f(...)
     local str,n = paint(raw)
-    if fd then
-        fd:write(raw:gsub("$[^;]+;", ""), "\n")
+    if _ENV.fd then
+        _ENV.fd:write(raw:gsub("$[^;]+;", ""), "\n")
     end
     if ifd then
         ifd:write(str, n > 0 and "\27[0m\n" or "\n")
@@ -121,21 +133,31 @@ end
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 function info(...)
-    return writef(stdout, "$info_highlight; %s INF $info; %s", date"!%c", f(...))
+    return writef(_ENV.stdout, "$info_highlight; %s INF $info; %s", date"!%c", f(...))
 end
+
+if LACORD_DEBUG then
+    function _ENV.debug(...)
+        return writef(_ENV.stdout, "$debug_highlight; %s DBG $debug; %s", date"!%c", f(...))
+    end
+else
+    function _ENV.debug()
+    end
+end
+
 
 --- Logs to stdout, and the output file if set, using the WRN warning channel.
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 function warn(...)
-    return writef(stdout, "$warn_highlight; %s WRN $warn; %s", date"!%c", f(...))
+    return writef(_ENV.stdout, "$warn_highlight; %s WRN $warn; %s", date"!%c", f(...))
 end
 
 --- Logs to stderr, and the output file if set, using the ERR error channel.
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 function error(...)
-    return writef(stderr, "$error_highlight; %s ERR $error; %s", date"!%c", f(...))
+    return writef(_ENV.stderr, "$error_highlight; %s ERR $error; %s", date"!%c", f(...))
 end
 
 --- Logs an error using `logger.error` and then throws a lua error with the same message.
@@ -152,13 +174,13 @@ end
 function fatal(...)
     error(...)
     error"Fatal error: quitting!"
-    return exit(1)
+    return exit(1, true)
 end
 
 --- Similar to lua's assert but uses logger.throw when an assertion fails.
-function assert(v, ...)
+function _ENV.assert(v, ...)
     if v then return v
-    else return throw(...)
+    else return _ENV.throw(...)
     end
 end
 
@@ -167,7 +189,7 @@ function ferror(...) return err(f(...), 2) end
 --- Logs to stdout, and the output file if set.
 -- @string str A format string.
 -- @param[opt] ... Values passed into `string.format`.
-function printf(...) return writef(stdout, ...) end
+function printf(...) return writef(_ENV.stdout, ...) end
 
 local modes = {
     [0] = true,
