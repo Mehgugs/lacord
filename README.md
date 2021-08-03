@@ -70,6 +70,40 @@ end)
 assert(loop:loop())
 ```
 
+# CDN Client Example
+
+```lua
+local cqs = require"cqueues"
+local api = require"lacord.api"
+local cdn = require"lacord.cdn"
+local util = require"lacord.util"
+
+local loop = cqs.new()
+
+local discord_api = api.init{
+    token = "Bot "..os.getenv"TOKEN"
+   ,accept_encoding = true
+   ,track_ratelimits = false
+   ,route_delay = 0
+}
+
+local a_cdn = cdn.new{
+    accept_encoding = true
+}
+
+loop:wrap(function()
+    local success, data =  discord_api:get_current_user()
+    if success then
+        local avatar = a_cdn:get_user_avatar(data.id, data.avatar, 'png')
+        local fname, content = util.blob_for_file(avatar, "avatar")
+        local fd<close> = io.open(fname, "wb")
+        fd:write(content)
+    end
+end)
+
+assert(loop:loop())
+```
+
 ## Installation
 
 This project depends on [`lua-http`](https://github.com/daurnimator/lua-http) and thus [`cqueues`](https://25thandclement.com/~william/projects/cqueues.html). This means that you must
