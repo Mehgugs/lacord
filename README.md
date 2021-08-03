@@ -70,7 +70,7 @@ end)
 assert(loop:loop())
 ```
 
-# CDN Client Example
+## CDN Client Example
 
 ```lua
 local cqs = require"cqueues"
