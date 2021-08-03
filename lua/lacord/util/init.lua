@@ -122,7 +122,7 @@ local txt = {
     __lacord_set_file_name = function(self, value) self.name = value end,
 }
 
-function plaintext(str) return setm({str}, txt) end
+function plaintext(str, name) return setm({str, name = name}, txt) end
 
 
 local bin = {
@@ -133,7 +133,7 @@ local bin = {
     __lacord_set_file_name = function(self, value) self.name = value end,
 }
 
-function binary(str) return setm({str}, bin) end
+function binary(str, name) return setm({str, name = name}, bin) end
 
 
 local virtual_filenames = setm({}, {__mode = "k"})

@@ -1,5 +1,4 @@
 --- Discord REST API
--- Dependencies:
 -- @module api
 
 local cqueues = require"cqueues"
@@ -13,12 +12,17 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
+local auditable = require"lacord.util.audit-log-methods"
+local inspect = require"inspect"
+local LACORD_DEBUG = os.getenv"LACORD_DEBUG"
 
 local sleep = cqueues.sleep
 local monotime = cqueues.monotime
 local content_typed = util.content_typed
 local inflate = zlib.inflate
 local JSON = util.content_types.JSON
+local a_form = util.form
+local is_form = util.is_form
 local tostring = tostring
 local remove = table.remove
 local time = os.time
@@ -76,29 +80,57 @@ local function mutexindexer(self, k)
     return self[k]
 end
 
-local mutexc_t = {__mode = "v", __index = mutexindexer}
+local mutexc_t = {__mode = "v"}
+local unlimi_t = {__index = mutexindexer}
 
 local function mutex_cache(token)
     local ch = caches[token]
     if not ch then
+        local unlim = setm({}, unlimi_t)
         ch = setm({}, mutexc_t)
         set(caches, token, ch)
+        set(caches, token .. ".unlimited", unlim)
+        ch.unlimited = unlim
     end
     return ch
 end
 
+local function add_a_file(ret, inner_ct, f, i)
+    local name = util.file_name(f)
+    local fstr, resolved_ct = content_typed(f)
+    insert(ret, BOUNDARY2)
+    if i then
+        insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, name))
+    else
+        insert(ret, ("Content-Disposition:form-data;name=\"file\";filename=%q"):format(name))
+    end
+    insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
+    insert(ret, fstr)
+end
+
 local function attachContent(payload, files, ct, inner_ct)
-    local ret = {
-        BOUNDARY2,
-        "Content-Disposition:form-data;name=\"payload_json\"",
-        ("Content-Type:%s\r\n"):format(ct),
-        payload,
-    }
-    for i, v in ipairs(files) do
-        insert(ret, BOUNDARY2)
-        insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, v[1]))
-        insert(ret, ("Content-Type:%s\r\n"):format(inner_ct))
-        insert(ret, v[2])
+    local ret
+    if ct ~= "form" then
+        ret = {
+            BOUNDARY2,
+            "Content-Disposition:form-data;name=\"payload_json\"",
+            ("Content-Type:%s\r\n"):format(ct),
+            payload,
+        }
+    else
+        ret = {}
+        for k, v in pairs(payload) do
+            insert(ret, BOUNDARY2)
+            insert(ret, ("Content-Disposition:form-data;name=%q\r\n"):format(k))
+            insert(ret, tostring(v))
+        end
+    end
+    if #files == 1 then
+        add_a_file(ret, inner_ct, files[1])
+    else
+        for i, v in ipairs(files) do
+            add_a_file(ret, inner_ct, v, i)
+        end
     end
     insert(ret, BOUNDARY3)
     return concat(ret, "\r\n")
@@ -126,7 +158,6 @@ local function handle_payload(req, method, name, payload, files, asText)
         else
             req.headers:append('content-type', content_type)
         end
-        req.headers:append("content-length", #payload)
         req:set_body(payload)
     end
 end
@@ -135,17 +166,23 @@ local function resolve_endpoint(ep, rp)
     return ep:gsub(":([a-z_]+)", rp)
 end
 
-local function resolve_majors(ep, rp)
+local function resolve_majors(rp)
     local mp = {}
-    if ep:find('/channels/', 1, true) then
+    if rp.channel_id then
+        insert(mp, 'c')
         insert(mp, rp.channel_id)
     end
-    if ep:find('/guilds/', 1, true) then
+    if rp.guild_id then
+        insert(mp, 'g')
         insert(mp, rp.guild_id)
     end
-    if ep:find('/webhooks/', 1, true) then
+    if rp.webhook_id then
+        insert(mp, 'w')
         insert(mp, rp.webhook_id)
-        insert(mp, rp.webhook_token)
+    end
+    if rp.interaction_token then
+        insert(mp, 'i')
+        insert(mp, rp.interaction_token)
     end
     return (not mp[1]) and '' or concat(mp, ".")
 end
@@ -171,17 +208,17 @@ function init(options)
     state.token = auth
     state.routex = mutex_cache(auth)
     state.global_deadline = 0
+    state.globaltex = mutex()
     state.rates = {}
     state.track_rates = options.track_ratelimits
     state.use_legacy = options.legacy_ratelimits
     state.route_delay = options.route_delay and min(options.route_delay, 0) or 1
     state.api_timeout = tonumber(options.api_timeout)
-    state.loud = not options.quiet
+    state.api_http_version = options.http_version or 1.1
+    state.expect_100_timeout = options.expect_100_timeout
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, x-gzip"
-        if state.loud then
-            logger.info("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
-        end
+        logger.debug("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
     end
 
     if state.loud then
@@ -190,22 +227,7 @@ function init(options)
     return state
 end
 
-local static_api, static_methods = setm({}, api), {} do
-    static_api.routex = mutex_cache'static_api'
-    static_api.rates = {}
-    static_api.track_rates = false
-    static_api.use_legacy = false
-    static_api.route_delay = 1
-    static_api.api_timeout = 60
-    static_api.accept_encoding = "gzip, deflate, x-gzip"
-
-    function static_api:request(name, ...)
-        if not static_methods[name] then return logger.throw("requesting %s requires authentication!", name)
-        else
-            return api.request(self, ...)
-        end
-    end
-end
+local static_methods = {}
 
 local function static(name) static_methods[name] = true end
 
@@ -215,10 +237,21 @@ local function mapquery(Q)
     return out
 end
 
-local function get_routex(ratelimits, key)
+_ENV.mapquery = mapquery
+
+local function get_routex(ratelimits, key, unlimited)
     local item = ratelimits[key]
-    if type(item) == 'string' then return get_routex(ratelimits, item)
-    else return item, key
+    -- the key has been mapped to another route
+    if type(item) == 'string' then return get_routex(ratelimits, item, unlimited)
+    elseif item then return item, key
+    -- there was no value found and we're unlimited so return the default rate limit.
+    elseif not item and unlimited then
+        ratelimits[key] = ratelimits.unlimited[unlimited]
+        return ratelimits[key], key
+    else
+        local new = mutex()
+        ratelimits[key] = new
+        return new, key, true
     end
 end
 
@@ -227,9 +260,20 @@ local function check_global(state)
     if global_remaining > 0 then sleep(global_remaining) end
 end
 
+local function modify_global(state, newtime)
+    state.globaltex:lock()
+    if state.global_deadline < newtime then
+        state.global_deadline = newtime
+        state.globaltex:unlock_at(newtime)
+    else
+        state.globaltex:unlock()
+    end
+end
+
 local push
 
 local reason_thrs = setm({}, {__mode = "k"})
+local pre_pushes = setm({}, {__mode = "k"})
 
 --- The api state object.
 -- @table api
@@ -271,6 +315,9 @@ function api.request(state,
     end
 
     local req = newreq.new_from_uri(httputil.encodeURI(url))
+    req.version = state.api_http_version
+
+    logger.debug("HTTP/$white;%s", req.version)
 
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
@@ -280,33 +327,68 @@ function api.request(state,
         req.headers:append("accept-encoding", state.accept_encoding)
     end
 
-    local reasons =reason_thrs[reqthr]
-    if reasons and reasons[1] then
+    local reasons = reason_thrs[reqthr]
+    if reasons and reasons[1] and auditable[name] then
         req.headers:append("x-audit-log-reason", tostring(remove(reasons)))
     end
 
     handle_payload(req, method, name, payload, files, asText)
 
-    local major_params = resolve_majors(endpoint, route_parameters)
-    local initial, bucket = get_routex(state.routex,  major_params .. name)
+    local major_params = resolve_majors(route_parameters)
+    local initial, bucket = get_routex(state.routex,  major_params .. name, major_params)
+
+    if LACORD_DEBUG and pre_pushes[reqthr] then
+        pre_pushes[reqthr] = nil
+        return req
+    end
 
     initial:lock()
 
     check_global(state)
 
-    local success, data, erro, delay = xpcall(push, traceback, state, name, req, major_params, 0)
+    if LACORD_DEBUG then
+        logger.debug("$debug_highlight;Headers:")
+        for hname, value, never_index in req.headers:each() do
+            logger.debug("  $white;%s$debug; = $white;%s", hname, never_index and "<never_index>" or value)
+        end
+    end
+
+    local success, data, erro, delay, extra = xpcall(push, traceback, state, name, req, major_params, 0)
 
     if not success then
         return logger.fatal("api.push failed %q", tostring(data))
     end
 
-    local final = get_routex(state.routex, bucket)
-    if final ~= initial then
-        initial:unlock_after(delay)
+    local final,_,fresh = get_routex(state.routex, bucket)
+    if delay > 0 then
+        if final ~= initial then
+            -- we joined a limit
+            -- apply a delay to the old one, and if the new limit was freshly created
+            -- (i.e it's not in use elsewhere) aquire it now and apply the delay
+            -- If the limit is stale then we could be in the middle of a lock - unlock
+            -- in that case we need to tell whoever is busy with this limit to wait a bit
+            -- longer.
+            initial:unlock_after(delay)
+            if fresh then
+                final:lock()
+                final:unlock_after(delay)
+            else
+                if final.inuse then
+                    final:set_hangover(delay)
+                else
+                    final:lock()
+                    final:unlock_after(delay)
+                end
+            end
+        else
+            final:unlock_after(delay)
+        end
+    else
+        initial:unlock()
+        final:unlock()
     end
-    final:unlock_after(delay)
 
-    return not erro, data, erro
+    return not erro, data, erro, extra
 end
 
 function push(state, name, req, major_params, retries)
@@ -317,7 +399,7 @@ function push(state, name, req, major_params, retries)
     if not headers and retries < constants.api.max_retries then
         local rsec = util.rand(1, 2)
         logger.warn("%s failed to %s because %q (%s, %q) retrying after %.3fsec",
-            state, ID, tostring(stream), errno[eno], errno.strerror(eno), rsec
+            state, ID, tostring(stream), eno and errno[eno] or "?", eno and errno.strerror(eno) or "??", rsec
         )
         cqueues.sleep(rsec)
         check_global(state)
@@ -356,8 +438,6 @@ function push(state, name, req, major_params, retries)
             }
         end
         if state.routex[ID] ~= bucket then
-            local routex = state.routex[bucket]
-            routex.inuse = true
             state.routex[ID] = bucket
         end
     end
@@ -376,6 +456,7 @@ function push(state, name, req, major_params, retries)
         else return data, nil, delay
         end
     else
+        local extra
         if state.raw then
             data = headers:get"content-type" == JSON and decode(raw) or raw
         end
@@ -384,16 +465,14 @@ function push(state, name, req, major_params, retries)
             if code == 429 then
                 delay = data.retry_after
                 if data.global or headers:get"x-ratelimit-global" then
-                    check_global(state)
-                    state.global_deadline = monotime() + delay
+                    modify_global(monotime() + delay)
                 end
                 retry = retries < 5
             elseif code == 502 then
                 delay = delay + util.rand(0 , 2)
                 retry = retries < 5
                 if headers:get"x-ratelimit-global" then
-                    check_global(state)
-                    state.global_deadline = monotime() + delay
+                    modify_global(monotime() + delay)
                 end
             end
 
@@ -410,15 +489,20 @@ function push(state, name, req, major_params, retries)
                 msg = 'HTTP Error'
             end
             --TODO: handle data.errors again
+            extra = data.errors
+            if LACORD_DEBUG then
+                logger.debug("$white;%s", msg)
+                logger.debug("$white;data.errors$debug; = ")
+                logger.printf(inspect(data.errors))
+            end
             data = msg
         else
             if headers:get"x-ratelimit-global" then
-                check_global(state)
-                state.global_deadline = monotime() + delay
+                modify_global(monotime() + delay)
             end
         end
         logger.error("(%i, %q) : %s", code, reason[rawcode], ID)
-        return nil, data, delay
+        return nil, data, delay, extra
     end
 end
 
@@ -664,60 +748,60 @@ function api:list_joined_private_archived_threads(channel_id, query)
     }, nil,  query)
 end
 
-function api:create_interaction_response(webhook_id, webhook_token, payload, files)
-    return self:request('create_interaction_response', 'POST', '/interactions/:webhook_id/:webhook_token/callback', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:create_interaction_response(application_id, interaction_token, payload, files)
+    return self:request('create_interaction_response', 'POST', '/interactions/:application_id/:interaction_token/callback', {
+       application_id = application_id,
+       interaction_token = interaction_token
     }, payload, nil, files)
 end
 
-function api:create_interaction_response_with_txt(webhook_id, webhook_token, payload, files)
-    return self:request('create_interaction_response', 'POST', '/interactions/:webhook_id/:webhook_token/callback', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:create_interaction_response_with_txt(application_id, interaction_token, payload, files)
+    return self:request('create_interaction_response', 'POST', '/interactions/:application_id/:interaction_token/callback', {
+       application_id = application_id,
+       interaction_token = interaction_token
     }, payload, nil, files, true)
 end
 
-function api:get_original_interaction_response(webhook_id, webhook_token)
-    return self:request('get_original_interaction_response', 'GET', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:get_original_interaction_response(application_id, interaction_token)
+    return self:request('get_original_interaction_response', 'GET', '/webhooks/:application_id/:interaction_token/messages/@original', {
+       application_id = application_id,
+       interaction_token = interaction_token
     })
 end
 
-function api:edit_original_interaction_response(webhook_id, webhook_token, payload)
-    return self:request('edit_original_interaction_response', 'POST', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:edit_original_interaction_response(application_id, interaction_token, payload)
+    return self:request('edit_original_interaction_response', 'POST', '/webhooks/:application_id/:interaction_token/messages/@original', {
+       application_id = application_id,
+       interaction_token = interaction_token
     }, payload)
 end
 
-function api:delete_original_interaction_response(webhook_id, webhook_token)
-    return self:request('delete_original_interaction_response', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/@original', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:delete_original_interaction_response(application_id, interaction_token)
+    return self:request('delete_original_interaction_response', 'DELETE', '/webhooks/:application_id/:interaction_token/messages/@original', {
+       application_id = application_id,
+       interaction_token = interaction_token
     })
 end
 
-function api:create_followup_message(webhook_id, webhook_token,  payload)
-    return self:request('create_followup_message', 'POST', '/webhooks/:webhook_id/:webhook_token', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token
+function api:create_followup_message(application_id, interaction_token,  payload)
+    return self:request('create_followup_message', 'POST', '/webhooks/:application_id/:interaction_token', {
+       application_id = application_id,
+       interaction_token = interaction_token
     }, payload)
 end
 
-function api:edit_followup_message(webhook_id, webhook_token, message_id, payload)
-    return self:request('edit_followup_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token,
+function api:edit_followup_message(application_id, interaction_token, message_id, payload)
+    return self:request('edit_followup_message', 'PATCH', '/webhooks/:application_id/:interaction_token/messages/:message_id', {
+       application_id = application_id,
+       interaction_token = interaction_token,
        message_id = message_id
     }, payload)
 end
 
-function api:delete_followup_message(webhook_id, webhook_token, message_id)
-    return self:request('delete_followup_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
-       webhook_id = webhook_id,
-       webhook_token = webhook_token,
+function api:delete_followup_message(application_id, interaction_token, message_id)
+    return self:request('delete_followup_message', 'DELETE', '/webhooks/:application_id/:interaction_token/messages/:message_id', {
+       application_id = application_id,
+       interaction_token = interaction_token,
        message_id = message_id
     })
 end
@@ -1036,9 +1120,9 @@ function api:get_current_user()
     return self:request('get_current_user', 'GET', '/users/@me', empty_route)
 end
 
-function api:get_user(user_is)
+function api:get_user(user_id)
     return self:request('get_user', 'GET', '/users/:user_id', {
-       user_is = user_is,
+        user_id = user_id,
     })
 end
 
@@ -1319,14 +1403,17 @@ function api:get_guild_sticker(guild_id, sticker_id)
     })
 end
 
-function api:create_guild_sticker(guild_id,  payload)
+function api:create_guild_sticker(guild_id,  payload, img)
+    if not is_form(payload) then
+        payload = a_form(payload)
+    end
     return self:request('create_guild_sticker', 'POST', '/guilds/:guild_id/stickers', {
        guild_id = guild_id
-    }, payload)
+    }, payload, nil, {img})
 end
 
 function api:modify_guild_sticker(guild_id, sticker_id, payload)
-    return self:request('modify_guild_sticker', 'PATCH', '/guilds/guild_id/stickers/:sticker_id', {
+    return self:request('modify_guild_sticker', 'PATCH', '/guilds/:guild_id/stickers/:sticker_id', {
        guild_id = guild_id,
        sticker_id = sticker_id
     }, payload)
@@ -1336,6 +1423,28 @@ function api:delete_guild_sticker(guild_id, sticker_id)
     return self:request('delete_guild_sticker', 'DELETE', '/guilds/:guild_id/stickers/:sticker_id', {
        guild_id = guild_id,
        sticker_id = sticker_id
+    })
+end
+
+function api:create_stage_instance(payload)
+    return self:request('create_stage_instance', 'POST', '/stage-instances', empty_route, payload)
+end
+
+function api:get_stage_instance(channel_id)
+    return self:request('get_stage_instance', 'GET', '/stage-instances/:channel_id', {
+       channel_id = channel_id
+    })
+end
+
+function api:modify_stage_instance(channel_id, payload)
+    return self:request('modify_stage_instance', 'PATCH', '/stage-instances/:channel_id', {
+       channel_id = channel_id
+    }, payload)
+end
+
+function api:delete_stage_instance(channel_id)
+    return self:request('delete_stage_instance', 'DELETE', '/stage-instances/:channel_id', {
+       channel_id = channel_id
     })
 end
 
@@ -1439,14 +1548,20 @@ local function webhook_init(webhook_token)
 end
 _ENV.webhook_init = webhook_init
 
-_ENV.static = static_api
-
 function with_reason(txt)
     local thr = cqueues.running()
     if not thr then err("Cannot add a contextual reason without a cqueues thread (using api methods outside a coroutine?).") end
     reason_thrs[thr] = reason_thrs[thr] or {}
     insert(reason_thrs[thr], 1, txt)
     return txt
+end
+
+if LACORD_DEBUG then
+    function pre_push()
+        local thr = cqueues.running()
+        if not thr then err("Cannot grab contextual request object. (using api methods outside a coroutine?).") end
+        pre_pushes[thr] = true
+    end
 end
 
 return _ENV
