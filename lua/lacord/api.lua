@@ -385,7 +385,6 @@ function api.request(state,
         end
     else
         initial:unlock()
-        final:unlock()
     end
 
     return not erro, data, erro, extra
