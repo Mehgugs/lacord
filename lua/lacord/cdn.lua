@@ -45,6 +45,7 @@ local sticker_exts = {
 }
 
 local cdn_endpoints = {
+    attachment = "/attachments/:channel_id/:attachment_id/:file_name:img_ext",
     custom_emoji = "/emojis/:emoji_id:img_ext",
     guild_icon = "/icons/:guild_id/:guild_icon:img_ext",
     guild_splash = "/splashes/:guild_id/:guild_splash:img_ext",
@@ -286,6 +287,17 @@ function sticker_url(sticker_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.sticker,
             { sticker_id = sticker_id, img_ext = logger.assert(sticker_exts[ext], "Image extension %s not supported!", ext)})
+    if size then
+        return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
+    else
+        return httputil.encodeURI(base)
+    end
+end
+
+function attachment_url(channel_id, attachment_id, file_name, ext, size)
+    local base = URL ..
+        resolve_parameters(cdn_endpoints.attachment,
+            { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext]})
     if size then
         return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
     else

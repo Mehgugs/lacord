@@ -2,6 +2,14 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### [Hotfix release] 1627995481 -> 1627995481.88199
+
+#### [lacord.api](lua/lacord/api.lua)
+
+- Fix a ratelimiting unlock I wasn't 100% on.
+- Add webhook token to the major parameters.
+- Support sending files through interactions.
+
 ### 1622157568 -> 1627995481
 
 - The dependencies list now contains `luatweetnacl` and `inspect`.

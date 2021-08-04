@@ -221,10 +221,7 @@ function init(options)
         state.accept_encoding = "gzip, deflate, x-gzip"
         logger.debug("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
     end
-
-    if state.loud then
-        logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.token))
-    end
+    logger.debug("Initialized %s with TOKEN-%x", state, util.hash(state.token))
     return state
 end
 
@@ -1470,6 +1467,27 @@ function api:create_guild_template(guild_id,  payload)
     return self:request('create_guild_template', 'POST', '/guilds/:guild_id/templates', {
        guild_id = guild_id
     }, payload)
+end
+
+function api:sync_guild_template(guild_id, template_code, payload)
+    return self:request('sync_guild_template', 'PUT', '/guilds/:guild_id/templates/:template_code', {
+       guild_id = guild_id,
+       template_code = template_code
+    }, payload)
+end
+
+function api:modify_guild_template(guild_id, template_code, payload)
+    return self:request('modify_guild_template', 'PATCH', '/guilds/:guild_id/templates/:template_code', {
+       guild_id = guild_id,
+       template_code
+    }, payload)
+end
+
+function api:delete_guild_template(guild_id, template_code)
+    return self:request('delete_guild_template', 'DELETE', '/guilds/:guild_id/templates/:template_code', {
+       guild_id = guild_id,
+       template_code = template_code
+    })
 end
 
 -- safe method chaining --
