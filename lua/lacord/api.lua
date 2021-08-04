@@ -179,6 +179,7 @@ local function resolve_majors(rp)
     if rp.webhook_id then
         insert(mp, 'w')
         insert(mp, rp.webhook_id)
+        insert(mp, rp.webhook_token)
     end
     if rp.interaction_token then
         insert(mp, 'i')
@@ -1219,11 +1220,11 @@ end
 
 static'execute_webhook'
 
-function api:execute_webhook(webhook_id, webhook_token, payload, query)
+function api:execute_webhook(webhook_id, webhook_token, payload, query, files)
     return self:request('execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
-    }, payload, query)
+    }, payload, query, files)
 end
 
 static'execute_slack_compatible_webhook'
@@ -1445,6 +1446,30 @@ function api:delete_stage_instance(channel_id)
     return self:request('delete_stage_instance', 'DELETE', '/stage-instances/:channel_id', {
        channel_id = channel_id
     })
+end
+
+function api:get_guild_template(template_code)
+    return self:request('get_guild_template', 'GET', '/guilds/templates/:template_code', {
+       template_code = template_code
+    })
+end
+
+function api:create_guild_from_guild_template(template_code,  payload)
+    return self:request('create_guild_from_guild_template', 'POST', '/guilds/templates/:template_code', {
+       template_code = template_code,
+    }, payload)
+end
+
+function api:get_guild_templates(guild_id)
+    return self:request('get_guild_templates', 'GET', '/guilds/:guild_id/templates', {
+       guild_id = guild_id
+    })
+end
+
+function api:create_guild_template(guild_id,  payload)
+    return self:request('create_guild_template', 'POST', '/guilds/:guild_id/templates', {
+       guild_id = guild_id
+    }, payload)
 end
 
 -- safe method chaining --
