@@ -4,6 +4,7 @@ lacord is a small discord library providing low level clients for the discord re
 All data is given to the user as raw JSON.
 
 Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.
+There's hand written documentation in markdown format [here](docs) which can be viewed online [here](https://mehgugs.github.io/lacord/index.html).
 
 ### The Future
 
