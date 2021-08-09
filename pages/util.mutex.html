@@ -32,6 +32,11 @@
                 if (state)
                     document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
             }
+            window.onload = () => {
+                if (window.location.hash === "#open") {
+                    toggleNav();
+                }
+            }
         </script>
     </head>
     <body>
@@ -39,17 +44,17 @@
             <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
 <div class="sidebar-sep"> -----Modules----- </div>
-<a class="nav" href="api.html">lacord.api</a>
-<a class="nav" href="cdn.html">lacord.cdn</a>
-<a class="nav" href="const.html">lacord.const</a>
-<a class="nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a class="nav" href="shard.html">lacord.shard</a>
-<a class="nav" href="util.html">lacord.util</a>
-<a class="nav" href="util.intents.html">lacord.util.intents</a>
-<a class="nav" href="util.json.html">lacord.util.json</a>
-<a class="nav" href="util.logger.html">lacord.util.logger</a>
-<a class="active nav" href="util.mutex.html">lacord.util.mutex</a>
-<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<a class="nav" href="api.html#open">lacord.api</a>
+<a class="nav" href="cdn.html#open">lacord.cdn</a>
+<a class="nav" href="const.html#open">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html#open">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html#open">lacord.shard</a>
+<a class="nav" href="util.html#open">lacord.util</a>
+<a class="nav" href="util.intents.html#open">lacord.util.intents</a>
+<a class="nav" href="util.json.html#open">lacord.util.json</a>
+<a class="nav" href="util.logger.html#open">lacord.util.logger</a>
+<a class="active nav" href="util.mutex.html#open">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html#open">lacord.util.uint</a>
 <div class="sidebar-sep"> -----Exports----- </div>
 <a class="nav" href="#new">new</a>
 <a class="nav" href="#mutex:lock">mutex:lock</a>
@@ -91,6 +96,7 @@
 </ul>
 
         </div>
+        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1627995481.88199</a>
     </body>
 </html>
 

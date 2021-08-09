@@ -32,6 +32,11 @@
                 if (state)
                     document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
             }
+            window.onload = () => {
+                if (window.location.hash === "#open") {
+                    toggleNav();
+                }
+            }
         </script>
     </head>
     <body>
@@ -209,6 +214,7 @@
 <p>I would recommend manually installing openssl with a version in the current stable series. At the time of writing this is the <strong>1.1.1</strong> series.</p>
 
         </div>
+        <a href="https://github.com/Mehgugs/lacord" class="footer">lacord 1627995481.88199</a>
     </body>
 </html>
 

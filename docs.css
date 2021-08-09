@@ -105,6 +105,9 @@ a:link:hover {
   /* 0.5 second transition effect to slide in the sidebar */
   display: flex;
   flex-direction: column;
+  border-right: #404459;
+  border-right-style: solid;
+  border-right-width: 1px;
 }
 
 #sidebar.fit {
@@ -113,6 +116,7 @@ a:link:hover {
 
 #sidebar.zero {
   width: 0;
+  border-right-style: none;
 }
 
 /* The sidebar links */
@@ -153,6 +157,12 @@ a:link:hover {
   top: 0;
 }
 
+div.sourceCode {
+  border: #404459;
+  border-style: solid;
+  border-width: 2px;
+}
+
 .hide {
   display: hidden;
 }
@@ -182,6 +192,9 @@ a:link:hover {
   background-color: #232530;
   color: #999999;
   overflow: visible;
+  padding-top: 20px;
+  margin-bottom: 10px;
+  float: left;
 }
 
 /* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
@@ -197,6 +210,22 @@ a:link:hover {
   #sidebar.fit {
     max-width: 25%;
   }
+}
+.footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  text-align: left;
+  background-color: #232530;
+  color: #999999;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  border-top: #404459;
+  border-top-style: solid;
+  border-top-width: 1px;
+  font-family: Consolas, monospace;
+  z-index: 2;
 }
 
 /*# sourceMappingURL=docs.css.map */

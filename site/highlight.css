@@ -34,7 +34,7 @@
 }
 
 .hljs-title {
-  color: #50fa7b;
+  color: #DAA531;
 }
 
 .hljs-string,
@@ -48,13 +48,13 @@
 .hljs-variable,
 .hljs-template-tag,
 .hljs-template-variable {
-  color: #f1fa8c;
+  color: #FFE3A6;
 }
 
 .hljs-comment,
 .hljs-quote,
 .hljs-deletion {
-  color: #6272a4;
+  color: #465BA2;
 }
 
 .hljs-keyword,
@@ -71,7 +71,7 @@
 
 .hljs-literal,
 .hljs-number {
-  color: #bd93f9;
+  color: #F97A83;
 }
 
 .hljs-emphasis {
