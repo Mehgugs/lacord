@@ -1,0 +1,70 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a class="active" href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.util.uint">lacord.util.uint</h2>
+<p>This module provides functions for handling and manipulating discord snowflake IDs. In this module “encoded uint64” simply means that a uint64 value is being stored in a <code>lua_Integer</code> which is an int64.</p>
+<h4 id="touint"><em>integer (snowflake)</em> <code>touint(s)</code></h4>
+<p>Converts a number or string into an encoded uint64.</p>
+<ul>
+<li><em>string|number</em> <code>s</code></li>
+</ul>
+<h4 id="timestamp"><em>integer (seconds)</em> <code>timestamp(s)</code></h4>
+<p>Computes the UNIX timestamp of a given snowflake.</p>
+<ul>
+<li><em>string|number (snowflake)</em> <code>s</code></li>
+</ul>
+<h4 id="fromtime"><em>integer (snowflake)</em> <code>fromtime(s)</code></h4>
+<p>Creates an artificial snowflake from a given UNIX timestamp.</p>
+<ul>
+<li><em>integer (seconds)</em> <code>s</code></li>
+</ul>
+<h4 id="decompose"><em>table</em> <code>decompose(s)</code></h4>
+<p>Gets the timestamp, worker ID, process ID and increment from a snowflake. These are set as fields in the returned table at <code>timestamp</code>, <code>worker</code>, <code>pid</code> and <code>increment</code> respectively.</p>
+<ul>
+<li><em>string|number (snowflake)</em> <code>s</code></li>
+</ul>
+<h4 id="synthesize"><em>integer (snowflake)</em> <code>synthesize(s, worker, pid, incr)</code></h4>
+<p>Creates an artifical snowflake from the given timestamp, worker and pid.</p>
+<ul>
+<li><em>integer (seconds)</em> <code>s</code> The timestamp.</li>
+<li><em>integer</em> <code>worker</code> The worker ID.</li>
+<li><em>integer</em> <code>pid</code> The process ID.</li>
+<li><em>integer</em> <code>incr</code> The increment. An internal incremented value is used if one is not provided.</li>
+</ul>
+<h4 id="snowflake_sort"><em>boolean</em> <code>snowflake_sort(i, j)</code></h4>
+<p>A table sorter that will sort by the <code>id</code> field of the elements as snowflakes.</p>
+<h4 id="id_sort"><em>boolean</em> <code>id_sort(i, j)</code></h4>
+<p>A table sorter that will sort the elements as snowflake ids.</p>
+
+        </div>
+    </body>
+</html>
+
+7

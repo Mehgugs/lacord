@@ -1,0 +1,87 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="active" href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.shard">lacord.shard</h2>
+<p>This module is used to start a websocket session connected to discord’s gateway.</p>
+<h3 id="shard"><em>shard</em></h3>
+<p>This type has methods for connecting and interaction with the discord gateway.</p>
+<h4 id="init"><em>shard</em> <code>init(options, idmutex)</code></h4>
+<p>Construct a new shard object using the given options and identify mutex.</p>
+<ul>
+<li><em>integer</em> <code>options.id</code> The ID of the shard.</li>
+<li><em>boolean</em> <code>options.transport_compression</code> Sets the transport compression gateway option, defaults to true.</li>
+<li><em>cqueue</em> <code>options.loop</code> Sets the cqueues controller object associated with this shard.</li>
+<li><em>function</em> <code>options.output</code> Sets the output callback to dispatch events to.</li>
+<li><em>string (url)|function</em> <code>options.gateway</code> Sets gateway url to connect to. This can be discovered by using <code>api:get_gateway_bot</code>. If this is a function it will be called with the shard object and must return the gateway url to use.</li>
+<li><em>boolean</em> <code>options.auto_reconnect</code> Set this flag to cause the shard to attempt to reconnect after a non-fatal disconnect.</li>
+<li><em>number (seconds)</em> <code>options.receive_timeout</code> Sets the timeout to use when reading from the websocket.</li>
+<li><em>integer (bitfield)</em> <code>options.intents</code> Sets the gateway intents to declare when identifying with discord.</li>
+<li><em>string</em> <code>options.token</code> Sets the token to use when identifying.</li>
+<li><em>integer</em> <code>options.large_threshold</code> Sets the large threshold value to declare when identifying.</li>
+<li><em>integer</em> <code>options.total_shard_count</code> The total amount of shards to declare when identiying.</li>
+<li><em>application/json</em> <code>options.presence</code> An initial presence object to declare when identiying.</li>
+</ul>
+<h4 id="shard"><em>shard</em> <code>shard:connect()</code></h4>
+<p>Connects the shard to discord. This function is asynchronous and should be run inside a cqueues coroutine. (usually from state.loop)</p>
+<h4 id="shard"><em>shard</em> <code>shard:disconnect(why, code)</code></h4>
+<p>Disconnects the shard. This will not permanently stop an automatically connecting shard, please see <a href="#shardshutdown"><code>shard:shutdown</code></a>.</p>
+<ul>
+<li><em>string</em> <code>why</code> The disconnect reason, defaults to <code>"requested"</code>.</li>
+<li><em>integer (websocket close code)</em> <code>code</code> Defaults to <code>4009</code></li>
+</ul>
+<h4 id="shard"><em>shard</em> <code>shard:shutdown(...)</code></h4>
+<p>This will terminate the shard’s connection, clearing any reconnection flags and then disconnecting.</p>
+<ul>
+<li>… Arguments to pass to disconnect.</li>
+</ul>
+<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:request_guild_members(id)</code></h4>
+<p>Sends a REQUEST_GUILD_MEMBERS request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
+<ul>
+<li><em>string (snowflake)</em> <code>id</code> The guild id to request members from.</li>
+</ul>
+<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:update_status(presence)</code></h4>
+<p>Sends a STATUS_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
+<ul>
+<li><em>application/json</em> <code>presence</code> The new presence for the bot. See the <a href="https://discord.com/developers/docs/topics/gateway#update-presence">discord documentation</a></li>
+</ul>
+<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:update_voice(guild_id, channel_id, self_mute, self_deaf)</code></h4>
+<p>Sends a VOICE_STATE_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
+<ul>
+<li><em>string (snowflake)</em> <code>guild_id</code> The guild id of the guild the voice channel is in.</li>
+<li><em>string (snowflake)</em> <code>channel_id</code> The voice channel id.</li>
+<li><em>boolean</em> <code>self_mute</code> Whether the bot is muted.</li>
+<li><em>boolean</em> <code>self_deaf</code> Whether the bot is deafened.</li>
+</ul>
+
+        </div>
+    </body>
+</html>
+
+7

@@ -1,0 +1,168 @@
+body {
+  background-color: #232530;
+}
+
+h1 {
+  color: #e9535f;
+}
+
+h2 {
+  color: #e9535f;
+}
+
+h3 {
+  color: #e9535f;
+}
+
+h4 {
+  color: #e9535f;
+}
+
+code {
+  color: #cfccc9;
+  font-weight: bolder;
+  font-family: Consolas, monospace;
+}
+
+a code {
+  color: inherit;
+}
+
+h2 code {
+  font-weight: bolder;
+  font-size: larger;
+}
+
+h3 code {
+  font-weight: bolder;
+  font-size: larger;
+}
+
+h4 code {
+  font-weight: bolder;
+  font-size: larger;
+}
+
+h1 em {
+  color: #E95378;
+  font-family: Consolas, monospace;
+}
+
+h2 em {
+  color: #E95378;
+  font-family: Consolas, monospace;
+}
+
+h3 em {
+  color: #E95378;
+  font-family: Consolas, monospace;
+}
+
+h4 em {
+  color: #E95378;
+  font-family: Consolas, monospace;
+}
+
+li em {
+  color: #E95378;
+  font-family: Consolas, monospace;
+}
+
+a:link {
+  font-family: Consolas, monospace;
+  font-weight: bold;
+  color: #e9535f;
+  text-decoration: none;
+}
+
+a:visited {
+  font-weight: bold;
+  color: #e9767f;
+  text-decoration: none;
+}
+
+a:link:hover {
+  text-decoration: underline;
+}
+
+/* The side navigation menu */
+.sidebar {
+  margin: 0;
+  padding: 0;
+  width: 200px;
+  background-color: #232530;
+  position: fixed;
+  height: 100%;
+  overflow: auto;
+  font-family: Consolas, monospace;
+}
+
+/* Sidebar links */
+.sidebar a {
+  display: block;
+  color: #e9535f;
+  background-color: #232530;
+  padding: 16px;
+  text-decoration: none;
+}
+
+/* Active/current link */
+.sidebar a.active {
+  color: #E95378;
+  background-color: #404459;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+.sidebar-sep {
+  font-weight: bold;
+  padding: 16px;
+  color: #e9535f;
+  display: block;
+  text-decoration: none;
+}
+
+/* Links on mouse-over */
+.sidebar a:hover:not(.active) {
+  color: #e9767f;
+  background-color: #404459;
+  text-decoration: none;
+}
+
+/* Page content. The value of the margin-left property should match the value of the sidebar's width property */
+div.content {
+  margin-left: 200px;
+  margin-right: 200px;
+  padding: 1px 16px;
+  height: 1000px;
+  font-family: Helvetica, sans-serif;
+  background-color: #232530;
+  color: #999999;
+  overflow: visible;
+}
+
+/* On screens that are less than 700px wide, make the sidebar into a topbar */
+@media screen and (max-width: 700px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+
+  .sidebar a {
+    float: left;
+  }
+
+  div.content {
+    margin-left: 0;
+  }
+}
+/* On screens that are less than 400px, display the bar vertically, instead of horizontally */
+@media screen and (max-width: 400px) {
+  .sidebar a {
+    text-align: center;
+    float: none;
+  }
+}
+
+/*# sourceMappingURL=docs.css.map */

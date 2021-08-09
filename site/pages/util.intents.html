@@ -1,0 +1,54 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a class="active" href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.util.intents">lacord.util.intents</h2>
+<p>This module provides a thin convenience layer around the intents values used by discord. See the <a href="https://discord.com/developers/docs/topics/gateway#gateway-intents">intents documentation</a> for more detailed information.</p>
+<h4 id="intent_name"><em>integer (intent)</em> <code>intent_name</code></h4>
+<p>For every individual intent there exists a field in the module with its value. “GUILD_MEMBERS” would be found at <code>guild_members</code>.</p>
+<h3 id="extra-values">Extra values</h3>
+<h4 id="everything"><em>integer (intent)</em> <code>everything</code></h4>
+<p>This intent contains all other intents.</p>
+<h4 id="message"><em>integer (intent)</em> <code>message</code></h4>
+<p>This intent contains all message related intents.</p>
+<h4 id="guild"><em>integer (intent)</em> <code>guild</code></h4>
+<p>This intent contains all guild related intents.</p>
+<h4 id="direct"><em>integer (intent)</em> <code>direct</code></h4>
+<p>This intent contains all direct message related intents.</p>
+<h2 id="defaults">Defaults</h2>
+<h4 id="normal"><em>integer (intent)</em> <code>normal</code></h4>
+<p>This intent contains everything except presences and voice states, because those usually clog up shards are not needed by most bots.</p>
+<h4 id="unprivileged"><em>integer (intent)</em> <code>unprivileged</code></h4>
+<p>This intent contains everything except privilaged gateway intents.</p>
+
+        </div>
+    </body>
+</html>
+
+7

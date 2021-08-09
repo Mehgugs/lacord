@@ -1,0 +1,48 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a class="active" href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.util.json">lacord.util.json</h2>
+<p>This module re-exports the json encode and decode functions so that the library used may be configured.</p>
+<h4 id="encode"><em>string (application/json)</em> <code>encode(x)</code></h4>
+<p>Encodes the lua object <code>x</code> as a json object.</p>
+<h4 id="decode"><em>application/json</em> <code>decode(x)</code></h4>
+<p>Decodes a json string into a content_typed object.</p>
+<h4 id="null"><em>application/json</em> <code>null</code></h4>
+<p>A value representing the json <code>null</code> value.</p>
+<h4 id="empty_array"><em>application/json</em> <code>empty_array</code></h4>
+<p>A value representing an empty json array.</p>
+<h4 id="jarray"><em>application/json</em> <code>jarray(...)</code></h4>
+<p>Packs <code>...</code> into a json array object.</p>
+
+        </div>
+    </body>
+</html>
+
+5
