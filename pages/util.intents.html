@@ -8,26 +8,60 @@
         <title>Lacord Docs</title>
         <link rel="stylesheet" href="../docs.css">
         <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide"
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars"
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+        </script>
     </head>
     <body>
-        <div class="sidebar">
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
-<div class="sidebar-sep"> ------------------- </div>
-<a href="api.html">lacord.api</a>
-<a href="cdn.html">lacord.cdn</a>
-<a href="const.html">lacord.const</a>
-<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a href="shard.html">lacord.shard</a>
-<a href="util.html">lacord.util</a>
-<a class="active" href="util.intents.html">lacord.util.intents</a>
-<a href="util.json.html">lacord.util.json</a>
-<a href="util.logger.html">lacord.util.logger</a>
-<a href="util.mutex.html">lacord.util.mutex</a>
-<a href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Modules----- </div>
+<a class="nav" href="api.html">lacord.api</a>
+<a class="nav" href="cdn.html">lacord.cdn</a>
+<a class="nav" href="const.html">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html">lacord.shard</a>
+<a class="nav" href="util.html">lacord.util</a>
+<a class="active nav" href="util.intents.html">lacord.util.intents</a>
+<a class="nav" href="util.json.html">lacord.util.json</a>
+<a class="nav" href="util.logger.html">lacord.util.logger</a>
+<a class="nav" href="util.mutex.html">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Exports----- </div>
+<a class="nav" href="#intent_name">intent_name</a>
+<a class="nav" href="#everything">everything</a>
+<a class="nav" href="#message">message</a>
+<a class="nav" href="#guild">guild</a>
+<a class="nav" href="#direct">direct</a>
+<a class="nav" href="#normal">normal</a>
+<a class="nav" href="#unprivileged">unprivileged</a>
         </div>
-        <div class="content">
+
+        <div id="content">
+            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.util.intents">lacord.util.intents</h2>
 <p>This module provides a thin convenience layer around the intents values used by discord. See the <a href="https://discord.com/developers/docs/topics/gateway#gateway-intents">intents documentation</a> for more detailed information.</p>
 <h4 id="intent_name"><em>integer (intent)</em> <code>intent_name</code></h4>
@@ -51,4 +85,3 @@
     </body>
 </html>
 
-7

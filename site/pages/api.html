@@ -8,26 +8,60 @@
         <title>Lacord Docs</title>
         <link rel="stylesheet" href="../docs.css">
         <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide"
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars"
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+        </script>
     </head>
     <body>
-        <div class="sidebar">
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
-<div class="sidebar-sep"> ------------------- </div>
-<a class="active" href="api.html">lacord.api</a>
-<a href="cdn.html">lacord.cdn</a>
-<a href="const.html">lacord.const</a>
-<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a href="shard.html">lacord.shard</a>
-<a href="util.html">lacord.util</a>
-<a href="util.intents.html">lacord.util.intents</a>
-<a href="util.json.html">lacord.util.json</a>
-<a href="util.logger.html">lacord.util.logger</a>
-<a href="util.mutex.html">lacord.util.mutex</a>
-<a href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Modules----- </div>
+<a class="active nav" href="api.html">lacord.api</a>
+<a class="nav" href="cdn.html">lacord.cdn</a>
+<a class="nav" href="const.html">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html">lacord.shard</a>
+<a class="nav" href="util.html">lacord.util</a>
+<a class="nav" href="util.intents.html">lacord.util.intents</a>
+<a class="nav" href="util.json.html">lacord.util.json</a>
+<a class="nav" href="util.logger.html">lacord.util.logger</a>
+<a class="nav" href="util.mutex.html">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Exports----- </div>
+<a class="nav" href="#USER_AGENT">USER_AGENT</a>
+<a class="nav" href="#URL">URL</a>
+<a class="nav" href="#init">init</a>
+<a class="nav" href="#api:method_name">api:method_name</a>
+<a class="nav" href="#api:capture">api:capture</a>
+<a class="nav" href="#webhook_init">webhook_init</a>
+<a class="nav" href="#with_reason">with_reason</a>
         </div>
-        <div class="content">
+
+        <div id="content">
+            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.api">lacord.api</h2>
 <p>This module is used to connect to discord’s restful api over http. All api methods must be called inside a cqueues managed coroutine.</p>
 <h4 id="ratelimits">Ratelimits</h4>
@@ -49,9 +83,9 @@
 <li><em>number (http version)</em> <code>options.api_http_version</code> Set this field to control the http version used by the request client.</li>
 <li><em>boolean</em> <code>options.accept_encoding</code> Set this flag to control whether the client should accept compressed data from discord.</li>
 </ul>
-<h4 id="api"><em>boolean, applicaion/json|true, string, table</em> <code>api:method_name(...)</code></h4>
+<h4 id="api:method_name"><em>boolean, applicaion/json|true, string, table</em> <code>api:method_name(...)</code></h4>
 <p>All requests you can make via this client are methods of the form: <code>api:&lt;discord name snake cased&gt;</code>. For example “Create message” would be found at <code>api:create_message</code>. Consult discord’s official documentation for a list of available api methods. All these methods return: a success boolean; response data decoded as json; an error message if success was false; and a table of errors if discord sent that in the error response. In the case of <code>204</code> the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.</p>
-<h4 id="api"><em>api.capture</em> <code>api:capture()</code></h4>
+<h4 id="api:capture"><em>api.capture</em> <code>api:capture()</code></h4>
 <p>This function will create a capture object which can be used to safely sequence multiple requests together.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- somewhere in a cqueues coroutine...</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
@@ -89,4 +123,3 @@
     </body>
 </html>
 
-7

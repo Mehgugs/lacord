@@ -8,26 +8,60 @@
         <title>Lacord Docs</title>
         <link rel="stylesheet" href="../docs.css">
         <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide"
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars"
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+        </script>
     </head>
     <body>
-        <div class="sidebar">
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
-<div class="sidebar-sep"> ------------------- </div>
-<a href="api.html">lacord.api</a>
-<a href="cdn.html">lacord.cdn</a>
-<a href="const.html">lacord.const</a>
-<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a class="active" href="shard.html">lacord.shard</a>
-<a href="util.html">lacord.util</a>
-<a href="util.intents.html">lacord.util.intents</a>
-<a href="util.json.html">lacord.util.json</a>
-<a href="util.logger.html">lacord.util.logger</a>
-<a href="util.mutex.html">lacord.util.mutex</a>
-<a href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Modules----- </div>
+<a class="nav" href="api.html">lacord.api</a>
+<a class="nav" href="cdn.html">lacord.cdn</a>
+<a class="nav" href="const.html">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="active nav" href="shard.html">lacord.shard</a>
+<a class="nav" href="util.html">lacord.util</a>
+<a class="nav" href="util.intents.html">lacord.util.intents</a>
+<a class="nav" href="util.json.html">lacord.util.json</a>
+<a class="nav" href="util.logger.html">lacord.util.logger</a>
+<a class="nav" href="util.mutex.html">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Exports----- </div>
+<a class="nav" href="#init">init</a>
+<a class="nav" href="#shard:connect">shard:connect</a>
+<a class="nav" href="#shard:disconnect">shard:disconnect</a>
+<a class="nav" href="#shard:shutdown">shard:shutdown</a>
+<a class="nav" href="#shard:request_guild_members">shard:request_guild_members</a>
+<a class="nav" href="#shard:update_status">shard:update_status</a>
+<a class="nav" href="#shard:update_voice">shard:update_voice</a>
         </div>
-        <div class="content">
+
+        <div id="content">
+            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.shard">lacord.shard</h2>
 <p>This module is used to start a websocket session connected to discord’s gateway.</p>
 <h3 id="shard"><em>shard</em></h3>
@@ -48,30 +82,30 @@
 <li><em>integer</em> <code>options.total_shard_count</code> The total amount of shards to declare when identiying.</li>
 <li><em>application/json</em> <code>options.presence</code> An initial presence object to declare when identiying.</li>
 </ul>
-<h4 id="shard"><em>shard</em> <code>shard:connect()</code></h4>
+<h4 id="shard:connect"><em>shard</em> <code>shard:connect()</code></h4>
 <p>Connects the shard to discord. This function is asynchronous and should be run inside a cqueues coroutine. (usually from state.loop)</p>
-<h4 id="shard"><em>shard</em> <code>shard:disconnect(why, code)</code></h4>
+<h4 id="shard:disconnect"><em>shard</em> <code>shard:disconnect(why, code)</code></h4>
 <p>Disconnects the shard. This will not permanently stop an automatically connecting shard, please see <a href="#shardshutdown"><code>shard:shutdown</code></a>.</p>
 <ul>
 <li><em>string</em> <code>why</code> The disconnect reason, defaults to <code>"requested"</code>.</li>
 <li><em>integer (websocket close code)</em> <code>code</code> Defaults to <code>4009</code></li>
 </ul>
-<h4 id="shard"><em>shard</em> <code>shard:shutdown(...)</code></h4>
+<h4 id="shard:shutdown"><em>shard</em> <code>shard:shutdown(...)</code></h4>
 <p>This will terminate the shard’s connection, clearing any reconnection flags and then disconnecting.</p>
 <ul>
 <li>… Arguments to pass to disconnect.</li>
 </ul>
-<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:request_guild_members(id)</code></h4>
+<h4 id="shard:request_guild_members"><em>boolean, application/json|string</em> <code>shard:request_guild_members(id)</code></h4>
 <p>Sends a REQUEST_GUILD_MEMBERS request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
 <ul>
 <li><em>string (snowflake)</em> <code>id</code> The guild id to request members from.</li>
 </ul>
-<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:update_status(presence)</code></h4>
+<h4 id="shard:update_status"><em>boolean, application/json|string</em> <code>shard:update_status(presence)</code></h4>
 <p>Sends a STATUS_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
 <ul>
 <li><em>application/json</em> <code>presence</code> The new presence for the bot. See the <a href="https://discord.com/developers/docs/topics/gateway#update-presence">discord documentation</a></li>
 </ul>
-<h4 id="shard"><em>boolean, application/json|string</em> <code>shard:update_voice(guild_id, channel_id, self_mute, self_deaf)</code></h4>
+<h4 id="shard:update_voice"><em>boolean, application/json|string</em> <code>shard:update_voice(guild_id, channel_id, self_mute, self_deaf)</code></h4>
 <p>Sends a VOICE_STATE_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.</p>
 <ul>
 <li><em>string (snowflake)</em> <code>guild_id</code> The guild id of the guild the voice channel is in.</li>
@@ -84,4 +118,3 @@
     </body>
 </html>
 
-7

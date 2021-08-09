@@ -8,50 +8,83 @@
         <title>Lacord Docs</title>
         <link rel="stylesheet" href="../docs.css">
         <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide"
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars"
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+        </script>
     </head>
     <body>
-        <div class="sidebar">
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
-<div class="sidebar-sep"> ------------------- </div>
-<a href="api.html">lacord.api</a>
-<a href="cdn.html">lacord.cdn</a>
-<a href="const.html">lacord.const</a>
-<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a href="shard.html">lacord.shard</a>
-<a href="util.html">lacord.util</a>
-<a href="util.intents.html">lacord.util.intents</a>
-<a href="util.json.html">lacord.util.json</a>
-<a href="util.logger.html">lacord.util.logger</a>
-<a class="active" href="util.mutex.html">lacord.util.mutex</a>
-<a href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Modules----- </div>
+<a class="nav" href="api.html">lacord.api</a>
+<a class="nav" href="cdn.html">lacord.cdn</a>
+<a class="nav" href="const.html">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html">lacord.shard</a>
+<a class="nav" href="util.html">lacord.util</a>
+<a class="nav" href="util.intents.html">lacord.util.intents</a>
+<a class="nav" href="util.json.html">lacord.util.json</a>
+<a class="nav" href="util.logger.html">lacord.util.logger</a>
+<a class="active nav" href="util.mutex.html">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Exports----- </div>
+<a class="nav" href="#new">new</a>
+<a class="nav" href="#mutex:lock">mutex:lock</a>
+<a class="nav" href="#mutex:unlock">mutex:unlock</a>
+<a class="nav" href="#mutex:unlock_at">mutex:unlock_at</a>
+<a class="nav" href="#mutex:unlock_after">mutex:unlock_after</a>
+<a class="nav" href="#mutex:defer_unlock">mutex:defer_unlock</a>
         </div>
-        <div class="content">
+
+        <div id="content">
+            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.util.mutex">lacord.util.mutex</h2>
 <p>This module provides a simple mutex implementation for synchronizing cqueues coroutines.</p>
 <h3 id="mutex"><em>mutex</em></h3>
 <p>This type has methods for locking and releasing the mutex and for delaying unlocks in various ways.</p>
 <h4 id="new"><em>mutex</em> <code>new()</code></h4>
 <p>Creates a new mutex.</p>
-<h4 id="mutex"><em>nothing</em> <code>mutex:lock(timeout)</code></h4>
+<h4 id="mutex:lock"><em>nothing</em> <code>mutex:lock(timeout)</code></h4>
 <p>Locks the mutex.</p>
 <ul>
 <li><em>number (seconds)</em> <code>timeout</code> An optional timeout to wait before automatically releasing the lock.</li>
 </ul>
-<h4 id="mutex"><em>nothing</em> <code>mutex:unlock()</code></h4>
+<h4 id="mutex:unlock"><em>nothing</em> <code>mutex:unlock()</code></h4>
 <p>Unlocks the mutex.</p>
-<h4 id="mutex"><em>nothing</em> <code>mutex:unlock_at(deadline)</code></h4>
+<h4 id="mutex:unlock_at"><em>nothing</em> <code>mutex:unlock_at(deadline)</code></h4>
 <p>Unlocks the mutex at the given time in the future. This deadline should be based on the cqueues <code>monotime</code> clock.</p>
 <ul>
 <li><em>number (seconds)</em> <code>deadline</code></li>
 </ul>
-<h4 id="mutex"><em>nothing</em> <code>mutex:unlock_after(time)</code></h4>
+<h4 id="mutex:unlock_after"><em>nothing</em> <code>mutex:unlock_after(time)</code></h4>
 <p>Unlocks the mutex after the given amount of seconds have elapsed.</p>
 <ul>
 <li><em>number (seconds)</em> <code>time</code></li>
 </ul>
-<h4 id="mutex"><em>nothing</em> <code>mutex:defer_unlock()</code></h4>
+<h4 id="mutex:defer_unlock"><em>nothing</em> <code>mutex:defer_unlock()</code></h4>
 <p>Unlocks the mutex at some point in the near future.</p>
 <ul>
 <li><em>number (seconds)</em> <code>time</code></li>
@@ -61,4 +94,3 @@
     </body>
 </html>
 
-6

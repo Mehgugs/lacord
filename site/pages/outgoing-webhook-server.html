@@ -8,26 +8,62 @@
         <title>Lacord Docs</title>
         <link rel="stylesheet" href="../docs.css">
         <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
         <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide"
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars"
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+        </script>
     </head>
     <body>
-        <div class="sidebar">
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
             <a href="../index.html">Readme</a>
-<div class="sidebar-sep"> ------------------- </div>
-<a href="api.html">lacord.api</a>
-<a href="cdn.html">lacord.cdn</a>
-<a href="const.html">lacord.const</a>
-<a class="active" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
-<a href="shard.html">lacord.shard</a>
-<a href="util.html">lacord.util</a>
-<a href="util.intents.html">lacord.util.intents</a>
-<a href="util.json.html">lacord.util.json</a>
-<a href="util.logger.html">lacord.util.logger</a>
-<a href="util.mutex.html">lacord.util.mutex</a>
-<a href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Modules----- </div>
+<a class="nav" href="api.html">lacord.api</a>
+<a class="nav" href="cdn.html">lacord.cdn</a>
+<a class="nav" href="const.html">lacord.const</a>
+<a class="active nav" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html">lacord.shard</a>
+<a class="nav" href="util.html">lacord.util</a>
+<a class="nav" href="util.intents.html">lacord.util.intents</a>
+<a class="nav" href="util.json.html">lacord.util.json</a>
+<a class="nav" href="util.logger.html">lacord.util.logger</a>
+<a class="nav" href="util.mutex.html">lacord.util.mutex</a>
+<a class="nav" href="util.uint.html">lacord.util.uint</a>
+<div class="sidebar-sep"> -----Exports----- </div>
+<a class="nav" href="#new">new</a>
+<a class="nav" href="#response_object">response_object</a>
+<a class="nav" href="#response_object:set_body">response_object:set_body</a>
+<a class="nav" href="#response_object:set_503">response_object:set_503</a>
+<a class="nav" href="#response_object:set_500">response_object:set_500</a>
+<a class="nav" href="#response_object:set_401">response_object:set_401</a>
+<a class="nav" href="#response_object:set_ok">response_object:set_ok</a>
+<a class="nav" href="#response_object:set_ok_and_reply">response_object:set_ok_and_reply</a>
+<a class="nav" href="#response_object:set_code_and_reply">response_object:set_code_and_reply</a>
         </div>
-        <div class="content">
+
+        <div id="content">
+            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.outgoing-webhook-server">lacord.outgoing-webhook-server</h2>
 <p>This module contains a low level https server for hosting an outgoing webhook for receiving discord interactions.</p>
 <h3 id="server"><em>server</em></h3>
@@ -57,26 +93,26 @@
 <p>The http verb.</p>
 <h4 id="response_object"><em>string</em> <code>response_object.path</code></h4>
 <p>The path.</p>
-<h4 id="response_object"><em>string</em> <code>response_object:set_body(body)</code></h4>
+<h4 id="response_object:set_body"><em>string</em> <code>response_object:set_body(body)</code></h4>
 <p>Sets the body to the specified content typed object.</p>
 <ul>
 <li><em>content_typed|string</em> <code>body</code> A content typed object will be resolved and the content-type header set along with the body, a string will set the body to that raw value.</li>
 </ul>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_503()</code></h4>
+<h4 id="response_object:set_503"><em>nothing</em> <code>response_object:set_503()</code></h4>
 <p>Sets the status code to 503 and attaches a suitable body.</p>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_500()</code></h4>
+<h4 id="response_object:set_500"><em>nothing</em> <code>response_object:set_500()</code></h4>
 <p>Sets the status code to 500 and attaches a suitable body.</p>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_401()</code></h4>
+<h4 id="response_object:set_401"><em>nothing</em> <code>response_object:set_401()</code></h4>
 <p>Sets the status code to 401 and attaches a suitable body.</p>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_ok()</code></h4>
+<h4 id="response_object:set_ok"><em>nothing</em> <code>response_object:set_ok()</code></h4>
 <p>Sets the status code to 204.</p>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_ok_and_reply(body, content_type)</code></h4>
+<h4 id="response_object:set_ok_and_reply"><em>nothing</em> <code>response_object:set_ok_and_reply(body, content_type)</code></h4>
 <p>Sets the status code to 200 and attaches the given body.</p>
 <ul>
 <li><em>content_typed|string</em> <code>body</code> A content typed object will be resolved and the content-type header set along with the body, a string will set the body to that raw value.</li>
 <li><em>string (content_type)</em> <code>content_type</code> This will force the content-type set to be this argument if it is provided.</li>
 </ul>
-<h4 id="response_object"><em>nothing</em> <code>response_object:set_code_and_reply(code, body, content_type)</code></h4>
+<h4 id="response_object:set_code_and_reply"><em>nothing</em> <code>response_object:set_code_and_reply(code, body, content_type)</code></h4>
 <p>Sets the status code to the given code and attaches the given body.</p>
 <ul>
 <li><em>number (http status code)</em> <code>code</code></li>
@@ -88,4 +124,3 @@
     </body>
 </html>
 
-13

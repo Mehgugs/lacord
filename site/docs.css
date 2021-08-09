@@ -85,83 +85,117 @@ a:link:hover {
   text-decoration: underline;
 }
 
-/* The side navigation menu */
-.sidebar {
-  margin: 0;
-  padding: 0;
-  width: 200px;
-  background-color: #232530;
-  position: fixed;
+/* The sidebar menu */
+#sidebar {
   height: 100%;
-  overflow: auto;
-  font-family: Consolas, monospace;
+  /* 100% Full-height */
+  position: fixed;
+  /* Stay in place */
+  z-index: 1;
+  /* Stay on top */
+  top: 0;
+  left: 0;
+  background-color: #232530;
+  /* Black*/
+  overflow-x: hidden;
+  /* Disable horizontal scroll */
+  padding-top: 15px;
+  /* Place content 60px from the top */
+  transition: 0.5s;
+  /* 0.5 second transition effect to slide in the sidebar */
+  display: flex;
+  flex-direction: column;
 }
 
-/* Sidebar links */
-.sidebar a {
-  display: block;
+#sidebar.fit {
+  width: fit-content;
+}
+
+#sidebar.zero {
+  width: 0;
+}
+
+/* The sidebar links */
+#sidebar a {
+  padding: 8px 8px 8px 32px;
   color: #e9535f;
   background-color: #232530;
-  padding: 16px;
   text-decoration: none;
 }
 
 /* Active/current link */
-.sidebar a.active {
+#sidebar a.active {
   color: #E95378;
   background-color: #404459;
   text-decoration: underline;
   font-weight: bold;
 }
 
-.sidebar-sep {
-  font-weight: bold;
-  padding: 16px;
-  color: #e9535f;
-  display: block;
-  text-decoration: none;
-}
-
-/* Links on mouse-over */
-.sidebar a:hover:not(.active) {
+#sidebar a:hover:not(.active) {
   color: #e9767f;
   background-color: #404459;
   text-decoration: none;
 }
 
-/* Page content. The value of the margin-left property should match the value of the sidebar's width property */
-div.content {
-  margin-left: 200px;
-  margin-right: 200px;
-  padding: 1px 16px;
-  height: 1000px;
+/* The button used to open the sidebar */
+#btn, #btn2 {
+  font-size: 25px;
+  cursor: pointer;
+  background-color: #232530;
+  color: #999999;
+  border: none;
+}
+
+#sidebar #btn2 {
+  width: min-content;
+  padding: 8px 8px 8px 32px;
+  justify-self: left;
+  top: 0;
+}
+
+.hide {
+  display: hidden;
+}
+
+.sidebar-sep {
+  font-weight: bold;
+  padding: 8px 8px 8px 64px;
+  color: #e9535f;
+  font-family: Consolas, monospace;
+  display: block;
+  text-decoration: none;
+  align-content: center;
+}
+
+#btn:hover {
+  color: #cfccc9;
+}
+
+#btn2:hover {
+  color: #cfccc9;
+}
+
+/* Style page content - use this if you want to push the page content to the right when you open the side navigation */
+#content {
+  padding: 20px;
   font-family: Helvetica, sans-serif;
   background-color: #232530;
   color: #999999;
   overflow: visible;
 }
 
-/* On screens that are less than 700px wide, make the sidebar into a topbar */
-@media screen and (max-width: 700px) {
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
+/* On smaller screens, where height is less than 450px, change the style of the sidenav (less padding and a smaller font size) */
+@media screen and (max-height: 450px) {
+  #sidebar {
+    padding-top: 5px;
   }
 
-  .sidebar a {
-    float: left;
+  #sidebar a {
+    font-size: 18px;
   }
 
-  div.content {
-    margin-left: 0;
-  }
-}
-/* On screens that are less than 400px, display the bar vertically, instead of horizontally */
-@media screen and (max-width: 400px) {
-  .sidebar a {
-    text-align: center;
-    float: none;
+  #sidebar.fit {
+    max-width: 25%;
   }
 }
 
