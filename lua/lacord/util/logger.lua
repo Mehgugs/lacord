@@ -165,7 +165,7 @@ end
 -- @param[opt] ... Values passed into `string.format`.
 function throw(...)
     error(...)
-    return err(f(...), 2)
+    return err(f(...):gsub("$[^;]+;", ""), 2)
 end
 
 --- Logs an error using `logger.error` and then exits with a non-zero exit code.

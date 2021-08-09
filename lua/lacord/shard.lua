@@ -155,7 +155,7 @@ end
 local hb = ops.HEARTBEAT
 local function beat_loop(state, interval)
     while state.connected do
-        logger.warn("Outgoing heart beating")
+        logger.debug("Outgoing heart beating")
         state.beats = state.beats + 1
         send(state, hb, state._seq or null, true)
         local r1,r2 = poll(state.stop_heart, interval)

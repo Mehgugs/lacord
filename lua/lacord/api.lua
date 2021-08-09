@@ -745,9 +745,9 @@ function api:list_joined_private_archived_threads(channel_id, query)
     }, nil,  query)
 end
 
-function api:create_interaction_response(application_id, interaction_token, payload, files)
-    return self:request('create_interaction_response', 'POST', '/interactions/:application_id/:interaction_token/callback', {
-       application_id = application_id,
+function api:create_interaction_response(interaction_id, interaction_token, payload, files)
+    return self:request('create_interaction_response', 'POST', '/interactions/:interaction_id/:interaction_token/callback', {
+        interaction_id = interaction_id,
        interaction_token = interaction_token
     }, payload, nil, files)
 end
@@ -780,11 +780,11 @@ function api:delete_original_interaction_response(application_id, interaction_to
     })
 end
 
-function api:create_followup_message(application_id, interaction_token,  payload)
+function api:create_followup_message(application_id, interaction_token,  payload, files)
     return self:request('create_followup_message', 'POST', '/webhooks/:application_id/:interaction_token', {
        application_id = application_id,
        interaction_token = interaction_token
-    }, payload)
+    }, payload, nil, files)
 end
 
 function api:edit_followup_message(application_id, interaction_token, message_id, payload)
@@ -1374,7 +1374,7 @@ function api:batch_edit_application_command_permissions(application_id, guild_id
 end
 
 function api:get_token(data)
-    return self:request('get_token', 'POST', '/oauth2/token/', {}, nil, data)
+    return self:request('get_token', 'POST', '/oauth2/token/', empty_route, nil, data)
 end
 
 function api:get_sticker(sticker_id)
