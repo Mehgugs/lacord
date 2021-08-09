@@ -12,12 +12,12 @@ Constructs a new https server.
 Providing TLS configuration (either by filepaths or context object) is optional,
 but by default a warning is printed because discord will not accept plain `http`.
 The callback `options.interact` can return a json object, and this will be set as
-the interaction response. You can also use the [reponse object](#response_object) to set the body manually.
+the interaction response. You can also use the [response object](#response_object) to set the body manually.
 
 - *string* `options.public_key`
     Your applications public key, used for signature verification.
 - *function* `options.interact`
-    The callback to handle interactions from discord. This is called with the interaction payload and a [reponse object](#response_object).
+    The callback to handle interactions from discord. This is called with the interaction payload and a [response object](#response_object).
 - *function* `options.fallthrough`
     The callback to handle requests that are not on the route discord is configured to use.
 - *string* `options.route`
