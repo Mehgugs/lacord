@@ -1,0 +1,157 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a class="active" href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.util">lacord.util</h2>
+<p>This module contains a miscellaneous collection of functions which provide some utility to other lacord modules.</p>
+<h4 id="hash"><em>string</em> <code>hash(str)</code></h4>
+<p>Computes the FNV-1a 32bit hash of the given string.</p>
+<ul>
+<li><em>string</em> <code>str</code></li>
+</ul>
+<h4 id="rand"><em>number</em> <code>rand(A, B)</code></h4>
+<p>Produces a random double between <code>A</code> and <code>B</code>.</p>
+<ul>
+<li><em>number</em> <code>A</code></li>
+<li><em>number</em> <code>B</code></li>
+</ul>
+<h4 id="platform"><em>string</em> <code>platform</code></h4>
+<p>The operating system platform.</p>
+<h4 id="version"><em>number</em> <code>version</code></h4>
+<p>The lua version as a number in <code>MAJOR.MINOR</code> form.</p>
+<h4 id="version_major"><em>number</em> <code>version_major</code></h4>
+<p>The major version of the lua version.</p>
+<h4 id="version_minor"><em>number</em> <code>version_minor</code></h4>
+<p>The minor version of the lua version.</p>
+<h4 id="version_release"><em>number</em> <code>version_release</code></h4>
+<p>The release/patch version of the lua version.</p>
+<h4 id="startswith"><em>boolean</em> <code>startswith(s, prefix)</code></h4>
+<p>Tests whether the string <code>s</code> starts with the string <code>prefix</code>.</p>
+<ul>
+<li><em>string</em> <code>s</code></li>
+<li><em>string</em> <code>prefix</code></li>
+</ul>
+<h4 id="endswith"><em>boolean</em> <code>endswith(s, suffix)</code></h4>
+<p>Tests whether the string <code>s</code> ends with the string <code>suffix</code>.</p>
+<ul>
+<li><em>string</em> <code>s</code></li>
+<li><em>string</em> <code>suffix</code></li>
+</ul>
+<h4 id="suffix"><em>boolean</em> <code>suffix(s, pre)</code></h4>
+<p>Returns the suffix of <code>pre</code> in <code>s</code></p>
+<ul>
+<li><em>string</em> <code>s</code></li>
+<li><em>string</em> <code>pre</code></li>
+</ul>
+<h4 id="prefix"><em>boolean</em> <code>prefix(s, pre)</code></h4>
+<p>Returns the prefix of <code>suf</code> in <code>s</code></p>
+<ul>
+<li><em>string</em> <code>s</code></li>
+<li><em>string</em> <code>suf</code></li>
+</ul>
+<h3 id="content_typed">content_typed</h3>
+<p>The following utilities construct and manipulate objects which represent content typed data. These can be transparently passed to api methods as bodies and will have the correct content type attached to the request. This is also true when sending files in multipart requests.</p>
+<h4 id="content_typed"><em>string, string? (content_type)</em> <code>content_typed(payload)</code></h4>
+<p>Resolve a prospective payload with respect to lacord content types. The 2nd argument will be present if a content type was resolved. The processing is occurs when <code>payload</code> has a metatable with a <code>__lacord_content_type</code> function and a <code>__lacord_payload</code> function defined.</p>
+<ul>
+<li><em>table (implements __lacord_content_type)</em> <code>payload</code></li>
+</ul>
+<h4 id="the_content_type"><em>string? (content_type)</em> <code>the_content_type(payload)</code></h4>
+<p>Resolve a prospective payload with respect to lacord content types. This only returns the content type or nil if one can not be resolved.</p>
+<ul>
+<li><em>table (implements __lacord_content_type)</em> <code>payload</code></li>
+</ul>
+<h4 id="content_types"><em>table</em> <code>content_types</code></h4>
+<p>A table of commonly used content types.</p>
+<ul>
+<li><em>string</em> <code>JSON</code></li>
+<li><em>string</em> <code>TEXT</code></li>
+<li><em>string</em> <code>URLENCODED</code></li>
+<li><em>string</em> <code>BYTES</code></li>
+<li><em>string</em> <code>PNG</code></li>
+</ul>
+<h4 id="plaintext"><em>content_typed</em> <code>plaintext(str, name)</code></h4>
+<p>Creates a content typed object containing plaintext.</p>
+<ul>
+<li><em>string</em> <code>str</code> The plaintext content.</li>
+<li><em>string</em> <code>name</code> A file name, optional.</li>
+</ul>
+<h4 id="binary"><em>content_typed</em> <code>binary(str, name)</code></h4>
+<p>Creates a content typed object containing raw bytes.</p>
+<ul>
+<li><em>string</em> <code>str</code> The content.</li>
+<li><em>string</em> <code>name</code> A file name, optional.</li>
+</ul>
+<h4 id="urlencoded"><em>content_typed</em> <code>urlencoded(t)</code></h4>
+<p>Creates a content typed object containing url encoded key-value pairs.</p>
+<ul>
+<li><em>table</em> <code>t</code> The table of key-value pairs.</li>
+</ul>
+<h4 id="png"><em>content_typed</em> <code>png(str, name)</code></h4>
+<p>Creates a content typed object containing png image data.</p>
+<ul>
+<li><em>string</em> <code>str</code> The png image data.</li>
+<li><em>string</em> <code>name</code> A file name, optional.</li>
+</ul>
+<h4 id="json_string"><em>content_typed</em> <code>json_string(data, name)</code></h4>
+<p>Creates a content typed object containing encoded json.</p>
+<ul>
+<li><em>string</em> <code>data</code> The encoded json content.</li>
+<li><em>string</em> <code>name</code> A file name, optional.</li>
+</ul>
+<h4 id="file_name"><em>string</em> <code>file_name(cted)</code></h4>
+<p>Gets the file name for the associated content typed object.</p>
+<ul>
+<li><em>content_typed</em> <code>cted</code></li>
+</ul>
+<h4 id="set_file_name"><em>nothing</em> <code>set_file_name(cted, name)</code></h4>
+<p>Sets the file name for the associated content typed object.</p>
+<ul>
+<li><em>content_typed</em> <code>cted</code></li>
+<li><em>string</em> <code>name</code></li>
+</ul>
+<h4 id="a_blob_of"><em>content_typed</em> <code>a_blob_of(content_type, data, name)</code></h4>
+<p>Creates a content typed object containing the specified content type.</p>
+<ul>
+<li><em>string (content type)</em> <code>content_type</code></li>
+<li><em>string</em> <code>data</code> The data.</li>
+<li><em>string</em> <code>name</code> A file name, optional.</li>
+</ul>
+<h4 id="blob_for_file"><em>string, string (file name)</em> <code>blob_for_file</code></h4>
+<p>Resolves a content typed object and gets a file name suitable for writing to a file. This function will try to resolve file name extensions with respect to the content type’s appropriate extension, if one exists.</p>
+<ul>
+<li><em>content_typed</em> <code>blob</code></li>
+<li><em>string</em> <code>name</code> A name to use instead of the set name.</li>
+</ul>
+
+        </div>
+    </body>
+</html>
+
+23

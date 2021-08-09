@@ -1,0 +1,189 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="docs.css">
+        <link rel="stylesheet" href="highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a class="active" href="index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="pages/api.html">lacord.api</a>
+<a href="pages/cdn.html">lacord.cdn</a>
+<a href="pages/const.html">lacord.const</a>
+<a href="pages/outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="pages/shard.html">lacord.shard</a>
+<a href="pages/util.html">lacord.util</a>
+<a href="pages/util.intents.html">lacord.util.intents</a>
+<a href="pages/util.json.html">lacord.util.json</a>
+<a href="pages/util.logger.html">lacord.util.logger</a>
+<a href="pages/util.mutex.html">lacord.util.mutex</a>
+<a href="pages/util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord">lacord</h2>
+<p>lacord is a small discord library providing low level clients for the discord rest and gateway API. All data is given to the user as raw JSON.</p>
+<p>Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.</p>
+<h3 id="the-future">The Future</h3>
+<p>Currently the low level interfaces for slash commands are being implemented.</p>
+<h2 id="example">Example</h2>
+<p>This example sends lines inputed at the terminal to discord over a supplied webhook.</p>
+<p>For examples using the gateway see my other project <a href="https://github.com/Mehgugs/lacord-client">lacord-client</a>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> cqs <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> errno <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues.errno&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> thread <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues.thread&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> logger <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.util.logger&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> webhook <span class="op">=</span> <span class="fu">os.getenv</span><span class="st">&quot;WEBHOOK&quot;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> webhook_id<span class="op">,</span> webhook_token <span class="op">=</span> webhook<span class="op">:</span><span class="fu">match</span><span class="st">&quot;^(.+):(.+)$&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> loop <span class="op">=</span> cqs<span class="op">.</span>new<span class="op">()</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> discord <span class="op">=</span> api<span class="op">.</span>webhook_init<span class="op">(</span>webhook_token<span class="op">)</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> function starts<span class="op">(</span>s<span class="op">,</span> prefix<span class="op">)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s<span class="op">:</span><span class="fu">sub</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="op">#</span>prefix<span class="op">)</span> <span class="op">==</span> prefix</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> function suffix<span class="op">(</span>s<span class="op">,</span> pre<span class="op">)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> len <span class="op">=</span> <span class="op">#</span>pre</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> s<span class="op">:</span><span class="fu">sub</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="fu">len</span><span class="op">)</span> <span class="op">==</span> pre <span class="kw">and</span> s<span class="op">:</span><span class="fu">sub</span><span class="op">(</span><span class="fu">len</span> <span class="op">+</span> <span class="dv">1</span><span class="op">)</span> <span class="kw">or</span> s</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> thr<span class="op">,</span> con <span class="op">=</span> thread<span class="op">.</span>start<span class="op">(</span><span class="kw">function</span><span class="op">(</span>con<span class="op">)</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span><span class="st">&quot;Write messages to send over the webhook here!&quot;</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> input <span class="kw">in</span> <span class="fu">io.stdin</span><span class="op">:</span><span class="fu">lines</span><span class="op">()</span> <span class="cf">do</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> input <span class="op">==</span> <span class="st">&quot;:quit&quot;</span> <span class="cf">then</span> <span class="cf">break</span> <span class="cf">end</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        con<span class="op">:</span><span class="fu">write</span><span class="op">(</span>input<span class="op">,</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span><span class="op">)</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span><span class="op">)</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>loop<span class="op">:</span>wrap<span class="op">(</span><span class="kw">function</span><span class="op">()</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> username <span class="op">=</span> <span class="st">&quot;lacord webhook example&quot;</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> line <span class="kw">in</span> con<span class="op">:</span><span class="fu">lines</span><span class="op">()</span> <span class="cf">do</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> starts<span class="op">(</span>line<span class="op">,</span> <span class="st">&quot;:&quot;</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> starts<span class="op">(</span>line<span class="op">,</span> <span class="st">&quot;:username &quot;</span><span class="op">)</span> <span class="cf">then</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>                username <span class="op">=</span> suffix<span class="op">(</span>line<span class="op">,</span> <span class="st">&quot;:username &quot;</span><span class="op">)</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            <span class="kw">local</span> success <span class="op">=</span> discord<span class="op">:</span>execute_webhook<span class="op">(</span>webhook_id<span class="op">,</span> <span class="op">{</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>                content <span class="op">=</span> line<span class="op">,</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>                username <span class="op">=</span> username<span class="op">,</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>            <span class="op">})</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="kw">not</span> success <span class="cf">then</span> <span class="fu">io.stdin</span><span class="op">:</span><span class="fu">write</span><span class="st">&quot;:quit&quot;</span> <span class="cf">break</span> <span class="cf">end</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> ok<span class="op">,</span> why <span class="op">=</span> thr<span class="op">:</span>join<span class="op">()</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> ok <span class="cf">then</span> logger<span class="op">.</span>error<span class="op">(</span><span class="st">&quot;error in reader thread (%s, %q)&quot;</span><span class="op">,</span> why<span class="op">,</span> errno<span class="op">.</span>strerror<span class="op">(</span>why<span class="op">))</span> <span class="cf">end</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span><span class="op">)</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="fu">assert</span><span class="op">(</span>loop<span class="op">:</span>loop<span class="op">())</span></span></code></pre></div>
+<h2 id="cdn-client-example">CDN Client Example</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> cqs <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> cdn <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.cdn&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> util <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.util&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> loop <span class="op">=</span> cqs<span class="op">.</span>new<span class="op">()</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> discord_api <span class="op">=</span> api<span class="op">.</span>init<span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    token <span class="op">=</span> <span class="st">&quot;Bot &quot;</span><span class="op">..</span>os<span class="op">.</span>getenv<span class="st">&quot;TOKEN&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span>accept_encoding <span class="op">=</span> <span class="kw">true</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span>track_ratelimits <span class="op">=</span> <span class="kw">false</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span>route_delay <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> a_cdn <span class="op">=</span> cdn<span class="op">.</span>new<span class="op">{</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    accept_encoding <span class="op">=</span> <span class="kw">true</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>loop<span class="op">:</span>wrap<span class="op">(</span><span class="kw">function</span><span class="op">()</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> success<span class="op">,</span> data <span class="op">=</span>  discord_api<span class="op">:</span>get_current_user<span class="op">()</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> success <span class="cf">then</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">local</span> avatar <span class="op">=</span> a_cdn<span class="op">:</span>get_user_avatar<span class="op">(</span>data<span class="op">.</span>id<span class="op">,</span> data<span class="op">.</span>avatar<span class="op">,</span> <span class="st">&#39;png&#39;</span><span class="op">)</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="kw">local</span> fname<span class="op">,</span> content <span class="op">=</span> util<span class="op">.</span>blob_for_file<span class="op">(</span>avatar<span class="op">,</span> <span class="st">&quot;avatar&quot;</span><span class="op">)</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        <span class="kw">local</span> fd<span class="at">&lt;close&gt;</span> <span class="op">=</span> <span class="fu">io.open</span><span class="op">(</span>fname<span class="op">,</span> <span class="st">&quot;wb&quot;</span><span class="op">)</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        fd<span class="op">:</span><span class="fu">write</span><span class="op">(</span>content<span class="op">)</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span><span class="op">)</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="fu">assert</span><span class="op">(</span>loop<span class="op">:</span>loop<span class="op">())</span></span></code></pre></div>
+<h2 id="installation">Installation</h2>
+<p>This project depends on <a href="https://github.com/daurnimator/lua-http"><code>lua-http</code></a> and thus <a href="https://25thandclement.com/~william/projects/cqueues.html"><code>cqueues</code></a>. This means that you must be able to install <code>cqueues</code> on your platform.</p>
+<p>You can consult the respective projects for detailed instructions but as a general guide the following tools/libraries should be installed and available on your system:</p>
+<ul>
+<li>m4</li>
+<li>awk</li>
+<li>zlib-dev</li>
+<li>libssl-dev (or equiv.)<a href="#note-1">¹</a></li>
+</ul>
+<p>Once you have the pre-requisites in order you can install this library with luarocks:</p>
+<ul>
+<li>Directly <code>luarocks install lacord</code></li>
+<li>Via this repository
+<ul>
+<li><code>git clone https://github.com/Mehgugs/lacord.git &amp;&amp; cd lacord</code></li>
+<li><em>optionally checkout a specific commit</em></li>
+<li><code>luarocks make</code></li>
+</ul></li>
+</ul>
+<p>NB. In these example I have shown installs to the global rocktree, this may need <code>sudo</code> permission on your system. Luarocks can install and build modules to a local rocktree with some simple configuration.</p>
+<h2 id="slash-commands">Slash Commands</h2>
+<p>This library provides support for slash commands naturally over the gateway and also provides a https server module under <code>lacord.outoing-webhook-server</code> for interfacing with discord over outgoing webhook. When using this method there are a collection of things to keep in mind:</p>
+<ul>
+<li><p>You must use TLS. By default this module accepts two file paths after the server options table. The first one should be your full certificate chain in pem format and the second should be your private key in pem format. Should you wish to do more advanced TLS configuration, you can attach a ctx object to the options under <code>.ctx</code>.</p></li>
+<li><p>The first argument, the options table, is passed to <code>http.server.listen</code>. So please refer to the http library docs for a full list of network options. Some fields, such as <code>tls</code> will be filled in for you. In addition to the <code>http</code> library's fields, the following are expected:</p>
+<ul>
+<li>The string field <code>route</code> is the path component of the URL you configure your application to use. In the URL <code>https://example.com/interactions</code> this would be <code>/interactions</code>.</li>
+<li>The function field <code>interact</code> is called when a discord interaction event is received by the webhook. The first argument is the json object payload discord sent, the next argument is the https response object. Return a valid json object from the function to send it to discord; if you do not it will respond with 500. Any error in this function is caught and will respond with 503, logging the message internally.</li>
+<li>The function field <code>fallthrough</code> receives a response object, and is called with any other request (i.e requests to paths other than the <code>route</code>).</li>
+<li>The string field <code>public_key</code> is your applications public key, necessary for signature verification.</li>
+</ul></li>
+</ul>
+<p>Here is a minimal example of configuration:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> server <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.outgoing-webhook-server&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> function interact<span class="op">(</span>event<span class="op">,</span> resp<span class="op">)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> event<span class="op">.</span>data<span class="op">.</span>command <span class="op">==</span> <span class="st">&quot;hello&quot;</span> <span class="cf">then</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>            <span class="fu">type</span> <span class="op">=</span> <span class="dv">4</span><span class="op">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            data <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                content <span class="op">=</span> <span class="st">&quot;Hello, world!&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        resp<span class="op">:</span>set_code_and_reply<span class="op">(</span><span class="dv">404</span><span class="op">,</span> <span class="st">&quot;Command not found.&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain; charset=UTF-8&quot;</span><span class="op">)</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> loop <span class="op">=</span> server<span class="op">.</span>new<span class="op">({</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    public_key <span class="op">=</span> <span class="fu">os.getenv</span><span class="st">&quot;PUBLIC_KEY&quot;</span><span class="op">,</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    fallthrough <span class="op">=</span> <span class="kw">function</span><span class="op">(</span>resp<span class="op">)</span> resp<span class="op">:</span>set_code_and_reply<span class="op">(</span><span class="dv">404</span><span class="op">,</span> <span class="st">&quot;Page not found.&quot;</span><span class="op">,</span> <span class="st">&quot;text/plain; charset=UTF-8&quot;</span><span class="op">)</span> <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    interact <span class="op">=</span> interact<span class="op">,</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    host <span class="op">=</span> <span class="st">&quot;localhost&quot;</span><span class="op">,</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    port <span class="op">=</span> <span class="dv">8888</span><span class="op">,</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    route <span class="op">=</span> <span class="st">&quot;/interactions&quot;</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="op">},</span> <span class="st">&quot;fullchain.pem&quot;</span><span class="op">,</span> <span class="st">&quot;key.pem&quot;</span><span class="op">)</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">assert</span><span class="op">(</span>loop<span class="op">:</span>loop<span class="op">())</span></span></code></pre></div>
+<p>The <code>loop</code> object has <code>.cq</code> field which can be used to <code>:wrap</code> asynchronous code.</p>
+<h2 id="notes">Notes</h2>
+<h4 id="note-1">Note 1</h4>
+<p>I would recommend manually installing openssl with a version in the current stable series. At the time of writing this is the <strong>1.1.1</strong> series.</p>
+
+        </div>
+    </body>
+</html>
+
+2

@@ -1,0 +1,91 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a class="active" href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.outgoing-webhook-server">lacord.outgoing-webhook-server</h2>
+<p>This module contains a low level https server for hosting an outgoing webhook for receiving discord interactions.</p>
+<h3 id="server"><em>server</em></h3>
+<p>This type is a http server configured for use as an outgoing webhook.</p>
+<h4 id="new"><em>server</em> <code>new(options, crtfile, keyfile)</code></h4>
+<p>Constructs a new https server. Providing TLS configuration (either by filepaths or context object) is optional, but by default a warning is printed because discord will not accept plain <code>http</code>. The callback <code>options.interact</code> can return a json object, and this will be set as the interaction response. You can also use the <a href="#response_object">reponse object</a> to set the body manually.</p>
+<ul>
+<li><em>string</em> <code>options.public_key</code> Your applications public key, used for signature verification.</li>
+<li><em>function</em> <code>options.interact</code> The callback to handle interactions from discord. This is called with the interaction payload and a <a href="#response_object">reponse object</a>.</li>
+<li><em>function</em> <code>options.fallthrough</code> The callback to handle requests that are not on the route discord is configured to use.</li>
+<li><em>string</em> <code>options.route</code> The path discord will send interactions to, defaults to <code>/</code>.</li>
+<li><em>function</em> <code>options.onerror</code> The lua-http error handler, defaults to <a href="util.logger.html#error"><code>logger.error</code></a></li>
+<li><em>openssl.ssl.context</em> <code>options.ctx</code> An openssl context for TLS. Mutually exclusive with <code>crtfile</code>.</li>
+<li><em>boolean</em> <code>options.ikwid</code> Set this flag to silence the warning message printing when TLS is not configured.</li>
+<li><em>string (filepath)</em> <code>crtfile</code> The path to your certificate chain file.</li>
+<li><em>string (filepath)</em> <code>keyfile</code> The path to your private key file.</li>
+</ul>
+<h3 id="response_object"><em>response_object</em></h3>
+<p>This type has methods for setting the server response to an interaction.</p>
+<h4 id="response_object"><em>headers</em> <code>response_object.request_headers</code></h4>
+<p>The request headers.</p>
+<h4 id="response_object"><em>headers</em> <code>response_object.headers</code></h4>
+<p>The response headers.</p>
+<h4 id="response_object"><em>string</em> <code>response_object.peername</code></h4>
+<p>The address and port at the other end of the connection.</p>
+<h4 id="response_object"><em>string (http verb)</em> <code>response_object.method</code></h4>
+<p>The http verb.</p>
+<h4 id="response_object"><em>string</em> <code>response_object.path</code></h4>
+<p>The path.</p>
+<h4 id="response_object"><em>string</em> <code>response_object:set_body(body)</code></h4>
+<p>Sets the body to the specified content typed object.</p>
+<ul>
+<li><em>content_typed|string</em> <code>body</code> A content typed object will be resolved and the content-type header set along with the body, a string will set the body to that raw value.</li>
+</ul>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_503()</code></h4>
+<p>Sets the status code to 503 and attaches a suitable body.</p>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_500()</code></h4>
+<p>Sets the status code to 500 and attaches a suitable body.</p>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_401()</code></h4>
+<p>Sets the status code to 401 and attaches a suitable body.</p>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_ok()</code></h4>
+<p>Sets the status code to 204.</p>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_ok_and_reply(body, content_type)</code></h4>
+<p>Sets the status code to 200 and attaches the given body.</p>
+<ul>
+<li><em>content_typed|string</em> <code>body</code> A content typed object will be resolved and the content-type header set along with the body, a string will set the body to that raw value.</li>
+<li><em>string (content_type)</em> <code>content_type</code> This will force the content-type set to be this argument if it is provided.</li>
+</ul>
+<h4 id="response_object"><em>nothing</em> <code>response_object:set_code_and_reply(code, body, content_type)</code></h4>
+<p>Sets the status code to the given code and attaches the given body.</p>
+<ul>
+<li><em>number (http status code)</em> <code>code</code></li>
+<li><em>content_typed|string</em> <code>body</code> A content typed object will be resolved and the content-type header set along with the body, a string will set the body to that raw value.</li>
+<li><em>string (content_type)</em> <code>content_type</code> This will force the content-type set to be this argument if it is provided.</li>
+</ul>
+
+        </div>
+    </body>
+</html>
+
+13

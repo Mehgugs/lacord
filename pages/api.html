@@ -1,0 +1,92 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a class="active" href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.api">lacord.api</h2>
+<p>This module is used to connect to discord’s restful api over http. All api methods must be called inside a cqueues managed coroutine.</p>
+<h4 id="ratelimits">Ratelimits</h4>
+<p>The api client will automatically handle ratelimits for you. 429s may still be encountered and will be handled as well.</p>
+<h4 id="USER_AGENT"><em>string</em> <code>USER_AGENT</code></h4>
+<p>The lacord user-agent used by all clients.</p>
+<h4 id="URL"><em>string</em> <code>URL</code></h4>
+<p>The api url used by the client.</p>
+<h3 id="api"><em>api</em></h3>
+<p>This type has methods for interacting with the discord rest api.</p>
+<h4 id="init"><em>api</em> <code>init(options)</code></h4>
+<p>This initializes the api client.</p>
+<ul>
+<li><em>{string, string}</em> <code>options.client_credentials</code> Set this field to to use Basic authentication for the client credentials grant. It should be a sequence of your id and client secret.</li>
+<li><em>string</em> <code>options.token</code> Set this field to use either a Bearer or Bot token for authentication. Mutually exclusive with <code>client_credentials</code>.</li>
+<li><em>boolean</em> <code>options.track_ratelimits</code> Set this flag to track ratelimit information. This will be available in the <code>.rates</code> field of the client.</li>
+<li><em>number (seconds)</em> <code>options.route_delay</code> Set this field to set a lower bound on the delay calculated when making requests. This is used to make the requests have more even availability but will reduce the throughput of the client.</li>
+<li><em>number (seconds)</em> <code>options.api_timeout</code> Set this field to control the request timeout.</li>
+<li><em>number (http version)</em> <code>options.api_http_version</code> Set this field to control the http version used by the request client.</li>
+<li><em>boolean</em> <code>options.accept_encoding</code> Set this flag to control whether the client should accept compressed data from discord.</li>
+</ul>
+<h4 id="api"><em>boolean, applicaion/json|true, string, table</em> <code>api:method_name(...)</code></h4>
+<p>All requests you can make via this client are methods of the form: <code>api:&lt;discord name snake cased&gt;</code>. For example “Create message” would be found at <code>api:create_message</code>. Consult discord’s official documentation for a list of available api methods. All these methods return: a success boolean; response data decoded as json; an error message if success was false; and a table of errors if discord sent that in the error response. In the case of <code>204</code> the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.</p>
+<h4 id="api"><em>api.capture</em> <code>api:capture()</code></h4>
+<p>This function will create a capture object which can be used to safely sequence multiple requests together.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- somewhere in a cqueues coroutine...</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="kw">local</span> discord_api <span class="op">=</span> api<span class="op">.</span>init<span class="op">{</span>blah<span class="op">}</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="kw">local</span> <span class="cn">R</span> <span class="op">=</span> discord_api</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>   <span class="op">:</span>capture<span class="op">()</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>   <span class="op">:</span>get_gateway_bot<span class="op">()</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>   <span class="op">:</span>get_current_application_information<span class="op">()</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="cn">R</span><span class="op">.</span>success <span class="cf">then</span> <span class="co">-- ALL methods succeeded</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> results_list <span class="op">=</span> <span class="cn">R</span><span class="op">.</span>result</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> <span class="cn">A</span><span class="op">,</span> <span class="cn">B</span><span class="op">,</span> <span class="cn">C</span> <span class="op">=</span> <span class="cn">R</span><span class="op">:</span>results<span class="op">()</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> why <span class="op">=</span> <span class="cn">R</span><span class="op">.</span>error</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> partial <span class="op">=</span> <span class="cn">R</span><span class="op">.</span>result</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>   <span class="co">-- There may be partial results collected before the error, you can use this to debug.</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>   <span class="cn">R</span><span class="op">:</span>some_method<span class="op">()</span> <span class="co">-- If there&#39;s been a faiure, calls like this are noop&#39;d.</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
+<h4 id="webhook_init"><em>api.webhook</em> <code>webhook_init(webhook_token)</code></h4>
+<p>Create a client suitable for executing webhooks. The only methods this client has access to are the webhook methods, and you will still need to provide the id as the first parameter of those methods, but the token will be inserted into the argument list for you internally.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> hook <span class="op">=</span> api<span class="op">.</span>webhook_init<span class="op">(</span>webhook_token<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>hook<span class="op">:</span>execute_webhook<span class="op">(</span>webhook_id<span class="op">,</span> <span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    content <span class="op">=</span> line<span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    username <span class="op">=</span> username<span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
+<h4 id="with_reason"><em>string</em> <code>with_reason(text)</code></h4>
+<p>Adds a new contextual audit log reason to the currently running cqueues coroutine. When requests are made in this coroutine which accept an audit log reason they will pull a reason from the thread’s reason if one is available:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- somewhere in a cqueues coroutine...</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> discord_api <span class="op">=</span> api<span class="op">.</span>init<span class="op">{</span>blah<span class="op">}</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>api<span class="op">.</span>with_reason <span class="st">&quot;I&#39;m doing this because I can!&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>discord_api<span class="op">:</span>create_guild_ban<span class="op">(...)</span> <span class="co">-- this will have the reason defined above.</span></span></code></pre></div>
+
+        </div>
+    </body>
+</html>
+
+7

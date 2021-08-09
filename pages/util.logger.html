@@ -1,0 +1,87 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a class="active" href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.util.logger">lacord.util.logger</h2>
+<p>This module provides a set of functions for logging to standard output and error stream in a readable format.</p>
+<h4 id="fd"><em>file</em> <code>fd</code></h4>
+<p>Set this to a lua file object opened in a write mode to also write any output to the file.</p>
+<h4 id="mode"><em>integer</em> <code>mode(x)</code></h4>
+<p>Sets the colour mode the logger uses.</p>
+<ul>
+<li><em>integer</em> <code>x</code> The colour mode, valid values are:
+<ul>
+<li><code>0</code> no colouring.</li>
+<li><code>3</code> colouring using standard color codes.</li>
+<li><code>8</code> colouring using 8 bit ansi codes.</li>
+<li><code>24</code> colouring using 24 bit ansi codes.</li>
+</ul></li>
+</ul>
+<h4 id="info"><em>nothing</em> <code>info(fmt, ...)</code></h4>
+<p>Writes using the info prefix to standard output.</p>
+<ul>
+<li><em>string</em> <code>fmt</code> A lua format string.</li>
+<li><code>...</code> Format values.</li>
+</ul>
+<h4 id="warn"><em>nothing</em> <code>warn(fmt, ...)</code></h4>
+<p>Writes using the warning prefix to standard output.</p>
+<ul>
+<li><em>string</em> <code>fmt</code> A lua format string.</li>
+<li><code>...</code> Format values.</li>
+</ul>
+<h4 id="error"><em>nothing</em> <code>error(fmt, ...)</code></h4>
+<p>Writes using the error prefix to standard error.</p>
+<ul>
+<li><em>string</em> <code>fmt</code> A lua format string.</li>
+<li><code>...</code> Format values.</li>
+</ul>
+<h4 id="throw"><em>nothing</em> <code>throw(fmt, ...)</code></h4>
+<p>Writes using the error prefix to standard error, and then raises the message as a lua error.</p>
+<ul>
+<li><em>string</em> <code>fmt</code> A lua format string.</li>
+<li><code>...</code> Format values.</li>
+</ul>
+<h4 id="fatal"><em>nothing</em> <code>fatal(fmt, ...)</code></h4>
+<p>Writes using the error prefix to standard error, and then terminates the program with a non-zero exit code.</p>
+<ul>
+<li><em>string</em> <code>fmt</code> A lua format string.</li>
+<li><code>...</code> Format values.</li>
+</ul>
+<h4 id="assert"><em>anything</em> <code>assert(x, ...)</code></h4>
+<p>Similar to lua’s assert but uses logger.throw when an assertion fails.</p>
+<ul>
+<li><em>string</em> <code>x</code> A value to assert is truthy.</li>
+<li><code>...</code> Arguments to <a href="#throw"><code>throw</code></a></li>
+</ul>
+
+        </div>
+    </body>
+</html>
+
+8

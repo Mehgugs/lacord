@@ -1,0 +1,53 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+    </head>
+    <body>
+        <div class="sidebar">
+            <a href="../index.html">Readme</a>
+<div class="sidebar-sep"> ------------------- </div>
+<a href="api.html">lacord.api</a>
+<a class="active" href="cdn.html">lacord.cdn</a>
+<a href="const.html">lacord.const</a>
+<a href="outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
+<a href="shard.html">lacord.shard</a>
+<a href="util.html">lacord.util</a>
+<a href="util.intents.html">lacord.util.intents</a>
+<a href="util.json.html">lacord.util.json</a>
+<a href="util.logger.html">lacord.util.logger</a>
+<a href="util.mutex.html">lacord.util.mutex</a>
+<a href="util.uint.html">lacord.util.uint</a>
+        </div>
+        <div class="content">
+            <h2 id="lacord.cdn">lacord.cdn</h2>
+<p>This module is used to get discord CDN urls and fetch CDN resources.</p>
+<h4 id="cdn_asset_url"><em>string</em> <code>cdn_asset_url(...)</code></h4>
+<p>For each CDN endpoint listed <a href="https://discord.com/developers/docs/reference#image-formatting-cdn-endpoints">here</a> there is a function in this module for creating a url. For example the “Custom Emoji” url function is found at <code>custom_emoji</code>. As arguments these functions take any parameters present in the documentation’s url followed by the extension and size.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> cdn <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.cdn&quot;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> the_url <span class="op">=</span> cdn<span class="op">.</span>custom_emoji_url<span class="op">(</span>emoji_id<span class="op">,</span> <span class="st">&quot;png&quot;</span><span class="op">)</span></span></code></pre></div>
+<h3 id="cdn"><em>cdn</em></h3>
+<p>This type has methods for retrieving assets from the discord CDN.</p>
+<h4 id="new"><em>cdn</em> <code>new(options)</code></h4>
+<p>Constructs a new cdn client.</p>
+<ul>
+<li><em>number (http version)</em> <code>options.http_version</code> Set this field to control the http version used when making requests.</li>
+<li><em>boolean</em> <code>options.accept_encoding</code> Set this flag to control whether the client should accept compressed data from discord.</li>
+<li><em>number (seconds)</em> <code>options.api_timeout</code> Set this field to control the request timeout.</li>
+</ul>
+<h4 id="cdn"><em>content_typed, string, table</em> <code>cdn:get_endpoint(...)</code></h4>
+<p>Fetches the an asset from the CDN. Similarly to the url functions, for every CDN endpoint listed <a href="https://discord.com/developers/docs/reference#image-formatting-cdn-endpoints">here</a> there is a cdn client method for fetching an asset from the endpoint. For example the “Custom Emoji” method would be found at <code>cdn:get_custom_emoji</code>. All of these methods accept the same arguments as their associated url function. These functions return a content typed table, with the inner blob of data located at index 1. Read more about content types <a href="util.html#content_typed">here</a>. If these functions fail the first return will be nil, followed by an error message and an errors table if discord sent one.</p>
+
+        </div>
+    </body>
+</html>
+
+3
