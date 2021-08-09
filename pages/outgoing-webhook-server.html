@@ -33,10 +33,10 @@
 <h3 id="server"><em>server</em></h3>
 <p>This type is a http server configured for use as an outgoing webhook.</p>
 <h4 id="new"><em>server</em> <code>new(options, crtfile, keyfile)</code></h4>
-<p>Constructs a new https server. Providing TLS configuration (either by filepaths or context object) is optional, but by default a warning is printed because discord will not accept plain <code>http</code>. The callback <code>options.interact</code> can return a json object, and this will be set as the interaction response. You can also use the <a href="#response_object">reponse object</a> to set the body manually.</p>
+<p>Constructs a new https server. Providing TLS configuration (either by filepaths or context object) is optional, but by default a warning is printed because discord will not accept plain <code>http</code>. The callback <code>options.interact</code> can return a json object, and this will be set as the interaction response. You can also use the <a href="#response_object">response object</a> to set the body manually.</p>
 <ul>
 <li><em>string</em> <code>options.public_key</code> Your applications public key, used for signature verification.</li>
-<li><em>function</em> <code>options.interact</code> The callback to handle interactions from discord. This is called with the interaction payload and a <a href="#response_object">reponse object</a>.</li>
+<li><em>function</em> <code>options.interact</code> The callback to handle interactions from discord. This is called with the interaction payload and a <a href="#response_object">response object</a>.</li>
 <li><em>function</em> <code>options.fallthrough</code> The callback to handle requests that are not on the route discord is configured to use.</li>
 <li><em>string</em> <code>options.route</code> The path discord will send interactions to, defaults to <code>/</code>.</li>
 <li><em>function</em> <code>options.onerror</code> The lua-http error handler, defaults to <a href="util.logger.html#error"><code>logger.error</code></a></li>
