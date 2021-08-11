@@ -69,6 +69,13 @@ else
     end
 end
 
+local newmt = {
+    __lacord_content_type = "application/json",
+    __lacord_payload = _ENV.encode,
+    __lacord_file_name = virtualname,
+    __lacord_set_file_name = set_virtualname,
+}
+
 function content_type(obj)
     local mt = getm(obj)
 
@@ -83,12 +90,6 @@ function content_type(obj)
         mt.__lacord_set_file_name = set_virtualname
         return obj, mt
     else
-        local newmt = {
-            __lacord_content_type = "application/json",
-            __lacord_payload = _ENV.encode,
-            __lacord_file_name = virtualname,
-            __lacord_set_file_name = set_virtualname,
-        }
         setm(obj, newmt)
         return obj, newmt
     end
