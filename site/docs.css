@@ -87,8 +87,6 @@ a:link:hover {
 
 /* The sidebar menu */
 #sidebar {
-  height: 100%;
-  /* 100% Full-height */
   position: fixed;
   /* Stay in place */
   z-index: 1;
@@ -108,6 +106,7 @@ a:link:hover {
   border-right: #404459;
   border-right-style: solid;
   border-right-width: 1px;
+  bottom: 25px;
 }
 
 #sidebar.fit {
@@ -201,6 +200,7 @@ div.sourceCode {
 @media screen and (max-height: 450px) {
   #sidebar {
     padding-top: 5px;
+    height: calc(100% - 20px);
   }
 
   #sidebar a {
