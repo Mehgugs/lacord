@@ -39,6 +39,7 @@ local ipairs, pairs = ipairs, pairs
 local ver = concat({util.version_major, util.version_minor, util.version_release}, ".")
 local set = rawset
 local err = error
+local openf = io.open
 
 local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
@@ -111,12 +112,17 @@ end
 local function attachContent(payload, files, ct, inner_ct)
     local ret
     if ct ~= "form" then
-        ret = {
-            BOUNDARY2,
-            "Content-Disposition:form-data;name=\"payload_json\"",
-            ("Content-Type:%s\r\n"):format(ct),
-            payload,
-        }
+        if payload ~= '{}' then
+            ret = {
+                BOUNDARY2,
+                "Content-Disposition:form-data;name=\"payload_json\"",
+                ("Content-Type:%s\r\n"):format(ct),
+                payload,
+            }
+        else
+            logger.debug("Not adding empty payload.")
+            ret = {}
+        end
     else
         ret = {}
         for k, v in pairs(payload) do
@@ -157,6 +163,11 @@ local function handle_payload(req, method, name, payload, files, asText)
             req.headers:append('content-type', MULTIPART)
         else
             req.headers:append('content-type', content_type)
+        end
+        if LACORD_DEBUG then
+            local file = openf("test/payload", "wb")
+            file:write(payload)
+            file:close()
         end
         req:set_body(payload)
     end

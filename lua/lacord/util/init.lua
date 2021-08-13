@@ -215,8 +215,9 @@ function file_name(cted)
         else
             base = curname
             local ct = _ENV.the_content_type(cted)
-            if ct and mime.exts[ct] then
-                ext = mime.exts[ct]
+            local lookup = ct and ct:match"^[^;]+"
+            if ct and mime.exts[lookup] then
+                ext = mime.exts[lookup]
             else
                 ext = ""
             end
@@ -272,8 +273,9 @@ function blob_for_file(blob, name)
         else
             base = curname
             local ct = _ENV.the_content_type(blob)
-            if mime.exts[ct] then
-                ext = mime.exts[ct]
+            local lookup = ct:match"^[^;]+"
+            if mime.exts[lookup] then
+                ext = mime.exts[lookup]
             else
                 ext = ""
             end
