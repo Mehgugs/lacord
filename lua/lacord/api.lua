@@ -1347,6 +1347,13 @@ function api:delete_guild_application_command(application_id, guild_id, command_
     })
 end
 
+function api:get_guild_application_commands(application_id, guild_id)
+    return self:request('get_guild_application_commands', 'GET', '/applications/:application_id/guilds/:guild_id/commands', {
+       application_id = application_id,
+       guild_id = guild_id
+    })
+end
+
 function api:bulk_overwrite_guild_application_commands(application_id, guild_id, payload)
     return self:request('bulk_overwrite_guild_application_commands', 'PUT', '/applications/:application_id/guilds/:guild_id/commands', {
        application_id = application_id,
