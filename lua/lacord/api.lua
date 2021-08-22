@@ -778,7 +778,7 @@ function api:get_original_interaction_response(application_id, interaction_token
 end
 
 function api:edit_original_interaction_response(application_id, interaction_token, payload)
-    return self:request('edit_original_interaction_response', 'POST', '/webhooks/:application_id/:interaction_token/messages/@original', {
+    return self:request('edit_original_interaction_response', 'PATCH', '/webhooks/:application_id/:interaction_token/messages/@original', {
        application_id = application_id,
        interaction_token = interaction_token
     }, payload)

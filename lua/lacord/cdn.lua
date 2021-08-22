@@ -44,6 +44,10 @@ local sticker_exts = {
     lottie = ".json"
 }
 
+sticker_exts[1] = ".png"
+sticker_exts[2] = ".png"
+sticker_exts[3] = ".json"
+
 local cdn_endpoints = {
     attachment = "/attachments/:channel_id/:attachment_id/:file_name:img_ext",
     custom_emoji = "/emojis/:emoji_id:img_ext",
@@ -286,7 +290,7 @@ end
 function sticker_url(sticker_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.sticker,
-            { sticker_id = sticker_id, img_ext = logger.assert(sticker_exts[ext], "Image extension %s not supported!", ext)})
+            { sticker_id = sticker_id, sticker_ext = logger.assert(sticker_exts[ext], "Image extension %s not supported!", ext)})
     if size then
         return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
     else
