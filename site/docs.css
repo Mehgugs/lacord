@@ -168,10 +168,9 @@ div.sourceCode {
 
 .sidebar-sep {
   font-weight: bold;
-  padding: 8px 8px 8px 64px;
+  padding: 8px 64px 8px 8px;
   color: #e9535f;
   font-family: Consolas, monospace;
-  display: block;
   text-decoration: none;
   align-content: center;
 }
