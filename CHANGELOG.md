@@ -2,6 +2,36 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### 1627995481.88199 -> 1629838555
+
+#### NEW [Documentation](docs)
+
+Markdown documentation was added in between releases, this now covers the public
+facing areas of the project. There may be methods that have been left out of the
+documentation: this is intentional.
+
+#### [lacord.api](lua/lacord/api.lua)
+
+- Added a missing method, `get_guild_application_commands`.
+- Fixed an incorrect HTTP verb in the `edit_original_interaction_response` request.
+- Added payload debugging.
+
+#### [lacord.cdn](lua/lacord/cdn.lua)
+
+- Fixed sticker image extensions not being added to the sticker url.
+- One can now use the format type as the value of `ext` for stickers.
+
+#### [lacord.util](lua/lacord/util/init.lua)
+
+- Fixed some content-typed objects not producing filenames correctly.
+
+#### [lacord.util.json](lua/lacord/util/json.lua)
+
+- Changed `content_type` to re-use metatables if
+  the argument does not have a metatable.
+
+
+
 ### [Hotfix release] 1627995481 -> 1627995481.88199
 
 #### [lacord.api](lua/lacord/api.lua)
