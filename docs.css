@@ -97,7 +97,7 @@ a:link:hover {
   /* Black*/
   overflow-x: hidden;
   /* Disable horizontal scroll */
-  padding-top: 15px;
+  padding-top: 8px;
   /* Place content 60px from the top */
   transition: 0.5s;
   /* 0.5 second transition effect to slide in the sidebar */
@@ -126,6 +126,10 @@ a:link:hover {
   text-decoration: none;
 }
 
+a.top {
+  padding: 8px 64px 8px 8px;
+}
+
 /* Active/current link */
 #sidebar a.active {
   color: #E95378;
@@ -146,13 +150,19 @@ a:link:hover {
   cursor: pointer;
   background-color: #232530;
   color: #999999;
+  padding: 6px;
   border: none;
+}
+
+#btn {
+  z-index: 2;
+  float: left;
 }
 
 #sidebar #btn2 {
   width: min-content;
-  padding: 8px 8px 8px 32px;
-  justify-self: left;
+  margin-left: 8px;
+  padding: 6px calc(6px + 2.35px) 6px calc(6px + 2.35px);
   top: 0;
 }
 
@@ -173,6 +183,9 @@ div.sourceCode {
   font-family: Consolas, monospace;
   text-decoration: none;
   align-content: center;
+  border-top-style: solid;
+  border-top-color: #404459;
+  border-top-width: 1px;
 }
 
 #btn:hover {

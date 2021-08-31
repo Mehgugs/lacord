@@ -15,13 +15,13 @@
             function openNav() {
                 document.getElementById("sidebar").className = "fit";
                 document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
-                document.getElementById("btn").className = "hide"
+                document.getElementById("btn").className = "hide";
             }
 
             function closeNav() {
                 document.getElementById("sidebar").className = "zero"
                 document.getElementById("content").style.marginLeft = "0"
-                document.getElementById("btn").className = "fas fa-bars"
+                document.getElementById("btn").className = "fas fa-bars";
             }
             let state = false;
             function toggleNav() {
@@ -35,6 +35,8 @@
             window.onload = () => {
                 if (window.location.hash === "#open") {
                     toggleNav();
+                } else {
+
                 }
             }
         </script>
@@ -42,7 +44,7 @@
     <body>
         <div id="sidebar" class="zero">
             <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
-            <a class="active" href="./index.html">Readme</a>
+            <a class="active top" href="./index.html">Readme</a>
 <div class="sidebar-sep"> Modules </div>
 <a href="pages/api.html">lacord.api</a>
 <a href="pages/cdn.html">lacord.cdn</a>
@@ -56,9 +58,8 @@
 <a href="pages/util.mutex.html">lacord.util.mutex</a>
 <a href="pages/util.uint.html">lacord.util.uint</a>
         </div>
-
+        <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
         <div id="content">
-            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord">lacord</h2>
 <p>lacord is a small discord library providing low level clients for the discord rest and gateway API. All data is given to the user as raw JSON.</p>
 <p>Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc. There's hand written documentation in markdown format <a href="docs">here</a> which can be viewed online <a href="https://mehgugs.github.io/lacord/index.html">here</a>.</p>

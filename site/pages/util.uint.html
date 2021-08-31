@@ -15,13 +15,13 @@
             function openNav() {
                 document.getElementById("sidebar").className = "fit";
                 document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
-                document.getElementById("btn").className = "hide"
+                document.getElementById("btn").className = "hide";
             }
 
             function closeNav() {
                 document.getElementById("sidebar").className = "zero"
                 document.getElementById("content").style.marginLeft = "0"
-                document.getElementById("btn").className = "fas fa-bars"
+                document.getElementById("btn").className = "fas fa-bars";
             }
             let state = false;
             function toggleNav() {
@@ -42,7 +42,7 @@
     <body>
         <div id="sidebar" class="zero">
             <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
-            <a href="../index.html">Readme</a>
+            <a class="top" href="../index.html">Readme</a>
 <div class="sidebar-sep"> Modules </div>
 <a class="nav" href="api.html#open">lacord.api</a>
 <a class="nav" href="cdn.html#open">lacord.cdn</a>
@@ -65,8 +65,8 @@
 <a class="nav" href="#id_sort">id_sort</a>
         </div>
 
+        <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
         <div id="content">
-            <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
             <h2 id="lacord.util.uint">lacord.util.uint</h2>
 <p>This module provides functions for handling and manipulating discord snowflake IDs. In this module “encoded uint64” simply means that a uint64 value is being stored in a <code>lua_Integer</code> which is an int64.</p>
 <h4 id="touint"><em>integer (snowflake)</em> <code>touint(s)</code></h4>
