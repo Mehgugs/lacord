@@ -290,6 +290,8 @@ function messages(state)
         ::continue::
     until state.socket.got_close_code or message == nil or not success
     --disconnect handling
+
+    -- we need to do both of these things to ensure the heartbeat is stopped in a timely manner.
     state.connected = false
     stop_heartbeat(state)
 
@@ -300,9 +302,10 @@ function messages(state)
         cqueues.monotime() - state.begin
     )
 
-    local do_reconnect = should_reconnect(state, state.socket.got_close_code)
+    -- based on the close code / state.do_reconnect flag
+    local decided = should_reconnect(state, state.socket.got_close_code)
 
-    if state.is_ready:status() == 'pending' and not reconnect then
+    if state.is_ready:status() == 'pending' and decided then
         state.is_ready:set(false)
     end
 
@@ -312,11 +315,13 @@ function messages(state)
         ,error = err
     })
 
-    logger.warn("%s %s reconnect.", state,
-        ((do_reconnect and state.do_reconnect) or (do_reconnect and state.options.auto_reconnect))
-        and "will" or "will not")
+    logger.warn("%s %s reconnect.", state, decided and "will" or "will not")
+
     local retry ::retry::
-    if do_reconnect and state.do_reconnect then
+    -- even though decided can be assigned the value of
+    -- do_reconnect we need to explicitly check it
+    -- like this to avoid errors with state being clobbered.
+    if decided and state.do_reconnect then
         state.do_reconnect = nil
         sleep(util.rand(1, 5))
         local _, success = state:connect()
@@ -326,7 +331,7 @@ function messages(state)
             retry = true
             goto retry
         end
-    elseif retry or (do_reconnect and state.options.auto_reconnect) then
+    elseif retry or (decided and state.options.auto_reconnect) then
         repeat
             local time = util.rand(0.9, 1.1) * state.backoff
             backoff(state)
