@@ -6,15 +6,13 @@ All data is given to the user as raw JSON.
 Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.
 There's hand written documentation in markdown format [here](docs) which can be viewed online [here](https://mehgugs.github.io/lacord/index.html).
 
-### The Future
+## I need a bot client
 
-Currently the low level interfaces for slash commands are being implemented.
+Lacord comes with a higher level client for running simple bots which you can find here: [lacord-client](https://github.com/Mehgugs/lacord-client). This is published as separate project to allow the core library to be maintained independently.
 
 ## Example
 
 This example sends lines inputed at the terminal to discord over a supplied webhook.
-
-For examples using the gateway see my other project [lacord-client](https://github.com/Mehgugs/lacord-client).
 
 ```lua
 local api = require"lacord.api"
@@ -123,33 +121,34 @@ Once you have the pre-requisites in order you can install this library with luar
 - Directly `luarocks install lacord`
 - Via this repository
     - `git clone https://github.com/Mehgugs/lacord.git && cd lacord`
-    - *optionally checkout a specific commit*
+    - optionally checkout a specific commit
     - `luarocks make`
-
-NB. In these example I have shown installs to the global rocktree, this may need `sudo` permission on your system.
-Luarocks can install and build modules to a local rocktree with some simple configuration.
 
 ## Slash Commands
 
 This library provides support for slash commands naturally over the gateway and
 also provides a https server module under `lacord.outoing-webhook-server` for interfacing
-with discord over outgoing webhook. When using this method there are a collection of things to keep in mind:
+with discord over outgoing webhook. When using this method there are a couple of things to keep in mind:
 
 - You must use TLS. By default this module accepts two file paths after the server options table.
   The first one should be your full certificate chain in pem format and the second should be your private key in pem format.
   Should you wish to do more advanced TLS configuration, you can attach a ctx object to the options under `.ctx`.
+  If you are using an external service to provide TLS upstream (e.g an nginx reverse proxy), you can forcefully disable TLS
+  by setting `.tls` to `false`.
 
 - The first argument, the options table, is passed to `http.server.listen`. So please refer to the http library docs
-  for a full list of network options. Some fields, such as `tls` will be filled in for you.
+  for a full list of network options.
   In addition to the `http` library's fields, the following are expected:
     - The string field `route` is the path component of the URL you configure your application to use.
-      In the URL `https://example.com/interactions` this would be `/interactions`.
+      In the URL `https://example.com/interactions` this would be `/interactions`. Once again if you're
+      redirecting traffic to lacord from an external service make sure the path is adjusted if necessary.
     - The function field `interact` is called when a discord interaction event is received by the webhook.
       The first argument is the json object payload discord sent, the next argument is the https response object.
       Return a valid json object from the function to send it to discord; if you do not it will respond with 500.
       Any error in this function is caught and will respond with 503, logging the message internally.
+      You can also manipulate the response object to set the body directly, but this should be avoided unless necessary.
     - The function field `fallthrough` receives a response object, and is called with any other request (i.e requests to paths other than the `route`).
-    - The string field `public_key` is your applications public key, necessary for signature verification.
+    - The string field `public_key` is your application's public key, necessary for signature verification.
 
 Here is a minimal example of configuration:
 
@@ -176,7 +175,7 @@ local loop = server.new({
     host = "localhost",
     port = 8888,
     route = "/interactions"
-}, "fullchain.pem", "key.pem")
+})
 
 
 assert(loop:loop())
