@@ -1,5 +1,5 @@
 package = 'lacord'
-version = 'scm-1'
+version = 'scm-2'
 
 source = {
     url = "git+https://github.com/Mehgugs/lacord.git"
@@ -7,8 +7,7 @@ source = {
 
 local details =
 [[lacord is a small discord library providing low level clients for the discord rest and gateway API.
-All data is given to the user as raw JSON. The api methods expect ids to be integers (use lacord.util.uint to manipulate them).
-Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.]]
+  Check out https://github.com/Mehgugs/lacord-client for a higher level wrapper over this project.]]
 
 description = {
     summary = 'A low level, lightweight discord API library.'
