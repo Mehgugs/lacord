@@ -19,7 +19,6 @@ local USER_AGENT = require"lacord.api".USER_AGENT
 local setmetatable = setmetatable
 local pairs = pairs
 local poll = cqueues.poll
-local identify_delay = constants.gateway.identify_delay
 local sleep = cqueues.sleep
 local insert, concat = table.insert, table.concat
 local type = type
@@ -45,6 +44,7 @@ function shard:__tostring() return "lacord.shard: "..self.options.id end
 
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
 local GATEWAY_DELAY = constants.gateway.delay
+local IDENTIFY_DELAY = constants.gateway.identify_delay
 local _ops = {
   DISPATCH              = 0
 , HEARTBEAT             = 1
@@ -75,19 +75,19 @@ local messages, send, read_message, resume, identify, reconnect
 
 --- Construct a new shard object using the given options and identify mutex.
 -- @tab options Options to pass to the shard please see `options`.
--- @mutex idmutex The mutex used to synchronize identify between multiple shards.
+-- @mutex session_limit The session_limit used to synchronize identify between multiple shards.
 -- @treturn tab The shard object.
-function init(options, idmutex)
+function init(options, session_limit)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
     end
     local state = setmetatable({options = load_options({intents = intents.normal}, options)}, shard)
 
     state.shard_mutex = mutex() --+
-    state.identify_mutex = idmutex
     state.stop_heart = cond.new()
-    state.identify_wait = cond.new()
     state.is_ready = promise.new()
+    state.ready_failed = false
+    state.session_limit = session_limit
     state.beats = 0
     state.backoff = 1
     logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.options.token))
@@ -238,7 +238,7 @@ function send(state, op, d, ident)
         success, err = false, 'Invalid session'
     end
     state.shard_mutex:unlock_after(GATEWAY_DELAY)
-    return state, success, err
+    return success, err
 end
 
 local never_reconnect = {
@@ -302,11 +302,21 @@ function messages(state)
         cqueues.monotime() - state.begin
     )
 
-    -- based on the close code / state.do_reconnect flag
+    -- Based on the close code / state.do_reconnect flag
     local decided = should_reconnect(state, state.socket.got_close_code)
 
-    if state.is_ready:status() == 'pending' and decided then
-        state.is_ready:set(false)
+    -- If we never kept the ready promise (i.e we never got hello)
+    -- we should break it if we're not planning to reconnect.
+    -- If we are **not** reconnecting we need to exit the session limit.
+    if state.is_ready:status() == 'pending' then
+        if not decided then
+            state.is_ready:set(false)
+            if state.session_limit then
+                state.session_limit:exit_after(IDENTIFY_DELAY)
+            end
+        else
+            state.ready_failed = true
+        end
     end
 
     state.loop:wrap(state.emitter,state, 'DISCONNECT', {
@@ -352,19 +362,19 @@ function shard:HELLO(_, d)
     end
 end
 
-function shard:READY(_, d, t)
+function shard:READY(_, d)
     logger.info("%s is ready.", self)
     self.session_id = d.session_id
-    self.loop:wrap(self.emitter,self, t, d)
+    self.loop:wrap(self.emitter,self, 'SHARD_READY', d)
+    self.is_ready:set(true, d)
+    if self.session_limit then
+        self.session_limit:exit_after(IDENTIFY_DELAY)
+    end
 end
 
-function shard:RESUMED(_, d, t)
+function shard:RESUMED(_, d)
     logger.info("%s has resumed.", self)
-    self.loop:wrap(self.emitter,self, t, d)
-end
-
-function shard:HEARTBEAT()
-    send( self, ops.HEARTBEAT, self._seq or null)
+    self.loop:wrap(self.emitter,self, 'SHARD_RESUMED', d)
 end
 
 function shard:INVALID_SESSION(_, d)
@@ -398,27 +408,36 @@ end
 
 function shard:DISPATCH(_, d, t, s)
     self._seq = s --+
-    if t == 'READY' then return self:READY(_, d, t) end
+    if t == 'READY' then return self:READY(_, d, t)
+    elseif t == 'RESUMED' then return self:RESUMED(_,d, t)
+    end
     return self.loop:wrap(self.emitter,self, t, d)
 end
 
-local function await_ready(state)
-    if state.identify_wait:wait(1.5 * identify_delay) then
-        sleep(identify_delay)
-    end
-    return state.identify_mutex:unlock()
-end
-
 function identify(self)
-    self.identify_mutex:lock()
+    -- If we were ready in the past and are being asked to identify
+    -- again we need to create a new promise to keep when we receive READY
+    if self.is_ready:status() ~= "pending" then
+        self.is_ready = promise.new()
+    end
 
+    -- If we failed to ready up, then we're already "entered" into the
+    -- session limit. So we should only :enter() in the case where ready_failed is false.
+    if not self.ready_failed and self.session_limit then
+        self.session_limit:enter()
+    end
+    self.ready_failed = false
 
-    self.loop:wrap(await_ready, self)
+    -- If we have a session_id (we were launched previously) then
+    -- we need to enter the session limit ourselves.
+    -- We do not do this on every identify because initially discord requires
+    -- ordered connection
+
 
     self._seq = nil ---
     self.session_id = nil
     logger.info("%s has intents: %0#x", self, self.options.intents)
-    return send(self, ops.IDENTIFY, {
+    send(self, ops.IDENTIFY, {
         token = self.options.token,
         properties = {
             ['$os'] = util.platform,
