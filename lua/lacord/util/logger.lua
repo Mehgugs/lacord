@@ -5,7 +5,7 @@ local tonumber = tonumber
 local _stdout, _stderr = io.stdout, io.stderr
 local err = error
 
-local LACORD_DEBUG = os.getenv"LACORD_DEBUG"
+local LACORD_DEBUG = require"lacord.cli".debug
 
 local _ENV = {}
 

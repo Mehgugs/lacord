@@ -14,7 +14,10 @@ local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local auditable = require"lacord.util.audit-log-methods"
 local inspect = require"inspect"
-local LACORD_DEBUG = os.getenv"LACORD_DEBUG"
+local cli = require"lacord.cli"
+local LACORD_DEBUG = cli.debug
+local LACORD_UNSTABLE = cli.unstable
+local LACORD_DEPRECATED = cli.deprecated
 
 local sleep = cqueues.sleep
 local monotime = cqueues.monotime
@@ -96,18 +99,35 @@ local function mutex_cache(token)
     return ch
 end
 
-local function add_a_file(ret, inner_ct, f, i)
-    local name = util.file_name(f)
-    local fstr, resolved_ct = content_typed(f)
-    insert(ret, BOUNDARY2)
-    if i then
-        insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, name))
+local add_a_file do
+    if LACORD_UNSTABLE then
+        -- unstable feature: new multiple attachments form fields
+        -- FUTURE: v10
+        function add_a_file(ret, inner_ct, f, i)
+            local name = util.file_name(f)
+            local fstr, resolved_ct = content_typed(f)
+            insert(ret, BOUNDARY2)
+            insert(ret, ("Content-Disposition:form-data;name=\"files[%i]\";filename=%q"):format(i and i-1 or 0, name))
+            insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
+            insert(ret, fstr)
+        end
     else
-        insert(ret, ("Content-Disposition:form-data;name=\"file\";filename=%q"):format(name))
+        function add_a_file(ret, inner_ct, f, i)
+            local name = util.file_name(f)
+            local fstr, resolved_ct = content_typed(f)
+            insert(ret, BOUNDARY2)
+            if i then
+                insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, name))
+            else
+                insert(ret, ("Content-Disposition:form-data;name=\"file\";filename=%q"):format(name))
+            end
+            insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
+            insert(ret, fstr)
+        end
     end
-    insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
-    insert(ret, fstr)
 end
+
+
 
 local function attachContent(payload, files, ct, inner_ct)
     local ret
@@ -202,7 +222,7 @@ end
 --- Creates a new api state for connecting to discord.
 -- @tab options The options table. Must contain a `token` field with the api token to use.
 -- @treturn api The api state object.
-function init(options)
+function new(options)
     local state = setm({}, api)
     local auth
     if options.client_credentials then
@@ -223,11 +243,10 @@ function init(options)
     state.globaltex = mutex()
     state.rates = {}
     state.track_rates = options.track_ratelimits
-    state.use_legacy = options.legacy_ratelimits
     state.route_delay = options.route_delay and min(options.route_delay, 0) or 1
     state.api_timeout = tonumber(options.api_timeout)
     state.api_http_version = options.http_version or 1.1
-    state.expect_100_timeout = options.expect_100_timeout
+    if LACORD_DEBUG then state.expect_100_timeout = options.expect_100_timeout end
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, x-gzip"
         logger.debug("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
@@ -235,6 +254,8 @@ function init(options)
     logger.debug("Initialized %s with TOKEN-%x", state, util.hash(state.token))
     return state
 end
+
+if LACORD_DEPRECATED then _ENV.init = _ENV.new end
 
 local static_methods = {}
 
@@ -914,12 +935,19 @@ function api:modify_guild_member(guild_id, user_id, payload)
     }, payload)
 end
 
+function api:modify_current_member(guild_id,  payload)
+    return self:request('modify_current_member', 'PATCH', '/guilds/:guild_id/members/@me', {
+       guild_id = guild_id,
+    }, payload)
+end
+
 function api:modify_current_user_nick(guild_id,  payload)
     return self:request('modify_current_user_nick', 'PATCH', '/guilds/:guild_id/members/@me/nick', {
        guild_id = guild_id,
 
     }, payload)
 end
+
 
 function api:add_guild_member_role(guild_id, user_id, role_id)
     return self:request('add_guild_member_role', 'PUT', '/guilds/:guild_id/members/:user_id/roles/:role_id', {
@@ -1598,7 +1626,6 @@ local function webhook_init(webhook_token)
 
     webhook_api.rates = {}
     webhook_api.track_rates = false
-    webhook_api.use_legacy = false
     webhook_api.route_delay = 1
     webhook_api.api_timeout = 60
     webhook_api.accept_encoding = "gzip, deflate, x-gzip"

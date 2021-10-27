@@ -1,6 +1,4 @@
 --- Adapted from https://gist.github.com/daurnimator/192dc5b210718dd129cfc1e5986df97b
-local cqueues = require "cqueues"
-local cc = require "cqueues.condition"
 local ce = require "cqueues.errno"
 local new_headers = require "http.headers".new
 local server = require "http.server"
@@ -20,14 +18,12 @@ local json = require"lacord.util.json"
 local util = require"lacord.util"
 
 local asserts = assert
-local errors = error
 local try = pcall
 local setm = setmetatable
 local to_s = tostring
 local to_n = tonumber
 local typ = type
 local insert = table.insert
-local traceback = debug.traceback
 local openf = io.open
 local date = os.date
 local fmt = string.format
@@ -152,7 +148,7 @@ local PING_ACK = json.encode{
 local response_methods = {}
 local response_mt = {
     __index = response_methods;
-    __name = nil;
+    __name = 'lacord.outgoing-webhook-server.response'
 }
 
 local function new_response(request_headers, stream)
@@ -254,9 +250,12 @@ local function default_log(response)
 end
 
 function new(options, crtfile, keyfile)
-    local pubkey = asserts(options.public_key, "Please provide your application's public key for signature verfication.")
-    local interact = asserts(options.interact, "Please provide an event handler to receive interactions from.")
-    local nondiscord = asserts(options.fallthrough, "Please provide a fallthrough function for non-discord related web requests.")
+    local pubkey = asserts(options.public_key,
+        "Please provide your application's public key for signature verfication.")
+    local interact = asserts(options.interact,
+        "Please provide an event handler to receive interactions from.")
+    local nondiscord = asserts(options.fallthrough,
+        "Please provide a fallthrough function for non-discord related web requests.")
     local discordpath = options.route or "/"
     local onerror = options.onerror or default_onerror
     local log = options.log or default_log
@@ -359,6 +358,8 @@ function new(options, crtfile, keyfile)
 
     return myserver
 end
+
+_ENV.init = _ENV.new
 
 _ENV.diy_tls = new_ctxlit
 

@@ -21,6 +21,7 @@ return {
     edit_channel_permissions = true,
     modify_channel = true,
     modify_current_user_nick = true,
+    modify_current_member = true,
     modify_guild = true,
     modify_guild_channel_positions = true,
     modify_guild_emoji = true,

@@ -56,10 +56,10 @@ regarding their location.
 #### Code guidelines
 
 - All modules must use `local _ENV = {}`, this is to restrict globals.
-- **ALL** globals must be localized at the top of the file.
+- **ALL** globals used must be localized at the top of the file.
 - Standard library methods must be localized individually, do not localize the whole module.
 - No tabs, use 4 spaces.
-- If the module is to support a table, that table **must** be `_ENV`.
+- Use `_ENV` as the returned module table (as appropriate).
 - Use free variables in function declaration statements to export to `_ENV`.
 - **ALL** metatables must have a `__name`.
 - **ALL** `__name` fields must be scoped to lacord: `lacord.module.component`.

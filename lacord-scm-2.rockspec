@@ -31,6 +31,7 @@ dependencies = {
 build = {
      type = "builtin"
     ,modules = {
-        ["lacord.util.archp"] = "src/archp.c"
+        ["lacord.util.archp"] = "src/archp.c",
+        ["lacord.cli"] = "lua/lacord/util/cli_default.lua",
     }
 }

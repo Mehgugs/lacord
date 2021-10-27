@@ -29,4 +29,17 @@ default_avatars = 5
 
 use_cjson = true
 
+supported_cli_options = {
+    debug = "flag",
+    unstable = "flag",
+    ['unstable-features'] = "unstable",
+    deprecated = "flag"
+}
+
+supported_environment_varibles = {
+    LACORD_DEBUG = "debug",
+    LACORD_UNSTABLE = "unstable",
+    LACORD_DEPRECATED = "deprecated"
+}
+
 return _ENV

@@ -14,6 +14,7 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local intents = require"lacord.util.intents"
 local USER_AGENT = require"lacord.api".USER_AGENT
+local LACORD_DEPRECATED = require"lacord.cli".deprecated
 
 
 local setmetatable = setmetatable
@@ -77,7 +78,7 @@ local messages, send, read_message, resume, identify, reconnect
 -- @tab options Options to pass to the shard please see `options`.
 -- @mutex session_limit The session_limit used to synchronize identify between multiple shards.
 -- @treturn tab The shard object.
-function init(options, session_limit)
+function new(options, session_limit)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
     end
@@ -103,6 +104,8 @@ function init(options, session_limit)
     state.emitter = state.options.output
     return state
 end
+
+if LACORD_DEPRECATED then _ENV.init = _ENV.new end
 
 --- Connects a shard to discord.
 -- This can be called in method form `s:connect()`.

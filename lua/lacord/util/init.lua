@@ -1,22 +1,32 @@
+
+local error  = error
+local getm   = getmetatable
+local setm   = setmetatable
+local to_n   = tonumber
+local to_s   = tostring
+local set    = rawset
+local typ    = type
+local iiter  = ipairs
+local iter   = pairs
 local random = math.random
-local popen = io.popen
-local assert = assert
-local error = error
-local getm = getmetatable
-local setm = setmetatable
-local vstring = _VERSION
-local to_n = tonumber
-local to_s = tostring
-local set = rawset
-local typ = type
+local getenv = os.getenv
+local pkgloaded= package.loaded
+local preload= package.preload
+local char   = string.char
 local insert = table.insert
 local concat = table.concat
-local iiter = ipairs
-local iter = pairs
+local move   = table.move
+local pak    = table.pack
+local unpak  = table.unpack
+local print  = print
+
 local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
 local archp = require"lacord.util.archp"
 local mime = require"lacord.util.mime"
+local expected_args = require"lacord.const".supported_cli_options
+local expected_env = require"lacord.const".supported_environment_varibles
+
 
 local _ENV = {}
 
@@ -284,5 +294,77 @@ function blob_for_file(blob, name)
     return base .. ext, (_ENV.content_typed(blob))
 end
 
+local positives = {
+    yes = true,
+    no = false,
+    y = true,
+    n = false,
+    on = true,
+    off = false,
+    ['true'] = true,
+    ['false'] = false,
+    ['1'] = true,
+    ['0'] = false,
+    [0] = false,
+    true,
+}
+
+local function boolean_environment_variable(value)
+    if value ~= nil then
+        if typ(value) == "string" then value = value:lower() end
+        local flag = positives[value]
+        return flag, flag ~= nil
+    end
+    return nil, false
+end
+
+local function commandline_args(...)
+    local list = pak(...)
+    local out = {}
+    local expecting = false
+    local key
+    for i = 1, list.n do
+        local item = list[i]
+        local f,s = item:byte(1, 2) -- check for double `-`
+        if expecting then -- if we're expecting an argument then set the current argument as the value
+          out[key] = item
+          expecting = false
+          list[i] = nil
+        else -- if this is a new key
+            if f == 45 then -- if at least a `-` is found
+                list[i] = nil
+                local rest = char(item:byte(s == 45 and 3 or 2, -1)) -- cut off the -[-] prefix
+                local eval = false ::evaluate::
+                if expected_args[rest] == "flag" then
+                    out[rest] = true
+                elseif expected_args[rest] == "value" then
+                    key = rest
+                    expecting = true
+                elseif expected_args[expected_args[rest]] and not eval then
+                    rest = expected_args[rest]
+                    eval = true
+                    goto evaluate
+                end
+            else
+                move(list, i, list.n, 1)
+                return out, list
+            end
+        end
+    end
+    return out, list
+end
+
+function cli_options(...)
+    local flags, remaining = commandline_args(...)
+
+    for envname, flagname in iter(expected_env) do
+        local value, was_set = boolean_environment_variable(getenv(envname))
+        if was_set then flags[flagname] = flags[flagname] or value end
+    end
+
+    pkgloaded['lacord.cli'] = setm(flags, preload['lacord._.cli_metatable'])
+
+    return remaining
+end
 
 return _ENV
