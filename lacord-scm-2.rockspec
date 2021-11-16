@@ -33,5 +33,6 @@ build = {
     ,modules = {
         ["lacord.util.archp"] = "src/archp.c",
         ["lacord.cli"] = "lua/lacord/util/cli_default.lua",
+        ["acord"] = "lua/lacord/util/cli_auto.lua"
     }
 }

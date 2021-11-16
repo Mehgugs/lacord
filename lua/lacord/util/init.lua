@@ -20,7 +20,6 @@ local pak    = table.pack
 local unpak  = table.unpack
 local print  = print
 
-local encodeURIComponent = require"http.util".encodeURIComponent
 local dict_to_query = require"http.util".dict_to_query
 local archp = require"lacord.util.archp"
 local mime = require"lacord.util.mime"
@@ -149,7 +148,7 @@ local virtual_filenames = setm({}, {__mode = "k"})
 local urlencoded_t = {__lacord_content_type = "application/x-www-form-urlencoded"}
 
 function urlencoded_t:__lacord_payload()
-    return encodeURIComponent(dict_to_query(self))
+    return dict_to_query(self)
 end
 
 function urlencoded_t:__lacord_file_name()
@@ -364,7 +363,7 @@ function cli_options(...)
 
     pkgloaded['lacord.cli'] = setm(flags, preload['lacord._.cli_metatable'])
 
-    return remaining
+    return remaining, flags
 end
 
 return _ENV

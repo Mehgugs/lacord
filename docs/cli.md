@@ -28,6 +28,23 @@ Currently the only recognized keys are:
     for widespread use. Things may become gated behind this flag on discord's whim
     so please read the changelogs to see which features are behind this flag.
     This is passed to the commandline as `--unstable-features`.
+- *boolean* `deprecated`
+    This field will enable deprecated features. These are features of the library that
+    will be removed at a specified point in time. To check when a specific version will
+    remove a feature look in `TIMETOLIVE.md`. This is passed to the commandline as `--deprecated`.
+
+Additionally the following keys are loaded by this module **but are never used by lacord internally**.
+You must manually use them yourself where appropriate.
+
+- *string* `client_id`
+    This field corresponds to the application's client id. This is passed to the commandline as `--client-id XXXXX`.
+
+- *string* `client_secret`
+    This field corresponds to the application's client secret. This is passed to the commandline as `--client-secret XXXXX`.
+
+- *string* `token`
+    This field corresponds to the application's bot token. This is passed to the commandline as `--token XXXXX`.
+
 
 All keys may also be set by environment variable by uppercasing the key and prepending `LACORD_`.
 For example, the `debug` key can be configured by the `LACORD_DEBUG` environment variable.
@@ -48,4 +65,25 @@ Example with arguments as literals so you can see how it works:
     local arguments  = require"lacord.cli"('--debug', '--unstable-features', 'foo')
     -- In this example the cli module now has the parameters `debug` and `unstable` set.
     -- `arguments` contains remaining commandline arguments that were not processed which in this case is 'foo'.
+```
+
+### Automatically loading flags in lua standalone
+
+The virtual module `acord` is designed to be loaded by the lua standalone interpreter option `l` (i.e `lua -lacord ...`).
+This module will read from `_G.arg` -- and also read environment variables -- and populate the cli table with options.
+
+Example invocation:
+
+```bash
+$ LACORD_TOKEN=XXXXXXXXXXXXXXXXXXXXXXXXXXXX lua -lacord main.lua --unstable-features
+```
+
+main.lua:
+```lua
+....
+local discord_api = api.init{
+    token = "Bot "..require"lacord.cli".token
+   ,route_delay = 0
+}
+....
 ```

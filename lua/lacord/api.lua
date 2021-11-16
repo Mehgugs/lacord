@@ -1420,7 +1420,7 @@ function api:batch_edit_application_command_permissions(application_id, guild_id
 end
 
 function api:get_token(data)
-    return self:request('get_token', 'POST', '/oauth2/token/', empty_route, nil, data)
+    return self:request('get_token', 'POST', '/oauth2/token', empty_route, data)
 end
 
 function api:get_sticker(sticker_id)

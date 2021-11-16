@@ -33,13 +33,21 @@ supported_cli_options = {
     debug = "flag",
     unstable = "flag",
     ['unstable-features'] = "unstable",
-    deprecated = "flag"
+    deprecated = "flag",
+    client_id = "value",
+    client_secret = "value",
+    token = "value",
+    ['client-id'] = "client_id",
+    ['client-secret'] = "client_secret",
 }
 
 supported_environment_varibles = {
     LACORD_DEBUG = "debug",
     LACORD_UNSTABLE = "unstable",
-    LACORD_DEPRECATED = "deprecated"
+    LACORD_DEPRECATED = "deprecated",
+    LACORD_ID = "client_id",
+    LACORD_SECRET = "client_secret",
+    LACORD_TOKEN = "token"
 }
 
 return _ENV
