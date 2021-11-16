@@ -754,7 +754,7 @@ function api:list_thread_members(channel_id)
 end
 
 function api:list_active_threads(channel_id)
-    return self:request('list_active_threads', 'GET', '/channels/:channel_id/threads/', {
+    return self:request('list_active_threads', 'GET', '/channels/:channel_id/threads/active', {
        channel_id = channel_id,
     })
 end
@@ -843,7 +843,7 @@ function api:get_guild_emoji(guild_id, emoji_id)
 end
 
 function api:create_guild_emoji(guild_id, emoji)
-    return self:request('create_guild_emoji', 'POST', '/guilds/:guild_id/emojis/', {
+    return self:request('create_guild_emoji', 'POST', '/guilds/:guild_id/emojis', {
         guild_id = guild_id
     }, emoji)
 end
@@ -863,7 +863,7 @@ function api:DELETE_guild_emoji(guild_id, emoji_id)
 end
 
 function api:get_guild(guild_id, with_counts)
-    return self:request('get_guild', 'GET', '/guilds/:guild_id/', {
+    return self:request('get_guild', 'GET', '/guilds/:guild_id', {
         guild_id = guild_id
     }, nil, { with_counts = not not with_counts})
 end
@@ -879,13 +879,13 @@ function api:create_guild(payload)
 end
 
 function api:modify_guild(guild_id, edits)
-    return self:request('modify_guild', 'PATCH', '/guilds/:guild_id/', {
+    return self:request('modify_guild', 'PATCH', '/guilds/:guild_id', {
         guild_id = guild_id
     }, edits)
 end
 
 function api:delete_guild(guild_id)
-    return self:request('delete_guild', 'DELETE', '/guilds/:guild_id/', {
+    return self:request('delete_guild', 'DELETE', '/guilds/:guild_id', {
         guild_id = guild_id
     })
 end
@@ -1534,6 +1534,46 @@ function api:delete_guild_template(guild_id, template_code)
        guild_id = guild_id,
        template_code = template_code
     })
+end
+
+function api:list_scheduled_guild_events(guild_id, query)
+    return self:request('list_scheduled_guild_events', 'GET', '/guilds/:guild_id/scheduled-events', {
+       guild_id = guild_id,
+    }, nil,  query)
+end
+
+function api:create_scheduled_guild_event(guild_id,  payload)
+    return self:request('create_scheduled_guild_event', 'POST', '/guilds/:guild_id/scheduled-events', {
+       guild_id = guild_id
+    }, payload)
+end
+
+function api:get_scheduled_guild_event(guild_id, event_id)
+    return self:request('get_scheduled_guild_event', 'GET', '/guilds/:guild_id/scheduled-events/:guild_scheduled_event_id', {
+       guild_id = guild_id,
+       guild_scheduled_event_id = event_id
+    })
+end
+
+function api:modify_scheduled_guild_event(guild_id, event_id,  payload)
+    return self:request('modify_scheduled_guild_event', 'PATCH', '/guilds/:guild_id/scheduled-events/:guild_scheduled_event_id', {
+       guild_id = guild_id,
+       guild_scheduled_event_id = event_id
+    }, payload)
+end
+
+function api:delete_scheduled_guild_event(guild_id, event_id)
+    return self:request('delete_scheduled_guild_event', 'DELETE', '/guilds/:guild_id/scheduled-events/:guild_scheduled_event_id', {
+       guild_id = guild_id,
+       guild_scheduled_event_id = event_id
+    })
+end
+
+function api:get_scheduled_guild_event_users(guild_id, event_id,  query)
+    return self:request('get_scheduled_guild_event_users', 'GET', '/guilds/:guild_id/scheduled-events/:guild_scheduled_event_id/users', {
+       guild_id = guild_id,
+       guild_scheduled_event_id = event_id
+    }, nil,  query)
 end
 
 -- safe method chaining --

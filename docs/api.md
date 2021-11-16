@@ -52,6 +52,11 @@ All of these functions accept arguments in the following way: first the route pa
 Note that some endpoints may accept a query without a payload, in which case the arguments will look like: `route parameters..., query`.
 In the case of `204` the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.
 
+
+##### NOTE:
+
+The ["Guild scheduled events"](https://discord.com/developers/docs/resources/guild-scheduled-event) methods break the naming convention used by lacord: "List scheduled events for guild" would be found at `list_scheduled_guild_events`, and "Get Guild scheduled events" at `get_scheduled_guild_events`. This was done to improve readability because the names are rather long.
+
 #### *api.capture* `api:capture()`
 
 This function will create a capture object which can be used to safely sequence multiple requests together.
@@ -71,7 +76,7 @@ else
    local why = R.error
    local partial = R.result
    -- There may be partial results collected before the error, you can use this to debug.
-   R:some_method() -- If there's been a faiure, calls like this are noop'd.
+   R:some_method() -- If there's been a failure, calls like this are noop'd.
 end
 ```
 
