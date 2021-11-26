@@ -798,11 +798,11 @@ function api:get_original_interaction_response(application_id, interaction_token
     })
 end
 
-function api:edit_original_interaction_response(application_id, interaction_token, payload)
+function api:edit_original_interaction_response(application_id, interaction_token, payload, files)
     return self:request('edit_original_interaction_response', 'PATCH', '/webhooks/:application_id/:interaction_token/messages/@original', {
        application_id = application_id,
        interaction_token = interaction_token
-    }, payload)
+    }, payload, nil, files)
 end
 
 function api:delete_original_interaction_response(application_id, interaction_token)

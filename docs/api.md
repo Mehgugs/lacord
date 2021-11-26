@@ -49,7 +49,7 @@ All requests you can make via this client are methods of the form:
 found at `api:create_message`. Consult discord's official documentation for a list of available api methods. All these methods return: a success
 boolean;  response data decoded as json; an error message if success was false; and a table of errors if discord sent that in the error response.
 All of these functions accept arguments in the following way: first the route parameters as strings in the order they appear in the uri; then the payload if the route accepts a body; then the query if the route accepts a query; and finally a list of content typed objects to attach as files in a multipart request.
-Note that some endpoints may accept a query without a payload, in which case the arguments will look like: `route parameters..., query`.
+Note that some endpoints may accept a query without a payload, in which case the arguments will look like: `route-parameters..., query`.
 In the case of `204` the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.
 
 
