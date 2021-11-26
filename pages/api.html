@@ -46,6 +46,7 @@
 <div class="sidebar-sep"> Modules </div>
 <a class="active nav" href="api.html#open">lacord.api</a>
 <a class="nav" href="cdn.html#open">lacord.cdn</a>
+<a class="nav" href="cli.html#open">lacord.cli</a>
 <a class="nav" href="const.html#open">lacord.const</a>
 <a class="nav" href="outgoing-webhook-server.html#open">lacord.outgoing-webhook-server</a>
 <a class="nav" href="shard.html#open">lacord.shard</a>
@@ -54,6 +55,7 @@
 <a class="nav" href="util.json.html#open">lacord.util.json</a>
 <a class="nav" href="util.logger.html#open">lacord.util.logger</a>
 <a class="nav" href="util.mutex.html#open">lacord.util.mutex</a>
+<a class="nav" href="util.session-limit.html#open">lacord.util.session-limit</a>
 <a class="nav" href="util.uint.html#open">lacord.util.uint</a>
 <div class="sidebar-sep"> Exports </div>
 <a class="nav" href="#USER_AGENT">USER_AGENT</a>
@@ -89,7 +91,9 @@
 <li><em>boolean</em> <code>options.accept_encoding</code> Set this flag to control whether the client should accept compressed data from discord.</li>
 </ul>
 <h4 id="api:method_name"><em>boolean, applicaion/json|true, string, table</em> <code>api:method_name(...)</code></h4>
-<p>All requests you can make via this client are methods of the form: <code>api:&lt;discord name snake cased&gt;</code>. For example “Create message” would be found at <code>api:create_message</code>. Consult discord’s official documentation for a list of available api methods. All these methods return: a success boolean; response data decoded as json; an error message if success was false; and a table of errors if discord sent that in the error response. In the case of <code>204</code> the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.</p>
+<p>All requests you can make via this client are methods of the form: <code>api:&lt;discord name snake cased&gt;</code>. For example “Create message” would be found at <code>api:create_message</code>. Consult discord’s official documentation for a list of available api methods. All these methods return: a success boolean; response data decoded as json; an error message if success was false; and a table of errors if discord sent that in the error response. All of these functions accept arguments in the following way: first the route parameters as strings in the order they appear in the uri; then the payload if the route accepts a body; then the query if the route accepts a query; and finally a list of content typed objects to attach as files in a multipart request. Note that some endpoints may accept a query without a payload, in which case the arguments will look like: <code>route-parameters..., query</code>. In the case of <code>204</code> the second return value will simply be true. This client will only attempt to retry these requests on timeout, or if a ratelimit is hit. In the latter case the client will wait an appropriate amount of time before continuing to make the request.</p>
+<h5 id="note">NOTE</h5>
+<p>The <a href="https://discord.com/developers/docs/resources/guild-scheduled-event">“Guild scheduled events”</a> methods break the naming convention used by lacord: “List scheduled events for guild” would be found at <code>list_scheduled_guild_events</code>, and “Get Guild scheduled events” at <code>get_scheduled_guild_events</code>. This was done to improve readability because the names are rather long.</p>
 <h4 id="api:capture"><em>api.capture</em> <code>api:capture()</code></h4>
 <p>This function will create a capture object which can be used to safely sequence multiple requests together.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- somewhere in a cqueues coroutine...</span></span>
@@ -106,7 +110,7 @@
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> why <span class="op">=</span> <span class="cn">R</span><span class="op">.</span>error</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>   <span class="kw">local</span> partial <span class="op">=</span> <span class="cn">R</span><span class="op">.</span>result</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>   <span class="co">-- There may be partial results collected before the error, you can use this to debug.</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>   <span class="cn">R</span><span class="op">:</span>some_method<span class="op">()</span> <span class="co">-- If there&#39;s been a faiure, calls like this are noop&#39;d.</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>   <span class="cn">R</span><span class="op">:</span>some_method<span class="op">()</span> <span class="co">-- If there&#39;s been a failure, calls like this are noop&#39;d.</span></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div>
 <h4 id="webhook_init"><em>api.webhook</em> <code>webhook_init(webhook_token)</code></h4>
 <p>Create a client suitable for executing webhooks. The only methods this client has access to are the webhook methods, and you will still need to provide the id as the first parameter of those methods, but the token will be inserted into the argument list for you internally.</p>
@@ -125,7 +129,7 @@
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>discord_api<span class="op">:</span>create_guild_ban<span class="op">(...)</span> <span class="co">-- this will have the reason defined above.</span></span></code></pre></div>
 
         </div>
-        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1629838555</a>
+        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1637789515</a>
     </body>
 </html>
 

@@ -9,5 +9,4 @@
 *.so
 .vscode/**
 /docgen/**
-/site/**
 /compiles/**

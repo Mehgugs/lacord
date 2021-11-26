@@ -18,6 +18,17 @@ h4 {
   color: #e9535f;
 }
 
+h5 {
+  background-color: #E95378;
+  color: #232530;
+  width: fit-content;
+  border-width: thick;
+  border-style: solid;
+  border-color: #E95378;
+  font-size: larger;
+  font-weight: bold;
+}
+
 code {
   color: #cfccc9;
   font-weight: bolder;

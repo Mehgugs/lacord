@@ -48,6 +48,7 @@
 <div class="sidebar-sep"> Modules </div>
 <a href="pages/api.html">lacord.api</a>
 <a href="pages/cdn.html">lacord.cdn</a>
+<a href="pages/cli.html">lacord.cli</a>
 <a href="pages/const.html">lacord.const</a>
 <a href="pages/outgoing-webhook-server.html">lacord.outgoing-webhook-server</a>
 <a href="pages/shard.html">lacord.shard</a>
@@ -56,6 +57,7 @@
 <a href="pages/util.json.html">lacord.util.json</a>
 <a href="pages/util.logger.html">lacord.util.logger</a>
 <a href="pages/util.mutex.html">lacord.util.mutex</a>
+<a href="pages/util.session-limit.html">lacord.util.session-limit</a>
 <a href="pages/util.uint.html">lacord.util.uint</a>
         </div>
         <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
@@ -63,11 +65,10 @@
             <h2 id="lacord">lacord</h2>
 <p>lacord is a small discord library providing low level clients for the discord rest and gateway API. All data is given to the user as raw JSON.</p>
 <p>Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc. There's hand written documentation in markdown format <a href="docs">here</a> which can be viewed online <a href="https://mehgugs.github.io/lacord/index.html">here</a>.</p>
-<h3 id="the-future">The Future</h3>
-<p>Currently the low level interfaces for slash commands are being implemented.</p>
+<h2 id="i-need-a-bot-client">I need a bot client</h2>
+<p>Lacord comes with a higher level client for running simple bots which you can find here: <a href="https://github.com/Mehgugs/lacord-client">lacord-client</a>. This is published as separate project to allow the core library to be maintained independently.</p>
 <h2 id="example">Example</h2>
 <p>This example sends lines inputed at the terminal to discord over a supplied webhook.</p>
-<p>For examples using the gateway see my other project <a href="https://github.com/Mehgugs/lacord-client">lacord-client</a>.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> api <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.api&quot;</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> cqs <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues&quot;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> errno <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;cqueues.errno&quot;</span></span>
@@ -165,21 +166,20 @@
 <li>Via this repository
 <ul>
 <li><code>git clone https://github.com/Mehgugs/lacord.git &amp;&amp; cd lacord</code></li>
-<li><em>optionally checkout a specific commit</em></li>
+<li>optionally checkout a specific commit</li>
 <li><code>luarocks make</code></li>
 </ul></li>
 </ul>
-<p>NB. In these example I have shown installs to the global rocktree, this may need <code>sudo</code> permission on your system. Luarocks can install and build modules to a local rocktree with some simple configuration.</p>
 <h2 id="slash-commands">Slash Commands</h2>
-<p>This library provides support for slash commands naturally over the gateway and also provides a https server module under <code>lacord.outoing-webhook-server</code> for interfacing with discord over outgoing webhook. When using this method there are a collection of things to keep in mind:</p>
+<p>This library provides support for slash commands naturally over the gateway and also provides a https server module under <code>lacord.outoing-webhook-server</code> for interfacing with discord over outgoing webhook. When using this method there are a couple of things to keep in mind:</p>
 <ul>
-<li><p>You must use TLS. By default this module accepts two file paths after the server options table. The first one should be your full certificate chain in pem format and the second should be your private key in pem format. Should you wish to do more advanced TLS configuration, you can attach a ctx object to the options under <code>.ctx</code>.</p></li>
-<li><p>The first argument, the options table, is passed to <code>http.server.listen</code>. So please refer to the http library docs for a full list of network options. Some fields, such as <code>tls</code> will be filled in for you. In addition to the <code>http</code> library's fields, the following are expected:</p>
+<li><p>You must use TLS. By default this module accepts two file paths after the server options table. The first one should be your full certificate chain in pem format and the second should be your private key in pem format. Should you wish to do more advanced TLS configuration, you can attach a ctx object to the options under <code>.ctx</code>. If you are using an external service to provide TLS upstream (e.g an nginx reverse proxy), you can forcefully disable TLS by setting <code>.tls</code> to <code>false</code>.</p></li>
+<li><p>The first argument, the options table, is passed to <code>http.server.listen</code>. So please refer to the http library docs for a full list of network options. In addition to the <code>http</code> library's fields, the following are expected:</p>
 <ul>
-<li>The string field <code>route</code> is the path component of the URL you configure your application to use. In the URL <code>https://example.com/interactions</code> this would be <code>/interactions</code>.</li>
-<li>The function field <code>interact</code> is called when a discord interaction event is received by the webhook. The first argument is the json object payload discord sent, the next argument is the https response object. Return a valid json object from the function to send it to discord; if you do not it will respond with 500. Any error in this function is caught and will respond with 503, logging the message internally.</li>
+<li>The string field <code>route</code> is the path component of the URL you configure your application to use. In the URL <code>https://example.com/interactions</code> this would be <code>/interactions</code>. Once again if you're redirecting traffic to lacord from an external service make sure the path is adjusted if necessary.</li>
+<li>The function field <code>interact</code> is called when a discord interaction event is received by the webhook. The first argument is the json object payload discord sent, the next argument is the https response object. Return a valid json object from the function to send it to discord; if you do not it will respond with 500. Any error in this function is caught and will respond with 503, logging the message internally. You can also manipulate the response object to set the body directly, but this should be avoided unless necessary.</li>
 <li>The function field <code>fallthrough</code> receives a response object, and is called with any other request (i.e requests to paths other than the <code>route</code>).</li>
-<li>The string field <code>public_key</code> is your applications public key, necessary for signature verification.</li>
+<li>The string field <code>public_key</code> is your application's public key, necessary for signature verification.</li>
 </ul></li>
 </ul>
 <p>Here is a minimal example of configuration:</p>
@@ -205,7 +205,7 @@
 <span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    host <span class="op">=</span> <span class="st">&quot;localhost&quot;</span><span class="op">,</span></span>
 <span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    port <span class="op">=</span> <span class="dv">8888</span><span class="op">,</span></span>
 <span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    route <span class="op">=</span> <span class="st">&quot;/interactions&quot;</span></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="op">},</span> <span class="st">&quot;fullchain.pem&quot;</span><span class="op">,</span> <span class="st">&quot;key.pem&quot;</span><span class="op">)</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span>
 <span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="fu">assert</span><span class="op">(</span>loop<span class="op">:</span>loop<span class="op">())</span></span></code></pre></div>
@@ -215,7 +215,7 @@
 <p>I would recommend manually installing openssl with a version in the current stable series. At the time of writing this is the <strong>1.1.1</strong> series.</p>
 
         </div>
-        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1629838555</a>
+        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1637789515</a>
     </body>
 </html>
 

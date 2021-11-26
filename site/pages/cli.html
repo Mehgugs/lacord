@@ -1,0 +1,110 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
+        <title>Lacord Docs</title>
+        <link rel="stylesheet" href="../docs.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <script src="https://kit.fontawesome.com/e5bb70e554.js" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
+        <script>hljs.highlightAll();</script>
+        <script>
+            function openNav() {
+                document.getElementById("sidebar").className = "fit";
+                document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+                document.getElementById("btn").className = "hide";
+            }
+
+            function closeNav() {
+                document.getElementById("sidebar").className = "zero"
+                document.getElementById("content").style.marginLeft = "0"
+                document.getElementById("btn").className = "fas fa-bars";
+            }
+            let state = false;
+            function toggleNav() {
+                if (state) closeNav(state = false);
+                else openNav(state = true);
+            }
+            window.onresize = () => {
+                if (state)
+                    document.getElementById("content").style.marginLeft  = `${document.getElementById("sidebar").getBoundingClientRect().width}px`;
+            }
+            window.onload = () => {
+                if (window.location.hash === "#open") {
+                    toggleNav();
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <div id="sidebar" class="zero">
+            <button id="btn2" class="fas fa-times" onclick="toggleNav()"></button>
+            <a class="top" href="../index.html">Readme</a>
+<div class="sidebar-sep"> Modules </div>
+<a class="nav" href="api.html#open">lacord.api</a>
+<a class="nav" href="cdn.html#open">lacord.cdn</a>
+<a class="active nav" href="cli.html#open">lacord.cli</a>
+<a class="nav" href="const.html#open">lacord.const</a>
+<a class="nav" href="outgoing-webhook-server.html#open">lacord.outgoing-webhook-server</a>
+<a class="nav" href="shard.html#open">lacord.shard</a>
+<a class="nav" href="util.html#open">lacord.util</a>
+<a class="nav" href="util.intents.html#open">lacord.util.intents</a>
+<a class="nav" href="util.json.html#open">lacord.util.json</a>
+<a class="nav" href="util.logger.html#open">lacord.util.logger</a>
+<a class="nav" href="util.mutex.html#open">lacord.util.mutex</a>
+<a class="nav" href="util.session-limit.html#open">lacord.util.session-limit</a>
+<a class="nav" href="util.uint.html#open">lacord.util.uint</a>
+<div class="sidebar-sep"> Exports </div>
+<a class="nav" href="#option">option</a>
+<a class="nav" href="#module">module</a>
+        </div>
+
+        <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
+        <div id="content">
+            <h2 id="lacord.cli">lacord.cli</h2>
+<p>This module is used to set/get feature flags from the command line.</p>
+<h3 id="setting-configuration-values-from-the-commandline">Setting configuration values from the commandline</h3>
+<p>You may provide configuration from the commandline to lacord, this can be loaded using <a href="#module"><code>module()</code></a>. The presence of a flag on the commandline is enough to enable it, but for convenience an assortment of values are also supported. To set a flag simply append it as a commandline argument with the appropriate hypen prefix: <code>lua main.lua --debug</code>. To use and load this configuration, call this module inside your <code>main.lua</code> – or equivalent entrypoint script – and pass the vararg argument for the main chunk to the call like so:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="st">&quot;lacord.cli&quot;</span><span class="op">(...)</span></span></code></pre></div>
+<h4 id="option"><em>boolean|string</em> <code>option</code></h4>
+<p>Indexing this module will look up the key in the configuration.</p>
+<p>Currently the only recognized keys are:</p>
+<ul>
+<li><em>boolean</em> <code>debug</code> This field will enable debug logs. This is passed to the commandline as <code>--debug</code></li>
+<li><em>boolean</em> <code>unstable</code> This field will enable unstable features. These are features of the library that are partially supported or discord has said should not be considered available for widespread use. Things may become gated behind this flag on discord’s whim so please read the changelogs to see which features are behind this flag. This is passed to the commandline as <code>--unstable-features</code>.</li>
+<li><em>boolean</em> <code>deprecated</code> This field will enable deprecated features. These are features of the library that will be removed at a specified point in time. To check when a specific version will remove a feature look in <code>TIMETOLIVE.md</code>. This is passed to the commandline as <code>--deprecated</code>.</li>
+</ul>
+<p>Additionally the following keys are loaded by this module <strong>but are never used by lacord internally</strong>. You must manually use them yourself where appropriate.</p>
+<ul>
+<li><p><em>string</em> <code>client_id</code> This field corresponds to the application’s client id. This is passed to the commandline as <code>--client-id XXXXX</code>.</p></li>
+<li><p><em>string</em> <code>client_secret</code> This field corresponds to the application’s client secret. This is passed to the commandline as <code>--client-secret XXXXX</code>.</p></li>
+<li><p><em>string</em> <code>token</code> This field corresponds to the application’s bot token. This is passed to the commandline as <code>--token XXXXX</code>.</p></li>
+</ul>
+<p>All keys may also be set by environment variable by uppercasing the key and prepending <code>LACORD_</code>. For example, the <code>debug</code> key can be configured by the <code>LACORD_DEBUG</code> environment variable.</p>
+<p>In the case that an environment variable has been set <strong>and</strong> a commandline flag provided, this module will set the key if <strong>either of them were positive</strong>.</p>
+<h4 id="module"><em>table (argv)</em> <code>module()</code></h4>
+<p>Calling the module like a function will load the function arguments as commandline arguments, and also resolve environment variables that are set. This returns the argv array. If the arguments do not match the scheme, argument resolving stops. The returned table contains all unprocessed arguments.</p>
+<p>Example with arguments as literals so you can see how it works:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>    <span class="kw">local</span> arguments  <span class="op">=</span> <span class="fu">require</span><span class="st">&quot;lacord.cli&quot;</span><span class="op">(</span><span class="st">&#39;--debug&#39;</span><span class="op">,</span> <span class="st">&#39;--unstable-features&#39;</span><span class="op">,</span> <span class="st">&#39;foo&#39;</span><span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- In this example the cli module now has the parameters `debug` and `unstable` set.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- `arguments` contains remaining commandline arguments that were not processed which in this case is &#39;foo&#39;.</span></span></code></pre></div>
+<h3 id="automatically-loading-flags-in-lua-standalone">Automatically loading flags in lua standalone</h3>
+<p>The virtual module <code>acord</code> is designed to be loaded by the lua standalone interpreter option <code>l</code> (i.e <code>lua -lacord ...</code>). This module will read from <code>_G.arg</code> – and also read environment variables – and populate the cli table with options.</p>
+<p>Example invocation:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">$</span> LACORD_TOKEN=XXXXXXXXXXXXXXXXXXXXXXXXXXXX lua <span class="at">-lacord</span> main.lua <span class="at">--unstable-features</span></span></code></pre></div>
+<p>main.lua:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">....</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> discord_api <span class="op">=</span> api<span class="op">.</span>init<span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    token <span class="op">=</span> <span class="st">&quot;Bot &quot;</span><span class="op">..</span>require<span class="st">&quot;lacord.cli&quot;</span><span class="op">.</span>token</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>   <span class="op">,</span>route_delay <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">....</span></span></code></pre></div>
+
+        </div>
+        <a href="https://github.com/Mehgugs/lacord" class="footer">Lacord 1637789515</a>
+    </body>
+</html>
+
