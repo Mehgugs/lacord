@@ -798,11 +798,11 @@ function api:get_original_interaction_response(application_id, interaction_token
     })
 end
 
-function api:edit_original_interaction_response(application_id, interaction_token, payload)
+function api:edit_original_interaction_response(application_id, interaction_token, payload, files)
     return self:request('edit_original_interaction_response', 'PATCH', '/webhooks/:application_id/:interaction_token/messages/@original', {
        application_id = application_id,
        interaction_token = interaction_token
-    }, payload)
+    }, payload, nil, files)
 end
 
 function api:delete_original_interaction_response(application_id, interaction_token)
@@ -1548,11 +1548,11 @@ function api:create_scheduled_guild_event(guild_id,  payload)
     }, payload)
 end
 
-function api:get_scheduled_guild_event(guild_id, event_id)
+function api:get_scheduled_guild_event(guild_id, event_id, query)
     return self:request('get_scheduled_guild_event', 'GET', '/guilds/:guild_id/scheduled-events/:guild_scheduled_event_id', {
        guild_id = guild_id,
        guild_scheduled_event_id = event_id
-    })
+    }, nil, query)
 end
 
 function api:modify_scheduled_guild_event(guild_id, event_id,  payload)

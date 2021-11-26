@@ -2,6 +2,64 @@
 
 Here changes from versions `1590965828` onward are listed.
 
+### 1629838555 -> 1637789515
+
+#### [Documentation](docs)
+
+- Documentation for `lacord.cli` was added.
+- Documentation for `lacord.util.session-limit` was added.
+- Wording was tweaked in `api.md`.
+
+#### NEW lacord.cli
+
+This new module has been introduced to facilitate command line configuration.
+Most users will interact with it via the `-l` module like so:
+`$ lua -lacord myscript.lua --unstable --deprecated --token XXXXX`
+
+Please refer to [the associated documentation](docs/cli.md) for usage information.
+
+The new `--unstable` flag added in this release will now control the usage of bleeding edge parts of
+the discord api. Setting this flag may cause discord to return errors or unexpected data.
+
+The new `--deprecated` flag added in this release will now be used to control availability of
+some deprecated features. Everything made available by this flag **will be removed in the next major version**.
+
+In `1637789515` the following features were marked as deprecated:
+
+- function `lacord.api.init` (was renamed)
+- function `lacord.shard.init` (was renamed)
+
+#### [lacord.api](lua/lacord/api.lua)
+
+- `api.init(options)` was renamed to `api.new`.
+- Providing lacord with the `--unstable` flag will change how attachments are sent, following the new?
+  guidelines. This will be enforced at some unspecified point in the future, and this soft change has
+  been marked as unstable as it may change considerably on discord's whim. This does not impact lacord's API.
+- Added a missing method, `modify_current_member`.
+- Fixed the `get_token` method.
+- Added support for guild scheduled events.
+- Fixed some endpoint formatting issues.
+- `edit_original_interaction_response` now accepts files.
+
+#### [lacord.shard](lua/lacord/shard.lua)
+- Add a session limit object to implement the `max_concurrency`
+  rules mandated by discord. This object is automatically used
+  by shards to orchestrate them.
+- !!`shard.new` now takes a session-limit object as its second argument.
+- !!`shard:send` now returns a boolean.
+- `shard.init(options, session_limit)` was renamed to `new`.
+
+#### [lacord.util](lua/lacord/util/init.lua)
+
+- Added command line processing functions.
+- Fixed `util.urlencoded_t` being incorrectly serialized.
+
+
+#### NEW [lacord.util.session-limit](lua/lacord/util/session-limit.lua)
+
+Added a new module for shard session limiting. Please see the [associated documentation](docs/util.session-limit.md) for more information.
+
+
 ### 1627995481.88199 -> 1629838555
 
 #### NEW [Documentation](docs)
