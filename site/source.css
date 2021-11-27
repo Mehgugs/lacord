@@ -259,4 +259,20 @@ div.sourceCode {
   z-index: 2;
 }
 
-/*# sourceMappingURL=docs.css.map */
+#content {
+  padding: 20px;
+  font-family: Helvetica, sans-serif;
+  background-color: #232530;
+  color: #999999;
+  overflow: visible;
+  padding-top: 20px;
+  margin-bottom: 10px;
+  display: block;
+  float: none;
+}
+
+div.sourceCode {
+  border: none;
+}
+
+/*# sourceMappingURL=source.css.map */

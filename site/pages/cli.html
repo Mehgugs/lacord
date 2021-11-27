@@ -3,6 +3,10 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
+        <meta property="og:title" content="lacord.cli"/>
+<meta property="og:description" content="This module is used to set/get feature flags from the command line."/>
+<meta name="theme-color" content="#e9535f">
+    
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width height=device-height initial-scale=1">
         <title>Lacord Docs</title>
@@ -64,7 +68,7 @@
 
         <button id="btn" class="fas fa-bars" onclick="toggleNav()"></button>
         <div id="content">
-            <h2 id="lacord.cli">lacord.cli</h2>
+            <h2 id="lacord.cli">lacord.cli  <a href="../source/cli.html">[src]</a></h2>
 <p>This module is used to set/get feature flags from the command line.</p>
 <h3 id="setting-configuration-values-from-the-commandline">Setting configuration values from the commandline</h3>
 <p>You may provide configuration from the commandline to lacord, this can be loaded using <a href="#module"><code>module()</code></a>. The presence of a flag on the commandline is enough to enable it, but for convenience an assortment of values are also supported. To set a flag simply append it as a commandline argument with the appropriate hypen prefix: <code>lua main.lua --debug</code>. To use and load this configuration, call this module inside your <code>main.lua</code> – or equivalent entrypoint script – and pass the vararg argument for the main chunk to the call like so:</p>

@@ -44,6 +44,14 @@ h2 code {
   font-size: larger;
 }
 
+h2 a {
+  position: absolute;
+  top: auto;
+  font-size: 80%;
+  margin-left: 10px;
+  margin-top: 1px;
+}
+
 h3 code {
   font-weight: bolder;
   font-size: larger;
