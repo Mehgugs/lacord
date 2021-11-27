@@ -431,12 +431,6 @@ function identify(self)
     end
     self.ready_failed = false
 
-    -- If we have a session_id (we were launched previously) then
-    -- we need to enter the session limit ourselves.
-    -- We do not do this on every identify because initially discord requires
-    -- ordered connection
-
-
     self._seq = nil ---
     self.session_id = nil
     logger.info("%s has intents: %0#x", self, self.options.intents)

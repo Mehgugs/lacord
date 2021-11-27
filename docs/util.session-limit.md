@@ -10,7 +10,7 @@ This type is a semaphore-like object which can be used to orchestrate shard conn
 The `:enter()` method is called when you prepare a shard. When the limit is used up
 -- and we've started `availability` requests concurrently -- `:enter()` will block until we're allowed to connect. Every call to `:enter()` is met with a call to `:exit()` when the shard receives a `READY` event from discord. Note that the shard implementation will call these methods as appropriate, you need only create this object.
 
-##### Example taken from `lacord-client`
+### Example taken from `lacord-client`
 
 In this example `self` is the client (which is a table of shards and other bot related components).
 When the client connects we pass its `.session_limit`. This object is initialized with the `max_concurrency` field of `get_gateway_bot`.
