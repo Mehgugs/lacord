@@ -8,14 +8,13 @@ Set this to a lua file object opened in a write mode to also write any output to
 
 #### *integer* `mode(x)`
 
-Sets the colour mode the logger uses.
+Sets the colour mode the logger uses. To highlight text enclose it in `$ ;`.
 
 - *integer* `x`
     The colour mode, valid values are:
     - `0` no colouring.
     - `3` colouring using standard color codes.
     - `8` colouring using 8 bit ansi codes.
-    - `24` colouring using 24 bit ansi codes.
 
 #### *nothing* `info(fmt, ...)`
 

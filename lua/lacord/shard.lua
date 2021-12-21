@@ -91,7 +91,7 @@ function new(options, session_limit)
     state.session_limit = session_limit
     state.beats = 0
     state.backoff = 1
-    logger.info("Initialized %s with TOKEN-%x", state, util.hash(state.options.token))
+    logger.info("Initialized %s with TOKEN-%d", state, util.hash(state.options.token))
     if not (state.options.compress or state.options.transport_compression) then
         state.options.transport_compression = true
     end
@@ -122,15 +122,15 @@ function shard:connect()
     end
 
     -- step 2: connect
-    logger.info("%s is connecting to $white;%s", self, final_url)
+    logger.info("%s is connecting to $%s;", self, final_url)
     self.socket = websocket.new_from_uri(final_url)
-    logger.info("Using user-agent: $white;%s", USER_AGENT)
+    logger.info("Using user-agent: %s", USER_AGENT)
     self.socket.request.headers:upsert("user-agent", USER_AGENT)
 
     local success, str, err = self.socket:connect(3)
 
     if not success then
-        logger.error("%s had an error while connecting (%s - %q, %q)", self, errno[err], errno.strerror(err), str or "")
+        logger.error("%s had an error while connecting ($%s - %q;, %q).", self, errno[err], errno.strerror(err), str or "")
         return self, false
     else
         logger.info("%s has connected.", self)
@@ -158,12 +158,12 @@ end
 local hb = ops.HEARTBEAT
 local function beat_loop(state, interval)
     while state.connected do
-        logger.debug("Outgoing heart beating")
+        logger.debug("Outgoing heart beating.")
         state.beats = state.beats + 1
         send(state, hb, state._seq or null, true)
         local r1,r2 = poll(state.stop_heart, interval)
         if r1 == state.stop_heart or r2 == state.stop_heart then
-            logger.warn("%s heart was stopped via signal", state)
+            logger.warn("%s heart was stopped via signal.", state)
             break
         end
     end
@@ -245,12 +245,10 @@ function send(state, op, d, ident)
 end
 
 local never_reconnect = {
-    [4001] = 'You sent an invalid Gateway opcode or an invalid payload for an opcode. Don\'t do that!'
-   ,[4002] = 'You sent an invalid payload to us. Don\'t do that!'
-   ,[4004] = 'The account token sent with your identify payload is incorrect.'
-   ,[4010] = 'You sent us an invalid shard when identifying.'
+    [4010] = 'You sent us an invalid shard when identifying.'
    ,[4011] =
    'The session would have handled too many guilds - you are required to shard your connection in order to connect.'
+   ,[4012] = 'You sent an invalid version for the gateway.'
    ,[4013] = 'You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.'
    ,[4014] = 'You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not whitelisted for.'
 
@@ -258,7 +256,7 @@ local never_reconnect = {
 
 local function should_reconnect(state, code)
    if never_reconnect[code] then
-       logger.error("%s received irrecoverable error(%d): %q", state, code, never_reconnect[code])
+       logger.error("%s received irrecoverable error ($%d;, %q).", state, code, never_reconnect[code])
        return false
    end
    if code == 4004 then
@@ -298,7 +296,7 @@ function messages(state)
     state.connected = false
     stop_heartbeat(state)
 
-    logger.warn('%s has stopped receiving: (%q) (close code %s) %.3fsec elapsed',
+    logger.warn('%s has stopped receiving: (%q) ($close code %s;) %.3f sec elapsed',
         state,
         err or state.socket.got_close_message,
         state.socket.got_close_code,
@@ -328,7 +326,7 @@ function messages(state)
         ,error = err
     })
 
-    logger.warn("%s %s reconnect.", state, decided and "will" or "will not")
+    logger.warn("%s $%s; reconnect.", state, decided and "will" or "will not")
 
     local retry ::retry::
     -- even though decided can be assigned the value of
@@ -348,7 +346,7 @@ function messages(state)
         repeat
             local time = util.rand(0.9, 1.1) * state.backoff
             backoff(state)
-            logger.info("%s will automatically reconnect in %.2fsec", state, time)
+            logger.info("%s will automatically reconnect in $%.2f; sec", state, time)
             sleep(time)
             local _, success = state:connect()
         until success or not state.options.auto_reconnect
@@ -381,7 +379,7 @@ function shard:RESUMED(_, d)
 end
 
 function shard:INVALID_SESSION(_, d)
-    logger.warn("%s has an invalid session, resumable=%q.", self, d and "true" or "false")
+    logger.warn("%s has an invalid session, ($resumable=%s;).", self, d and "true" or "false")
     if not d then self.session_id = nil end
     self.loop:wrap(self.emitter, self, 'INVALID_SESSION', d)
     return reconnect(self, not not d)
@@ -390,7 +388,7 @@ end
 function shard:HEARTBEAT_ACK()
     self.beats = self.beats -1
     if self.beats < 0 then
-        logger.warn("%s is missing heartbeat acknowledgement! (deficit=%s)", self, -self.beats)
+        logger.warn("%s is missing heartbeat acknowledgement! ($deficit=%s;)", self, -self.beats)
     end
     winddown(self)
     self.loop:wrap(self.emitter, self, "HEARTBEAT", self.beats)

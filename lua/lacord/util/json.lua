@@ -12,9 +12,14 @@ local jo_mt
 local ja_mt
 
 local virtual_filenames = setm({}, {__mode = "k"})
+local virtual_descriptions = setm({}, {__mode = "k"})
 
 local function virtualname(self) return virtual_filenames[self] end
 local function set_virtualname(self, value) virtual_filenames[self] = value end
+
+local function virtualdescription(self) return virtual_descriptions[self] end
+local function set_virtualdescription(self, value) virtual_descriptions[self] = value end
+
 
 if const.use_cjson then
     local cjson = req"cjson".new()
@@ -40,12 +45,15 @@ if const.use_cjson then
     ja_mt.__lacord_payload = _ENV.encode
     ja_mt.__lacord_file_name = virtualname
     ja_mt.__lacord_set_file_name = set_virtualname
+    ja_mt.__lacord_file_description = virtualdescription
+    ja_mt.__lacord_set_file_description = set_virtualdescription
     jo_mt = {}
     jo_mt.__lacord_content_type = "application/json"
     jo_mt.__lacord_payload = _ENV.encode
     jo_mt.__lacord_file_name = virtualname
     jo_mt.__lacord_set_file_name = set_virtualname
-
+    jo_mt.__lacord_file_description = virtualdescription
+    jo_mt.__lacord_set_file_description = set_virtualdescription
     function with_empty_as_object(data)
         return cjson_obj_encoder.encode(data)
     end
@@ -58,8 +66,12 @@ else
     ja_mt = {__jsontype = "array", __lacord_content_type = "application/json", __lacord_payload = _ENV.encode}
     ja_mt.__lacord_file_name = virtualname
     ja_mt.__lacord_set_file_name = set_virtualname
+    ja_mt.__lacord_file_description = virtualdescription
+    ja_mt.__lacord_set_file_description = set_virtualdescription
     jo_mt.__lacord_file_name = virtualname
     jo_mt.__lacord_set_file_name = set_virtualname
+    jo_mt.__lacord_file_description = virtualdescription
+    jo_mt.__lacord_set_file_description = set_virtualdescription
     function jarray(t, ...) return setm(... and {t, ...} or t, jo_mt) end
     function jobject(x) return setm(x, ja_mt) end
     empty_array = setm({}, {__tojson = function() return "[]" end})
@@ -74,6 +86,9 @@ local newmt = {
     __lacord_payload = _ENV.encode,
     __lacord_file_name = virtualname,
     __lacord_set_file_name = set_virtualname,
+    __lacord_file_description = virtualdescription,
+    __lacord_set_file_description = set_virtualdescription,
+
 }
 
 function content_type(obj)
@@ -88,6 +103,8 @@ function content_type(obj)
         mt.__lacord_payload = _ENV.encode
         mt.__lacord_file_name = virtualname
         mt.__lacord_set_file_name = set_virtualname
+        mt.__lacord_file_description = virtualdescription
+        mt.__lacord_set_file_description = set_virtualdescription
         return obj, mt
     else
         setm(obj, newmt)

@@ -39,6 +39,19 @@ supported_cli_options = {
     token = "value",
     ['client-id'] = "client_id",
     ['client-secret'] = "client_secret",
+    log_file = "value",
+    ['log-file'] = "log_file",
+    log_mode = {"0","3","8"},
+    ['log-mode'] = "log_mode",
+    --shorthand
+    d = "debug",
+    u = "unstable",
+    D = "deprecated",
+    i = "client_id",
+    s = "client_secret",
+    t = "token",
+    l = "log_file",
+    L = "log_mode"
 }
 
 supported_environment_varibles = {
@@ -47,7 +60,9 @@ supported_environment_varibles = {
     LACORD_DEPRECATED = "deprecated",
     LACORD_ID = "client_id",
     LACORD_SECRET = "client_secret",
-    LACORD_TOKEN = "token"
+    LACORD_TOKEN = "token",
+    LACORD_LOG_MODE = "log_mode",
+    LACORD_LOG_FILE = "log_file"
 }
 
 return _ENV
