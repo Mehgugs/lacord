@@ -306,7 +306,7 @@ function messages(state)
     -- Based on the close code / state.do_reconnect flag
     local decided = should_reconnect(state, state.socket.got_close_code)
 
-    -- If we never kept the ready promise (i.e we never got hello)
+    -- If we never kept the ready promise (i.e we never got READY)
     -- we should break it if we're not planning to reconnect.
     -- If we are **not** reconnecting we need to exit the session limit.
     if state.is_ready:status() == 'pending' then

@@ -26,6 +26,9 @@ local inflate = zlib.inflate
 local JSON = util.content_types.JSON
 local a_form = util.form
 local is_form = util.is_form
+local file_name = util.filename
+local merge = util.merge
+local compute_attachments = util.compute_attachments
 local tostring = tostring
 local remove = table.remove
 local time = os.time
@@ -48,6 +51,8 @@ local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
 
 local _ENV = {}
+
+--luacheck: ignore 111 631
 
 local api = {__name = "lacord.api"}
 api.__index = api
@@ -104,7 +109,7 @@ local add_a_file do
         -- unstable feature: new multiple attachments form fields
         -- FUTURE: v10
         function add_a_file(ret, inner_ct, f, i)
-            local name = util.file_name(f)
+            local name = file_name(f)
             local fstr, resolved_ct = content_typed(f)
             insert(ret, BOUNDARY2)
             insert(ret, ("Content-Disposition:form-data;name=\"files[%i]\";filename=%q"):format(i and i-1 or 0, name))
@@ -127,7 +132,7 @@ local add_a_file do
     end
 end
 
-
+local empty_file_array = { }
 
 local function attachContent(payload, files, ct, inner_ct)
     local ret
@@ -147,8 +152,14 @@ local function attachContent(payload, files, ct, inner_ct)
         ret = {}
         for k, v in pairs(payload) do
             insert(ret, BOUNDARY2)
-            insert(ret, ("Content-Disposition:form-data;name=%q\r\n"):format(k))
-            insert(ret, tostring(v))
+            local v_, vct = content_typed(v)
+            if vct then
+                insert(ret, ("Content-Disposition:form-data;name=%q"):format(k))
+                insert(ret, ("Content-Type:%s\r\n"):format(vct))
+            else
+                insert(ret, ("Content-Disposition:form-data;name=%q\r\n"):format(k))
+            end
+            insert(ret, v_ or tostring(v))
         end
     end
     if #files == 1 then
@@ -166,11 +177,7 @@ local function attachFiles (payload, files, ct)
     return attachContent(payload, files, ct, util.content_types.BYTES)
 end
 
-local function attachTextFiles(payload, files, ct)
-    return attachContent(payload, files, ct, util.content_types.TEXT)
-end
-
-local function handle_payload(req, method, name, payload, files, asText)
+local function handle_payload(req, method, name, payload, files)
     if with_payload[method] then
         local content_type
         payload,content_type = content_typed(payload, name)
@@ -178,14 +185,14 @@ local function handle_payload(req, method, name, payload, files, asText)
             payload = payload and encode(payload) or '{}'
             content_type = JSON
         end
-        if files and next(files) then
-            payload = (asText and attachTextFiles or attachFiles)(payload, files, content_type)
+        if files and next(files) or content_type == "form" then
+            payload = attachFiles(payload, files or empty_file_array, content_type)
             req.headers:append('content-type', MULTIPART)
         else
             req.headers:append('content-type', content_type)
         end
         if LACORD_DEBUG then
-            local file = openf("test/payload", "wb")
+            local file = openf("test/payload" .. util.hash(tostring(monotime())), "wb")
             file:write(payload)
             file:close()
         end
@@ -249,7 +256,7 @@ function new(options)
     if LACORD_DEBUG then state.expect_100_timeout = options.expect_100_timeout end
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, x-gzip"
-        logger.debug("%s is using $white;accept-encoding: %q", state, state.accept_encoding)
+        logger.debug("%s is using $whiteaccept-encoding: %q;", state, state.accept_encoding)
     end
     logger.debug("Initialized %s with TOKEN-%x", state, util.hash(state.token))
     return state
@@ -257,9 +264,6 @@ end
 
 if LACORD_DEPRECATED then _ENV.init = _ENV.new end
 
-local static_methods = {}
-
-local function static(name) static_methods[name] = true end
 
 local function mapquery(Q)
     local out = {}
@@ -329,8 +333,7 @@ function api.request(state,
     route_parameters, -- a table of route parameters
     payload, -- a json payload
     query, -- a query string
-    files, -- a list of files
-    asText -- should it be text files or binary?
+    files -- a list of files
 )
     local reqthr = cqueues.running()
     if not reqthr then
@@ -347,7 +350,7 @@ function api.request(state,
     local req = newreq.new_from_uri(httputil.encodeURI(url))
     req.version = state.api_http_version
 
-    logger.debug("HTTP/$white;%s", req.version)
+    logger.debug("HTTP/$%s;", req.version)
 
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
@@ -362,7 +365,7 @@ function api.request(state,
         req.headers:append("x-audit-log-reason", tostring(remove(reasons)))
     end
 
-    handle_payload(req, method, name, payload, files, asText)
+    handle_payload(req, method, name, payload, files)
 
     local major_params = resolve_majors(route_parameters)
     local initial, bucket = get_routex(state.routex,  major_params .. name, major_params)
@@ -377,9 +380,9 @@ function api.request(state,
     check_global(state)
 
     if LACORD_DEBUG then
-        logger.debug("$debug_highlight;Headers:")
+        logger.debug("$Headers:;")
         for hname, value, never_index in req.headers:each() do
-            logger.debug("  $white;%s$debug; = $white;%s", hname, never_index and "<never_index>" or value)
+            logger.debug("  $%s; = %s", hname, never_index and "<never_index>" or value)
         end
     end
 
@@ -458,7 +461,7 @@ function push(state, name, req, major_params, retries)
         if state.track_rates then
             state.rates[name] = {
                 date = date
-                ,bucket = bucket
+                ,bucket = route_id
                 ,last_used_by = ID
                 ,reset = reset
                 ,remaining = remaining
@@ -497,6 +500,9 @@ function push(state, name, req, major_params, retries)
                     modify_global(monotime() + delay)
                 end
                 retry = retries < 5
+                if state.track_ratelimits and not data.global then
+                    state.rates[name].scope = data.scope
+                end
             elseif code == 502 then
                 delay = delay + util.rand(0 , 2)
                 retry = retries < 5
@@ -506,23 +512,22 @@ function push(state, name, req, major_params, retries)
             end
 
             if retry then
-                logger.warn("(%i, %q) :  retrying after %fsec : %s", code, reason[rawcode], delay, ID)
+                logger.warn("($%i;, %q) :  retrying after $%f; sec : %s", code, reason[rawcode], delay, ID)
                 cqueues.sleep(delay)
                 return push(state, name, req, major_params, retries+1)
             end
 
             local msg
             if data.code and data.message then
-                msg = ('HTTP Error %i : %s'):format(data.code, data.message)
+                msg = ('HTTP Error $%i; : %s'):format(data.code, data.message)
             else
                 msg = 'HTTP Error'
             end
             --TODO: handle data.errors again
             extra = data.errors
             if LACORD_DEBUG then
-                logger.debug("$white;%s", msg)
-                logger.debug("$white;data.errors$debug; = ")
-                logger.printf(inspect(data.errors))
+                logger.debug("%s", msg)
+                logger.debug("$data.errors;\n" .. inspect(data.errors))
             end
             data = msg
         else
@@ -530,10 +535,15 @@ function push(state, name, req, major_params, retries)
                 modify_global(monotime() + delay)
             end
         end
-        logger.error("(%i, %q) : %s", code, reason[rawcode], ID)
+        logger.error("($%i;, %q) : %s", code, reason[rawcode], ID)
         return nil, data, delay, extra
     end
 end
+
+local static_methods = {}
+
+local function static(name) static_methods[name] = true end
+
 
 --- Request a specific resource.
 -- Function name is the routepath in snake_case
@@ -586,15 +596,12 @@ function api:get_channel_message(channel_id, message_id)
 end
 
 function api:create_message(channel_id, payload, files)
+    if files then
+        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+    end
     return self:request('create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
     }, payload, nil, files)
-end
-
-function api:create_message_with_txt(channel_id, payload, files)
-    return self:request('create_message', 'POST', '/channels/:channel_id/messages', {
-        channel_id = channel_id
-    }, payload, nil, files, true)
 end
 
 function api:crosspost_message(channel_id, message_id)
@@ -778,17 +785,13 @@ function api:list_joined_private_archived_threads(channel_id, query)
 end
 
 function api:create_interaction_response(interaction_id, interaction_token, payload, files)
+    if files then
+        merge(payload.data, compute_attachments(files), _ENV.attachments_resolution)
+    end
     return self:request('create_interaction_response', 'POST', '/interactions/:interaction_id/:interaction_token/callback', {
         interaction_id = interaction_id,
        interaction_token = interaction_token
     }, payload, nil, files)
-end
-
-function api:create_interaction_response_with_txt(application_id, interaction_token, payload, files)
-    return self:request('create_interaction_response', 'POST', '/interactions/:application_id/:interaction_token/callback', {
-       application_id = application_id,
-       interaction_token = interaction_token
-    }, payload, nil, files, true)
 end
 
 function api:get_original_interaction_response(application_id, interaction_token)
@@ -813,6 +816,9 @@ function api:delete_original_interaction_response(application_id, interaction_to
 end
 
 function api:create_followup_message(application_id, interaction_token,  payload, files)
+    if files then
+        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+    end
     return self:request('create_followup_message', 'POST', '/webhooks/:application_id/:interaction_token', {
        application_id = application_id,
        interaction_token = interaction_token
@@ -1257,6 +1263,9 @@ end
 static'execute_webhook'
 
 function api:execute_webhook(webhook_id, webhook_token, payload, query, files)
+    if files then
+        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+    end
     return self:request('execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
@@ -1634,23 +1643,24 @@ webhookm.__index = webhookm
 for k in pairs(static_methods) do
     if util.endswith(k, "_with_token") then
         local raw = webhookm[k]
-        local function wrapped(self, id, ...)
-            return raw(self, id, self.webhook_token, ...)
+        local function wrapped(self, ...)
+            return raw(self, self.id, self.webhook_token, ...)
         end
         webhookm[util.prefix(k, "_with_token")] = wrapped
     end
 end
 
-function webhookm:execute_webhook(id, ...)
-    return api.execute_webhook(self, id, self.webhook_token, ...)
+
+function webhookm:execute_webhook(...)
+    return api.execute_webhook(self, self.id, self.webhook_token, ...)
 end
 
-function webhookm:execute_github_compatible_webhook(id, ...)
-    return api.execute_github_compatible_webhook(self, id, self.webhook_token, ...)
+function webhookm:execute_github_compatible_webhook(...)
+    return api.execute_github_compatible_webhook(self, self.id, self.webhook_token, ...)
 end
 
-function webhookm:execute_slack_compatible_webhook(id, ...)
-    return api.execute_slack_compatible_webhook(self, id, self.webhook_token, ...)
+function webhookm:execute_slack_compatible_webhook(...)
+    return api.execute_slack_compatible_webhook(self, self.id, self.webhook_token, ...)
 end
 
 function webhookm:request(name, ...)
@@ -1660,7 +1670,7 @@ function webhookm:request(name, ...)
     end
 end
 
-local function webhook_init(webhook_token)
+local function webhook_init(webhook_id, webhook_token)
     local webhook_api = setm({}, webhookm)
     webhook_api.routex = mutex_cache(webhook_token)
 
@@ -1670,7 +1680,7 @@ local function webhook_init(webhook_token)
     webhook_api.api_timeout = 60
     webhook_api.accept_encoding = "gzip, deflate, x-gzip"
     webhook_api.webhook_token = webhook_token
-
+    webhook_api.id = webhook_id
     return webhook_api
 end
 _ENV.webhook_init = webhook_init

@@ -9,6 +9,7 @@ local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local api = require"lacord.api"
 
+local LACORD_UNSTABLE = require"lacord.cli".unstable
 
 local inflate = zlib.inflate
 local JSON = util.content_types.JSON
@@ -63,8 +64,14 @@ local cdn_endpoints = {
     achievement_icon = "/app-assets/:application_id/achievements/:achievement_id/icons/:icon:img_ext",
     sticker_pack_banner = "/app-assets/710982414301790216/store/:sticker_pack_banner_asset_id:img_ext",
     team_icon = "/team-icons/:team_id/:team_icon:img_ext",
-    sticker = "/stickers/:sticker_id:sticker_ext"
+    sticker = "/stickers/:sticker_id:sticker_ext",
+    role_icon = "role-icons/:role_id/:role_icon:img_ext",
+    scheduled_guild_event_cover = "guild-events/:scheduled_event_id/:scheduled_event_cover_image:img_ext"
 }
+
+if LACORD_UNSTABLE then
+    cdn_endpoints.ephemeral_attachment = "/ephemeral-attachments/:channel_id/:attachment_id/:file_name:img_ext"
+end
 
 local cdn = {__name = "lacord.cdn"}
 
@@ -301,11 +308,47 @@ end
 function attachment_url(channel_id, attachment_id, file_name, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.attachment,
-            { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext]})
+            { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
     if size then
         return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
     else
         return httputil.encodeURI(base)
+    end
+end
+
+function role_icon_url(role_id, role_icon, ext, size)
+    local base = URL ..
+        resolve_parameters(cdn_endpoints.role_icon,
+            { role_id = role_id, role_icon = role_icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
+    if size then
+        return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
+    else
+        return httputil.encodeURI(base)
+    end
+end
+
+function scheduled_guild_event_cover_url(scheduled_event_id, scheduled_event_cover_image, ext, size)
+    local base = URL ..
+        resolve_parameters(cdn_endpoints.scheduled_guild_event_cover,
+            { scheduled_event_id = scheduled_event_id, scheduled_event_cover_image = scheduled_event_cover_image,
+                img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
+    if size then
+        return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
+    else
+        return httputil.encodeURI(base)
+    end
+end
+
+if LACORD_UNSTABLE then
+    function ephemeral_attachment_url(channel_id, attachment_id, file_name, ext, size)
+        local base = URL ..
+            resolve_parameters(cdn_endpoints.attachment,
+                { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
+        if size then
+            return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
+        else
+            return httputil.encodeURI(base)
+        end
     end
 end
 

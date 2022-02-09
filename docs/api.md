@@ -5,7 +5,27 @@ All api methods must be called inside a cqueues managed coroutine.
 
 #### Ratelimits
 
-The api client will automatically handle ratelimits for you. 429s may still be encountered and will be handled as well.
+The api client will automatically handle ratelimits for you. 429s may still be encountered and will be handled as well. Running in the same lua state, api clients will share ratelimit internals on a per token
+basis (i.e. if you were to create two identical clients, they would use the same internals). When system
+threads are involved -- via cqueues threads -- there are no provided mechanisms to serialize ratelimit state and sync up independant lua states, but this should not be a major issue. You may opt in to more
+thorough ratelimit state retention via the `options.track_ratelimits` argument to `new()`, but this should
+be treated as a deubugging feature.
+
+What follows is a short description of the ratelimiting algorithm used by lacord:
+
+- 1) Calculate major parameters (via internal function `resolve_majors`)
+- 2) Look up the bucket id and bucket associated with this request (via internal function `get_routex`)
+- 3) If no such bucket exists return a generic bucket which just considers major parameters.
+- 4) Lock the bucket (this waits until we're able to make a request)
+- 5) At this point we check if we're on the global limit and wait until it's expired, I lock the bucket before this due to how the requests are queued.
+- 6) We actually make a request now.
+- 7) Calculate delays if remaining=='0'
+- 8) Discover the bucket id.
+- 9) If we were using a generic bucket we record the request's bucket id so that it'll be picked in future.
+- 10) If our status code was 429 we double check the delay from the body, and update global information if it was a global 429. After waiting an appropriate amount of time this request will try again (this can happen up to 5 times).
+- 11) Check the limit for global ratelimits, and update accordingly.
+- 12) Finally we unlock the appropriate bucket after the calculated delay (there's some messy code for resolving the generic and new bucket please feel free to PR a better solution there).
+
 
 
 #### *string* `USER_AGENT`
@@ -20,13 +40,13 @@ The api url used by the client.
 
 This type has methods for interacting with the discord rest api.
 
-#### *api* `init(options)`
+#### *api* `new(options)`
 
 This initializes the api client.
 
 - *{string, string}* `options.client_credentials`
-    Set this field to to use Basic authentication for the client credentials grant. It should be a sequence of
-    your id and client secret.
+    Set this field to to use Basic authentication for the client credentials grant. It should be a table of
+    your id and client secret, for example: `{"92271879783469056", "3hPAIZAm7eb5vAhJSLSZiNhB7kANOOUp"}`.
 - *string* `options.token`
     Set this field to use either a Bearer or Bot token for authentication. Mutually exclusive with `client_credentials`.
 - *boolean* `options.track_ratelimits`
@@ -80,20 +100,19 @@ else
 end
 ```
 
-#### *api.webhook* `webhook_init(webhook_token)`
+#### *api.webhook* `webhook_init(webhook_id, webhook_token)`
 
 Create a client suitable for executing webhooks.
 The only methods this client has access to are
-the webhook methods, and you will still need to provide the id as the first parameter of those
-methods, but the token will be inserted into the argument list for you internally.
+the webhook methods, but the token and id will be inserted into the argument list for you internally.
 
 ```lua
-local hook = api.webhook_init(webhook_token)
+local hook = api.webhook_init(webhook_id, webhook_token)
 
-hook:execute_webhook(webhook_id, {
+hook:execute_webhook{
     content = line,
     username = username,
-})
+}
 ```
 
 #### *string* `with_reason(text)`
