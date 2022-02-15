@@ -104,32 +104,13 @@ local function mutex_cache(token)
     return ch
 end
 
-local add_a_file do
-    if LACORD_UNSTABLE then
-        -- unstable feature: new multiple attachments form fields
-        -- FUTURE: v10
-        function add_a_file(ret, inner_ct, f, i)
-            local name = file_name(f)
-            local fstr, resolved_ct = content_typed(f)
-            insert(ret, BOUNDARY2)
-            insert(ret, ("Content-Disposition:form-data;name=\"files[%i]\";filename=%q"):format(i and i-1 or 0, name))
-            insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
-            insert(ret, fstr)
-        end
-    else
-        function add_a_file(ret, inner_ct, f, i)
-            local name = util.file_name(f)
-            local fstr, resolved_ct = content_typed(f)
-            insert(ret, BOUNDARY2)
-            if i then
-                insert(ret, ("Content-Disposition:form-data;name=\"file%i\";filename=%q"):format(i, name))
-            else
-                insert(ret, ("Content-Disposition:form-data;name=\"file\";filename=%q"):format(name))
-            end
-            insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
-            insert(ret, fstr)
-        end
-    end
+local function add_a_file(ret, inner_ct, f, i)
+    local name = file_name(f)
+    local fstr, resolved_ct = content_typed(f)
+    insert(ret, BOUNDARY2)
+    insert(ret, ("Content-Disposition:form-data;name=\"files[%i]\";filename=%q"):format(i and i-1 or 0, name))
+    insert(ret, ("Content-Type:%s\r\n"):format(resolved_ct or inner_ct))
+    insert(ret, fstr)
 end
 
 local empty_file_array = { }
@@ -1597,6 +1578,18 @@ local function failure(self)
     return self
 end
 
+local function continue(self, func)
+    if self.success then
+        local r = func(self, unpack(self.result))
+        if r then
+            insert(self.result, r)
+        end
+        return self
+    else
+        return self
+    end
+end
+
 function cpmt:__index(k)
   if self.success then
     local function method(this, ...)
@@ -1631,7 +1624,7 @@ end
 --    R:some_method() -- If there's been a faiure, calls like this are noop'd.
 --  end
 function api:capture()
-  return setm({self, success = true, result = {}, results = results, error = false}, cpmt)
+  return setm({self, success = true, result = {}, results = results, error = false, continue = continue}, cpmt)
 end
 
 local webhookm = {} for k, v in pairs(api) do

@@ -405,6 +405,9 @@ local function commandline_item(out, rest)
         rest = expected_args[rest]
         eval = true
         goto evaluate
+    elseif out.accept then
+        key = rest
+        expecting = true
     end
     return key, expecting
 end

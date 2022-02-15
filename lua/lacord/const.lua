@@ -6,7 +6,7 @@ time_unit = "seconds"
 discord_epoch = 1420070400
 gateway_delay = .5
 identify_delay = 5
-api_version = 9
+api_version = 10
 
 api = {
     base_endpoint = "https://discord.com/api"
@@ -32,17 +32,19 @@ use_cjson = true
 supported_cli_options = {
     debug = "flag",
     unstable = "flag",
-    ['unstable-features'] = "unstable",
     deprecated = "flag",
     client_id = "value",
     client_secret = "value",
     token = "value",
+    log_file = "value",
+    log_mode = {"0","3","8"},
+    accept = "flag",
+    ['unstable-features'] = "unstable",
     ['client-id'] = "client_id",
     ['client-secret'] = "client_secret",
-    log_file = "value",
     ['log-file'] = "log_file",
-    log_mode = {"0","3","8"},
     ['log-mode'] = "log_mode",
+    ['accept-everything'] = "accept",
     --shorthand
     d = "debug",
     u = "unstable",
@@ -51,7 +53,8 @@ supported_cli_options = {
     s = "client_secret",
     t = "token",
     l = "log_file",
-    L = "log_mode"
+    L = "log_mode",
+    a = "accept",
 }
 
 supported_environment_varibles = {

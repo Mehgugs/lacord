@@ -360,4 +360,8 @@ for k in iter(cdn_endpoints) do
     cdn['get_'..k] = the_method
 end
 
+function cdn:fetch(...)
+    return self:request("generic-file-request", ...)
+end
+
 return _ENV
