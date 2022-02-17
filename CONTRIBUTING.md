@@ -18,17 +18,17 @@ regarding their location.
 - The format for exported object documentation is:
     ```md
     #### *type* `name`
-    <!-->Blank line here<!-->
+    <!--Blank line here-->
     Description of the export.
     ```
 - The format for exported function documentation is:
     ```md
     #### *return type* `functionname(argument, ...)`
-    <!-->Blank line here<!-->
+    <!--Blank line here-->
     Description of function.
     - *argument type* `argument`
         Optional description.
-    <!-->One bullet for each argument<!-->
+    <!--One bullet for each argument-->
     ```
     Please make sure vararg parameters `...` are documented with a bullets too.
 
@@ -41,16 +41,16 @@ regarding their location.
   document them using a h3 / `###` as follows:
     ```md
     ### *metatable*
-    <!-->Blank line here<!-->
+    <!--Blank line here-->
     Description of the type.
 
     #### *metatable* `constructor(argument, ...)`
     ...
-    <!-->This should be the function that constructs the values with the metatable set.<!-->
+    <!--This should be the function that constructs the values with the metatable set.-->
 
     #### *return type* `metatable:method(argument, ...)`
     ...
-    <!-->Methods are functions reachable from `metatable.__index`.<!-->
+    <!--Methods are functions reachable from `metatable.__index`.-->
     ```
 
 #### Code guidelines

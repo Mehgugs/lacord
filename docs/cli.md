@@ -30,8 +30,16 @@ Currently the only recognized keys are:
     This is passed to the commandline as `--unstable-features`.
 - *boolean* `deprecated`
     This field will enable deprecated features. These are features of the library that
-    will be removed at a specified point in time. To check when a specific version will
-    remove a feature look in `TIMETOLIVE.md`. This is passed to the commandline as `--deprecated`.
+    will be removed at a specified point in time. This is passed to the commandline as `--deprecated`.
+- *string* `log_file`
+    This field will open a file in write mode and pass it to the logger to write into. This is passed to the commandline as `--log-file PATH`
+- *one of "0", "3", "8"* `log_mode`
+    This field will set the logger's colour mode. This is passed to the commandline as
+    `--log-mode n`
+- *boolean* `accept`
+    This field will instruct the cli parser to admit arbitrary parameters. Currently only
+    values are supported. This enables a user defined parameters to be captured in the cli module table. This **does not** affect the environment variables read.
+    This is passed to the commandline as `--accept-everything`, but the shorthand mnemonic `-a` may be preferable.
 
 Additionally the following keys are loaded by this module **but are never used by lacord internally**.
 You must manually use them yourself where appropriate.
@@ -46,7 +54,7 @@ You must manually use them yourself where appropriate.
     This field corresponds to the application's bot token. This is passed to the commandline as `--token XXXXX`.
 
 
-All keys may also be set by environment variable by uppercasing the key and prepending `LACORD_`.
+All keys may also be set by environment variables by uppercasing the key and prepending `LACORD_`.
 For example, the `debug` key can be configured by the `LACORD_DEBUG` environment variable.
 
 In the case that an environment variable has been set **and** a commandline flag provided,
@@ -67,10 +75,38 @@ Example with arguments as literals so you can see how it works:
     -- `arguments` contains remaining commandline arguments that were not processed which in this case is 'foo'.
 ```
 
+### Shorthand parameters
+
+You may also specify parameters using a single `-`, in which case each character of the parameter is
+expanded to the corresponding long form and they are all set. You cannot use two different value flags in the same `-` string, because there will only be one value available for them to be assigned. In this scenario the module will set the first flag and stop expanding characters.
+
+Example invocation:
+```
+$ lua -lacord main.lua -dDuL 8
+```
+
+This would set `debug`, `deprecated`, `unstable` and set the `log_mode` to `8`.
+
+Characters and their corresponding key in cli:
+
+|Character|Field          |
+|---------|---------------|
+|`d      `|`debug        `|
+|`D      `|`deprecated   `|
+|`u      `|`unstable     `|
+|`a      `|`accept       `|
+|`l      `|`log_file     `|
+|`L      `|`log_mode     `|
+|`i      `|`client_id    `|
+|`s      `|`client_secret`|
+|`t      `|`token        `|
+
 ### Automatically loading flags in lua standalone
 
 The virtual module `acord` is designed to be loaded by the lua standalone interpreter option `l` (i.e `lua -lacord ...`).
 This module will read from `_G.arg` -- and also read environment variables -- and populate the cli table with options.
+
+On lua versions >= 5.4 this will emit lua warnings if there are malformed parameters.
 
 Example invocation:
 
@@ -83,7 +119,6 @@ main.lua:
 ....
 local discord_api = api.init{
     token = "Bot "..require"lacord.cli".token
-   ,route_delay = 0
 }
 ....
 ```

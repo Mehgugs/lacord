@@ -24,7 +24,7 @@ local dict_to_query = require"http.util".dict_to_query
 local archp = require"lacord.util.archp"
 local mime = require"lacord.util.mime"
 local expected_args = require"lacord.const".supported_cli_options
-local expected_env = require"lacord.const".supported_environment_varibles
+local expected_env = require"lacord.const".supported_environment_variables
 
 
 local _ENV = {}
@@ -373,6 +373,10 @@ local function boolean_environment_variable(value)
     return nil, false
 end
 
+local function value_environment_variable(value)
+    return value, value ~= nil
+end
+
 local function enum_environment_variable(enum, value)
     if value ~= nil then
         if typ(value) == "string" then value = value:lower() end
@@ -386,7 +390,8 @@ end
 
 local function read_environment_variable(cfg, flagname, ...)
     if typ(cfg[flagname]) == "table" then return enum_environment_variable(cfg[flagname], ...)
-    else return boolean_environment_variable(...)
+    elseif cfg[flagname] == "flag" then return boolean_environment_variable(...)
+    else return value_environment_variable(...)
     end
 end
 

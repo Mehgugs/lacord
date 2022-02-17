@@ -26,7 +26,7 @@ local inflate = zlib.inflate
 local JSON = util.content_types.JSON
 local a_form = util.form
 local is_form = util.is_form
-local file_name = util.filename
+local file_name = util.file_name
 local merge = util.merge
 local compute_attachments = util.compute_attachments
 local tostring = tostring
@@ -426,12 +426,10 @@ function push(state, name, req, major_params, retries)
     stat = headers:get":status"
     rawcode, code = stat, tonumber(stat)
 
-    local date = headers:get"date"
     local remaining =  headers:get"x-ratelimit-remaining"
-    local reset = headers:get"x-ratelimit-reset"
     local reset_after = headers:get"x-ratelimit-reset-after"
-    reset = reset and tonumber(reset)
-    if remaining == '0' and reset then
+
+    if remaining == '0' and reset_after then
         reset_after = tonumber(reset_after)
         delay = max(delay, reset_after)
     end
@@ -440,6 +438,9 @@ function push(state, name, req, major_params, retries)
     if route_id then
         local bucket = major_params == "" and route_id or major_params .. "." .. route_id
         if state.track_rates then
+            local date = headers:get"date"
+            local reset = headers:get"x-ratelimit-reset"
+            reset = reset and tonumber(reset)
             state.rates[name] = {
                 date = date
                 ,bucket = route_id
@@ -493,7 +494,9 @@ function push(state, name, req, major_params, retries)
             end
 
             if retry then
-                logger.warn("($%i;, %q) :  retrying after $%f; sec : %s", code, reason[rawcode], delay, ID)
+                local scope = headers:get"x-ratelimit-scope"
+                logger.warn("($%i;, %q%s) :  retrying after $%f; sec : %s",
+                    code, reason[rawcode], scope and (" , scope: "..scope) or "", delay, ID)
                 cqueues.sleep(delay)
                 return push(state, name, req, major_params, retries+1)
             end

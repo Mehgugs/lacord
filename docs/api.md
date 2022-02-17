@@ -23,7 +23,6 @@ What follows is a short description of the ratelimiting algorithm used by lacord
 - 8) Discover the bucket id.
 - 9) If we were using a generic bucket we record the request's bucket id so that it'll be picked in future.
 - 10) If our status code was 429 we double check the delay from the body, and update global information if it was a global 429. After waiting an appropriate amount of time this request will try again (this can happen up to 5 times).
-- 11) Check the limit for global ratelimits, and update accordingly.
 - 12) Finally we unlock the appropriate bucket after the calculated delay (there's some messy code for resolving the generic and new bucket please feel free to PR a better solution there).
 
 

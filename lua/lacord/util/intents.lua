@@ -16,8 +16,8 @@ local intents = {
     guild_message_typing     = 0x0800,
     direct_messages          = 0x1000,
     direct_message_reactions = 0x2000,
-    direct_message_typing    = 0x4000
-
+    direct_message_typing    = 0x4000,
+    message_content          = 0x8000,
 }
 
 intents.everything = 0
@@ -47,6 +47,6 @@ for name, value in pairs(intents) do
 end
 
 intents.normal = intents.everything & ~intents.guild_presences & ~intents.guild_voice_states
-intents.unprivileged = intents.everything & ~intents.guild_members & ~intents.guild_presences
+intents.unprivileged = intents.everything & ~intents.guild_members & ~intents.guild_presences & ~intents.message_content
 
 return intents

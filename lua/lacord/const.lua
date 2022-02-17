@@ -57,7 +57,7 @@ supported_cli_options = {
     a = "accept",
 }
 
-supported_environment_varibles = {
+supported_environment_variables = {
     LACORD_DEBUG = "debug",
     LACORD_UNSTABLE = "unstable",
     LACORD_DEPRECATED = "deprecated",

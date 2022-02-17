@@ -6,7 +6,7 @@ This module is used to start a websocket session connected to discord's gateway.
 
 This type has methods for connecting and interaction with the discord gateway.
 
-#### *shard* `init(options, idmutex)`
+#### *shard* `init(options, session_limiter)`
 
 Construct a new shard object using the given options and identify mutex.
 
@@ -34,6 +34,8 @@ Construct a new shard object using the given options and identify mutex.
     The total amount of shards to declare when identiying.
 - *application/json* `options.presence`
     An initial presence object to declare when identiying.
+- *session limit* `session_limiter`
+    A [session limit](util.session-limit.md) object created to handle sequencing the shards.
 
 #### *shard* `shard:connect()`
 
@@ -56,9 +58,9 @@ This will terminate the shard's connection, clearing any reconnection flags and 
 - ...
     Arguments to pass to disconnect.
 
-#### *boolean, application/json|string* `shard:request_guild_members(id)`
+#### *boolean* `shard:request_guild_members(id)`
 
-Sends a REQUEST_GUILD_MEMBERS request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.
+Sends a REQUEST_GUILD_MEMBERS request. This will return true if the request was successfully sent. If this function fails it will return false followed by an error message.
 
 - *string (snowflake)* `id`
     The guild id to request members from.
@@ -66,14 +68,14 @@ Sends a REQUEST_GUILD_MEMBERS request. This will return true if the request was 
 
 #### *boolean, application/json|string* `shard:update_status(presence)`
 
-Sends a STATUS_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.
+Sends a STATUS_UPDATE request. This will return true if the request was successfully sent. If this function fails it will return false followed by an error message.
 
 - *application/json* `presence`
-    The new presence for the bot. See the [discord documentation](https://discord.com/developers/docs/topics/gateway#update-presence)
+    The new presence for the bot. See the [discord documentation](https://discord.com/developers/docs/topics/gateway#update-presence).
 
 #### *boolean, application/json|string* `shard:update_voice(guild_id, channel_id, self_mute, self_deaf)`
 
-Sends a VOICE_STATE_UPDATE request. This will return true if the request was successfully sent, followed by the json response. If this function fails it will return false followed by an error message.
+Sends a VOICE_STATE_UPDATE request. This will return true if the request was successfully sent. If this function fails it will return false followed by an error message.
 
 - *string (snowflake)* `guild_id`
     The guild id of the guild the voice channel is in.
