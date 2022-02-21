@@ -33,6 +33,8 @@ build = {
     ,modules = {
         ["lacord.util.archp"] = "src/archp.c",
         ["lacord.cli"] = "lua/lacord/util/cli_default.lua",
-        ["acord"] = "lua/lacord/util/cli_auto.lua"
+        ["acord"] = "lua/lacord/util/cli_auto.lua",
+        ["lacord.ext.shs"] = "ext/shs/shs.lua",
+        ["lacord.outgoing-webhook-server"] = "lua/lacord/wrapper/outgoing-webhook-server.lua"
     }
 }

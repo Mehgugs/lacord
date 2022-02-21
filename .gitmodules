@@ -1,0 +1,3 @@
+[submodule "ext/shs"]
+	path = ext/shs
+	url = https://github.com/Mehgugs/shs
