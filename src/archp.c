@@ -74,7 +74,19 @@ LUALIB_API  int luaopen_lacord_util_archp(lua_State* L) {
     lua_pushstring(L, "vm");
     lua_pushinteger(L, LUA_VERSION_NUM);
     lua_settable(L, -3);
+#if (LUA_VERSION_NUM == 501)
+    lua_pushstring(L, "major");
+    lua_pushstring(L, "5");
+    lua_settable(L, -3);
 
+    lua_pushstring(L, "minor");
+    lua_pushstring(L, "1");
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "release_num");
+    lua_pushstring(L, LUA_RELEASE+8);
+    lua_settable(L, -3);
+#else
     lua_pushstring(L, "major");
     lua_pushstring(L, LUA_VERSION_MAJOR);
     lua_settable(L, -3);
@@ -86,6 +98,7 @@ LUALIB_API  int luaopen_lacord_util_archp(lua_State* L) {
     lua_pushstring(L, "release_num");
     lua_pushstring(L, LUA_VERSION_RELEASE);
     lua_settable(L, -3);
+#endif
 
     lua_settable(L, -3);
     return 1;

@@ -29,6 +29,7 @@ local toquery = httputil.dict_to_query
 local tostring = tostring
 local min, max = math.min, math.max
 local monotime = cqueues.monotime
+local the_platform = util.platform
 
 local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
@@ -415,6 +416,12 @@ function shard:DISPATCH(_, d, t, s)
     return self.loop:wrap(self.emitter,self, t, d)
 end
 
+local IDENTIFY_PROPERTIES = {
+    ['$os'] = the_platform,
+    ['$browser'] = "lacord",
+    ['$device'] = "lacord",
+}
+
 function identify(self)
     -- If we were ready in the past and are being asked to identify
     -- again we need to create a new promise to keep when we receive READY
@@ -434,13 +441,7 @@ function identify(self)
     logger.info("%s has intents: %0#x", self, self.options.intents)
     send(self, ops.IDENTIFY, {
         token = self.options.token,
-        properties = {
-            ['$os'] = util.platform,
-            ['$browser'] = 'lacord',
-            ['$device']  = 'lacord',
-            ['$referrer'] = '',
-            ['$referring_domain'] = '',
-        },
+        properties = IDENTIFY_PROPERTIES,
         compress = self.options.compress,
         large_threshold = self.options.large_threshold,
         shard = {self.options.id, self.options.total_shard_count},
@@ -461,7 +462,6 @@ end
 -- @tab state The shard object.
 -- @int id The guild id.
 -- @treturn[1] bool true If the message was sent successfully.
--- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
 function shard:request_guild_members(id)
@@ -476,7 +476,6 @@ end
 -- @tab state The shard object.
 -- @tab presence The new presence for the bot. Please see the discord documentation.
 -- @treturn[1] bool true If the message was sent successfully.
--- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
 function shard:update_status(presence)
@@ -490,7 +489,6 @@ end
 -- @bool self_mute Whether the bot is muted.
 -- @bool self_deaf Whether the bot is deafened.
 -- @treturn[1] bool true If the message was sent successfully.
--- @treturn[1] table The json object response.
 -- @treturn[2] bool false If the message was not sent successfully.
 -- @return[2]  An error describing what went wrong.
 function shard:update_voice(guild_id, channel_id, self_mute, self_deaf)

@@ -20,13 +20,13 @@ local cqs = require"cqueues"
 local errno = require"cqueues.errno"
 local thread = require"cqueues.thread"
 local logger = require"lacord.util.logger"
-local webhook = os.getenv"WEBHOOK"
+local webhook = require"lacord.cli".webhook
 
 local webhook_id, webhook_token = webhook:match"^(.+):(.+)$"
 
 local loop = cqs.new()
 
-local discord = api.webhook_init(webhook_token)
+local discord = api.webhook_init(webhook_id,webhook_token)
 
 local function starts(s, prefix)
     return s:sub(1, #prefix) == prefix
@@ -53,10 +53,10 @@ loop:wrap(function()
                 username = suffix(line, ":username ")
             end
         else
-            local success = discord:execute_webhook(webhook_id, {
+            local success = discord:execute_webhook{
                 content = line,
                 username = username,
-            })
+            }
             if not success then io.stdin:write":quit" break end
         end
     end
@@ -80,7 +80,7 @@ local util = require"lacord.util"
 local loop = cqs.new()
 
 local discord_api = api.init{
-    token = "Bot "..os.getenv"TOKEN"
+    token = "Bot "..require"lacord.cli".token
    ,accept_encoding = true
    ,track_ratelimits = false
    ,route_delay = 0

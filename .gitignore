@@ -11,3 +11,4 @@
 /docgen/**
 /site/**
 /compiles/**
+make-lacord.lua

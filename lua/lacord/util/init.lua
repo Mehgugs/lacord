@@ -1,30 +1,37 @@
 
 local error  = error
-local warn   = warn or function()end
-local getm   = getmetatable
-local setm   = setmetatable
-local to_n   = tonumber
-local to_s   = tostring
-local set    = rawset
-local typ    = type
 local iiter  = ipairs
 local iter   = pairs
+local getm   = getmetatable
+local setm   = setmetatable
+local set    = rawset
+local to_n   = tonumber
+local to_s   = tostring
+local typ    = type
+local warn   = warn or function()end
+
 local random = math.random
+
 local getenv = os.getenv
+
 local pkgloaded= package.loaded
-local preload= package.preload
-local char   = string.char
+local preload  = package.preload
+
+local char     = string.char
+
 local insert = table.insert
 local concat = table.concat
 local move   = table.move
 local pak    = table.pack
 local unpak  = table.unpack
 
+local _VERSION = _VERSION
+
+local archp_loaded, archp = pcall(require, "lacord.util.archp")
 local dict_to_query = require"http.util".dict_to_query
-local archp = require"lacord.util.archp"
-local mime = require"lacord.util.mime"
 local expected_args = require"lacord.const".supported_cli_options
 local expected_env = require"lacord.const".supported_environment_variables
+local mime = require"lacord.util.mime"
 
 
 local _ENV = {}
@@ -51,12 +58,21 @@ end
 --- The operating system platform.
 -- @within Constants
 -- @string platform
-platform = archp.os
+if archp_loaded then
+    platform = archp.os
 
-_ENV.version_major = to_n(archp.lua.major)
-_ENV.version_minor = to_n(archp.lua.minor)
-_ENV.version_release = to_n(archp.lua.release_num)
-_ENV.version = _ENV.version_major + _ENV.version_minor / 10
+    _ENV.version_major = to_n(archp.lua.major)
+    _ENV.version_minor = to_n(archp.lua.minor)
+    _ENV.version_release = to_n(archp.lua.release_num)
+    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
+else
+    platform = "generic"
+    local mj, mi = _VERSION:match("Lua (%d)%.(%d)")
+    _ENV.version_major = to_n(mj)
+    _ENV.version_minor = to_n(mi)
+    _ENV.version_release = -1
+    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
+end
 
 --- Tests whether a string starts with a given prefix.
 -- @str s The string to check.
