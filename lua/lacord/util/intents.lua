@@ -1,5 +1,7 @@
 local pairs = pairs
-local _ENV = {}
+local bor = bit.bor
+local band = bit.band
+local bnot = bit.bnot
 
 local intents = {
     guilds                   = 0x0001,
@@ -22,31 +24,35 @@ local intents = {
 
 intents.everything = 0
 for _, value in pairs(intents) do
-    intents.everything = intents.everything | value
+    intents.everything = bor(intents.everything , value)
 end
 
 intents.message = 0
 for name, value in pairs(intents) do
     if name:find'message' then
-        intents.message = intents.message | value
+        intents.message = bor(intents.message , value)
     end
 end
 
 intents.guild = 0
 for name, value in pairs(intents) do
     if name:find'guild' then
-        intents.guild = intents.guild | value
+        intents.guild = bor(intents.guild , value)
     end
 end
 
 intents.direct = 0
 for name, value in pairs(intents) do
     if name:find'direct' then
-        intents.direct = intents.direct | value
+        intents.direct = bor(intents.direct , value)
     end
 end
 
-intents.normal = intents.everything & ~intents.guild_presences & ~intents.guild_voice_states
-intents.unprivileged = intents.everything & ~intents.guild_members & ~intents.guild_presences & ~intents.message_content
+intents.normal = band(band(intents.everything , bnot(intents.guild_presences)) , bnot(intents.guild_voice_states))
+intents.unprivileged = band(band(band(
+    intents.everything,
+    bnot(intents.guild_members)),
+    bnot(intents.guild_presences)),
+    bnot(intents.message_content))
 
 return intents

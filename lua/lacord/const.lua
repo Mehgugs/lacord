@@ -1,35 +1,35 @@
 
-local _ENV = {}
-version = "1637789515"
-homepage = "https://github.com/Mehgugs/lacord"
-time_unit = "seconds"
-discord_epoch = 1420070400
-gateway_delay = .5
-identify_delay = 5
-api_version = 10
+local const = {}
+const.version = "1637789515"
+const.homepage = "https://github.com/Mehgugs/lacord"
+const.time_unit = "seconds"
+const.discord_epoch = 1420070400
+const.gateway_delay = .5
+const.identify_delay = 5
+const.api_version = 10
 
-api = {
+const.api = {
     base_endpoint = "https://discord.com/api"
    ,cdn_endpoint = "https://cdn.discordapp.com"
-   ,version = api_version
+   ,version = const.api_version
    ,max_retries = 6
 }
 
-gateway = {
+const.gateway = {
     delay = .5
    ,identify_delay = 5
-   ,version = api_version
+   ,version = const.api_version
    ,encoding = "json"
    ,compress = "zlib-stream"
 }
 
-api.endpoint = ("%s/v%s"):format(api.base_endpoint, api.version)
+const.api.endpoint = ("%s/v%s"):format(const.api.base_endpoint, const.api.version)
 
-default_avatars = 5
+const.default_avatars = 5
 
-use_cjson = true
+const.use_cjson = true
 
-supported_cli_options = {
+const.supported_cli_options = {
     debug = "flag",
     unstable = "flag",
     deprecated = "flag",
@@ -57,7 +57,7 @@ supported_cli_options = {
     a = "accept",
 }
 
-supported_environment_variables = {
+const.supported_environment_variables = {
     LACORD_DEBUG = "debug",
     LACORD_UNSTABLE = "unstable",
     LACORD_DEPRECATED = "deprecated",
@@ -68,4 +68,4 @@ supported_environment_variables = {
     LACORD_LOG_FILE = "log_file"
 }
 
-return _ENV
+return const

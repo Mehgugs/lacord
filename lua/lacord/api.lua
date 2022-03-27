@@ -16,7 +16,7 @@ local auditable = require"lacord.util.audit-log-methods"
 local inspect = require"inspect"
 local cli = require"lacord.cli"
 local LACORD_DEBUG = cli.debug
-local LACORD_UNSTABLE = cli.unstable
+--local LACORD_UNSTABLE = cli.unstable
 local LACORD_DEPRECATED = cli.deprecated
 
 local sleep = cqueues.sleep
@@ -33,7 +33,7 @@ local tostring = tostring
 local remove = table.remove
 local time = os.time
 local insert, concat = table.insert, table.concat
-local unpack = table.unpack
+local unpack = unpack
 local next, tonumber = next, tonumber
 local setm = setmetatable
 local max = math.max
@@ -50,9 +50,9 @@ local openf = io.open
 local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
 
-local _ENV = {}
+local M = {}
 
---luacheck: ignore 111 631
+--luacheck: ignore 631
 
 local api = {__name = "lacord.api"}
 api.__index = api
@@ -62,13 +62,13 @@ api.__index = api
 -- @string URL
 -- @within Constants
 local URL = constants.api.endpoint
-_ENV.URL = URL
+M.URL = URL
 
 --- The user-agent used to connect with. (mandated by discord)
 -- @string USER_AGENT
 -- @within Constants
 local USER_AGENT = ("DiscordBot (%s, %s) lua-version:\"%s\""):format(constants.homepage,constants.version, ver )
-_ENV.USER_AGENT = USER_AGENT
+M.USER_AGENT = USER_AGENT
 
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))
 local BOUNDARY2 = "--" .. BOUNDARY1
@@ -210,7 +210,7 @@ end
 --- Creates a new api state for connecting to discord.
 -- @tab options The options table. Must contain a `token` field with the api token to use.
 -- @treturn api The api state object.
-function new(options)
+function M.new(options)
     local state = setm({}, api)
     local auth
     if options.client_credentials then
@@ -243,7 +243,7 @@ function new(options)
     return state
 end
 
-if LACORD_DEPRECATED then _ENV.init = _ENV.new end
+if LACORD_DEPRECATED then M.init = M.new end
 
 
 local function mapquery(Q)
@@ -252,7 +252,7 @@ local function mapquery(Q)
     return out
 end
 
-_ENV.mapquery = mapquery
+M.mapquery = mapquery
 
 local function get_routex(ratelimits, key, unlimited)
     local item = ratelimits[key]
@@ -581,7 +581,7 @@ end
 
 function api:create_message(channel_id, payload, files)
     if files then
-        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+        merge(payload, compute_attachments(files), M.attachments_resolution)
     end
     return self:request('create_message', 'POST', '/channels/:channel_id/messages', {
         channel_id = channel_id
@@ -770,7 +770,7 @@ end
 
 function api:create_interaction_response(interaction_id, interaction_token, payload, files)
     if files then
-        merge(payload.data, compute_attachments(files), _ENV.attachments_resolution)
+        merge(payload.data, compute_attachments(files), M.attachments_resolution)
     end
     return self:request('create_interaction_response', 'POST', '/interactions/:interaction_id/:interaction_token/callback', {
         interaction_id = interaction_id,
@@ -801,7 +801,7 @@ end
 
 function api:create_followup_message(application_id, interaction_token,  payload, files)
     if files then
-        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+        merge(payload, compute_attachments(files), M.attachments_resolution)
     end
     return self:request('create_followup_message', 'POST', '/webhooks/:application_id/:interaction_token', {
        application_id = application_id,
@@ -1248,7 +1248,7 @@ static'execute_webhook'
 
 function api:execute_webhook(webhook_id, webhook_token, payload, query, files)
     if files then
-        merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+        merge(payload, compute_attachments(files), M.attachments_resolution)
     end
     return self:request('execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
@@ -1679,9 +1679,9 @@ local function webhook_init(webhook_id, webhook_token)
     webhook_api.id = webhook_id
     return webhook_api
 end
-_ENV.webhook_init = webhook_init
+M.webhook_init = webhook_init
 
-function with_reason(txt)
+function M.with_reason(txt)
     local thr = cqueues.running()
     if not thr then err("Cannot add a contextual reason without a cqueues thread (using api methods outside a coroutine?).") end
     reason_thrs[thr] = reason_thrs[thr] or {}
@@ -1690,11 +1690,11 @@ function with_reason(txt)
 end
 
 if LACORD_DEBUG then
-    function pre_push()
+    function M.pre_push()
         local thr = cqueues.running()
         if not thr then err("Cannot grab contextual request object. (using api methods outside a coroutine?).") end
         pre_pushes[thr] = true
     end
 end
 
-return _ENV
+return M

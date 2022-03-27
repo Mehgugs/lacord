@@ -20,18 +20,22 @@ local to_n = tonumber
 local setm = setmetatable
 local type = type
 local to_s = tostring
-local to_int = math.tointeger
 local iter = pairs
+local floor = math.floor
 
 local decode = require"lacord.util.json".decode
 
-local _ENV = {}
+local M = {}
+
+--luacheck: ignore 631
 
 local URL = constants.api.cdn_endpoint
 local USER_AGENT = api.USER_AGENT
 
+local function to_int(n)
+    return floor(n) == n
+end
 
---luacheck: ignore 111 631
 
 local img_exts = {
     jpeg = ".jpg",
@@ -77,7 +81,7 @@ local cdn = {__name = "lacord.cdn"}
 
 cdn.__index = cdn
 
-function new(options)
+function M.new(options)
     return setm({
         http_version = options.http_version or 1.1,
         accept_encoding = options.accept_encoding and "gzip, deflate, x-gzip" or nil,
@@ -151,7 +155,7 @@ function cdn:push(name, req, retries)
     end
 end
 
-function custom_emoji_url(emoji_id, ext, size)
+function M.custom_emoji_url(emoji_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.custom_emoji,
             {emoji_id = emoji_id, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -162,7 +166,7 @@ function custom_emoji_url(emoji_id, ext, size)
     end
 end
 
-function guild_icon_url(guild_id, guild_icon, ext, size)
+function M.guild_icon_url(guild_id, guild_icon, ext, size)
    local base = URL ..
         resolve_parameters(cdn_endpoints.guild_icon,
             { guild_id = guild_id, guild_icon = guild_icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -173,7 +177,7 @@ function guild_icon_url(guild_id, guild_icon, ext, size)
     end
 end
 
-function guild_splash_url(guild_id, guild_splash, ext, size)
+function M.guild_splash_url(guild_id, guild_splash, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.guild_splash,
             { guild_id = guild_id, guild_splash = guild_splash, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -184,7 +188,7 @@ function guild_splash_url(guild_id, guild_splash, ext, size)
     end
 end
 
-function guild_discovery_splash_url(guild_id, guild_discovery_splash, ext, size)
+function M.guild_discovery_splash_url(guild_id, guild_discovery_splash, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.guild_discovery_splash,
             { guild_id = guild_id, guild_discovery_splash = guild_discovery_splash, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -195,7 +199,7 @@ function guild_discovery_splash_url(guild_id, guild_discovery_splash, ext, size)
     end
 end
 
-function guild_banner_url(guild_id, guild_banner, ext, size)
+function M.guild_banner_url(guild_id, guild_banner, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.guild_banner,
             { guild_id = guild_id, guild_banner = guild_banner, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -206,7 +210,7 @@ function guild_banner_url(guild_id, guild_banner, ext, size)
     end
 end
 
-function default_user_avatar_url(user_discriminator, ext, size)
+function M.default_user_avatar_url(user_discriminator, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.default_user_avatar,
             { user_discriminator = user_discriminator, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -217,7 +221,7 @@ function default_user_avatar_url(user_discriminator, ext, size)
     end
 end
 
-function user_avatar_url(user_id, user_avatar, ext, size)
+function M.user_avatar_url(user_id, user_avatar, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.user_avatar,
             { user_id = user_id, user_avatar = user_avatar, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -228,7 +232,7 @@ function user_avatar_url(user_id, user_avatar, ext, size)
     end
 end
 
-function application_icon_url(application_id, icon, ext, size)
+function M.application_icon_url(application_id, icon, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.application_icon,
             { application_id = application_id, icon = icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -239,7 +243,7 @@ function application_icon_url(application_id, icon, ext, size)
     end
 end
 
-function application_cover_url(application_id, cover_image, ext, size)
+function M.application_cover_url(application_id, cover_image, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.application_cover,
             { application_id = application_id, cover_image = cover_image, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -250,7 +254,7 @@ function application_cover_url(application_id, cover_image, ext, size)
     end
 end
 
-function applicaion_asset_url(application_id, asset_id, ext, size)
+function M.applicaion_asset_url(application_id, asset_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.applicaion_asset,
             { application_id = application_id, asset_id = asset_id, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -261,7 +265,7 @@ function applicaion_asset_url(application_id, asset_id, ext, size)
     end
 end
 
-function achievement_icon_url(application_id, achievement_id, icon, ext, size)
+function M.achievement_icon_url(application_id, achievement_id, icon, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.achievement_icon,
             { application_id = application_id, achievement_id = achievement_id, icon = icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -272,7 +276,7 @@ function achievement_icon_url(application_id, achievement_id, icon, ext, size)
     end
 end
 
-function sticker_pack_banner_url(sticker_pack_banner_asset_id, ext, size)
+function M.sticker_pack_banner_url(sticker_pack_banner_asset_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.sticker_pack_banner,
             { sticker_pack_banner_asset_id = sticker_pack_banner_asset_id, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -283,7 +287,7 @@ function sticker_pack_banner_url(sticker_pack_banner_asset_id, ext, size)
     end
 end
 
-function team_icon_url(team_id, team_icon, ext, size)
+function M.team_icon_url(team_id, team_icon, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.team_icon,
             { team_id = team_id, team_icon = team_icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -294,7 +298,7 @@ function team_icon_url(team_id, team_icon, ext, size)
     end
 end
 
-function sticker_url(sticker_id, ext, size)
+function M.sticker_url(sticker_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.sticker,
             { sticker_id = sticker_id, sticker_ext = logger.assert(sticker_exts[ext], "Image extension %s not supported!", ext)})
@@ -305,7 +309,7 @@ function sticker_url(sticker_id, ext, size)
     end
 end
 
-function attachment_url(channel_id, attachment_id, file_name, ext, size)
+function M.attachment_url(channel_id, attachment_id, file_name, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.attachment,
             { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
@@ -316,7 +320,7 @@ function attachment_url(channel_id, attachment_id, file_name, ext, size)
     end
 end
 
-function role_icon_url(role_id, role_icon, ext, size)
+function M.role_icon_url(role_id, role_icon, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.role_icon,
             { role_id = role_id, role_icon = role_icon, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -327,7 +331,7 @@ function role_icon_url(role_id, role_icon, ext, size)
     end
 end
 
-function scheduled_guild_event_cover_url(scheduled_event_id, scheduled_event_cover_image, ext, size)
+function M.scheduled_guild_event_cover_url(scheduled_event_id, scheduled_event_cover_image, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.scheduled_guild_event_cover,
             { scheduled_event_id = scheduled_event_id, scheduled_event_cover_image = scheduled_event_cover_image,
@@ -340,7 +344,7 @@ function scheduled_guild_event_cover_url(scheduled_event_id, scheduled_event_cov
 end
 
 if LACORD_UNSTABLE then
-    function ephemeral_attachment_url(channel_id, attachment_id, file_name, ext, size)
+    function M.ephemeral_attachment_url(channel_id, attachment_id, file_name, ext, size)
         local base = URL ..
             resolve_parameters(cdn_endpoints.attachment,
                 { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
@@ -353,7 +357,7 @@ if LACORD_UNSTABLE then
 end
 
 for k in iter(cdn_endpoints) do
-    local the_url = _ENV[k .. "_url"]
+    local the_url = M[k .. "_url"]
     local function the_method(self, ...)
         return self:request(k, the_url(...))
     end
@@ -364,4 +368,4 @@ function cdn:fetch(...)
     return self:request("generic-file-request", ...)
 end
 
-return _ENV
+return M

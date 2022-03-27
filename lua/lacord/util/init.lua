@@ -8,7 +8,9 @@ local set    = rawset
 local to_n   = tonumber
 local to_s   = tostring
 local typ    = type
-local warn   = warn or function()end
+
+local band = bit.band
+local bxor = bit.bxor
 
 local random = math.random
 
@@ -20,10 +22,7 @@ local preload  = package.preload
 local char     = string.char
 
 local insert = table.insert
-local concat = table.concat
 local move   = table.move
-local pak    = table.pack
-local unpak  = table.unpack
 
 local _VERSION = _VERSION
 
@@ -34,24 +33,26 @@ local expected_env = require"lacord.const".supported_environment_variables
 local mime = require"lacord.util.mime"
 
 
-local _ENV = {}
+local M = {}
 
--- luacheck: ignore 111
+local function pak(...)
+    return {n = select('#', ...); ...}
+end
 
 --- Computes the FNV-1a 32bit hash of the given string.
 -- @str str The input string.
 -- @treturn integer The hash.
-function hash(str)
+function M.hash(str)
     local hash = 2166136261
     for i = 1, #str do
-        hash = hash ~ str:byte(i)
-        hash = (hash * 16777619) & 0xffffffff
+        hash = bxor(hash , str:byte(i))
+        hash = band((hash * 16777619) , 0xffffffff)
     end
     return hash
 end
 
 --- Produces a random double between `A` and `B`.
-function rand(A, B)
+function M.rand(A, B)
     return random() * (A - B) + A
 end
 
@@ -59,26 +60,26 @@ end
 -- @within Constants
 -- @string platform
 if archp_loaded then
-    platform = archp.os
+    M.platform = archp.os
 
-    _ENV.version_major = to_n(archp.lua.major)
-    _ENV.version_minor = to_n(archp.lua.minor)
-    _ENV.version_release = to_n(archp.lua.release_num)
-    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
+    M.version_major = to_n(archp.lua.major)
+    M.version_minor = to_n(archp.lua.minor)
+    M.version_release = to_n(archp.lua.release_num)
+    M.version = M.version_major + M.version_minor / 10
 else
-    platform = "generic"
+    M.platform = "generic"
     local mj, mi = _VERSION:match("Lua (%d)%.(%d)")
-    _ENV.version_major = to_n(mj)
-    _ENV.version_minor = to_n(mi)
-    _ENV.version_release = -1
-    _ENV.version = _ENV.version_major + _ENV.version_minor / 10
+    M.version_major = to_n(mj)
+    M.version_minor = to_n(mi)
+    M.version_release = -1
+    M.version = M.version_major + M.version_minor / 10
 end
 
 --- Tests whether a string starts with a given prefix.
 -- @str s The string to check.
 -- @str prefix The prefix.
 -- @treturn bool True if s starts with the prefix.
-function startswith(s, prefix)
+function M.startswith(s, prefix)
     return s:sub(1, #prefix) == prefix
 end
 
@@ -86,7 +87,7 @@ end
 -- @str s The string to check.
 -- @str pre The prefix.
 -- @treturn string The suffix of `pre` in `s` or `s` if `s` does not start with `pre`.
-function suffix(s, pre)
+function M.suffix(s, pre)
     local len = #pre
     return s:sub(1, len) == pre and s:sub(len + 1) or s
 end
@@ -95,7 +96,7 @@ end
 -- @str s The string to check.
 -- @str suffix The suffix.
 -- @treturn bool True if s starts with the suffix.
-function endswith(s, suffix)
+function M.endswith(s, suffix)
     return s:sub(-#suffix) == suffix
 end
 
@@ -103,14 +104,14 @@ end
 -- @str s The string to check.
 -- @str suf The suffix.
 -- @treturn string The prefix of `suf` in `s` or `s` if `s` does not end with `suf`.
-function prefix(s, suf)
+function M.prefix(s, suf)
   local len = #suf
   return s:sub(-len) == suf and s:sub(1, -len -1) or s
 end
 
 --- Resolve a prospective payload w.r.t lacord content types.
 --  Users can check the 2nd return value to see if any processing was done.
-function content_typed(payload, ...)
+function M.content_typed(payload, ...)
     local mt = getm(payload)
     if mt and mt.__lacord_content_type then
         return mt.__lacord_payload(payload, ...),mt.__lacord_content_type
@@ -119,7 +120,7 @@ function content_typed(payload, ...)
     end
 end
 
-function the_content_type(payload)
+function M.the_content_type(payload)
     local mt = getm(payload)
     if mt and mt.__lacord_content_type then
         return mt.__lacord_content_type
@@ -127,7 +128,7 @@ function the_content_type(payload)
 end
 
 --- Some common content types.
-_ENV.content_types = {
+M.content_types = {
     JSON = "application/json",
     TEXT = "text/plain; charset=UTF-8",
     URLENCODED = "application/x-www-form-urlencoded",
@@ -137,7 +138,7 @@ _ENV.content_types = {
 
 
 local txt = {
-    __lacord_content_type = _ENV.content_types.TEXT,
+    __lacord_content_type = M.content_types.TEXT,
     __lacord_payload = function(x) return x[1] end,
     __tostring = function(x) return x[1] end,
     __lacord_file_name = function(x) return x.name end,
@@ -146,11 +147,11 @@ local txt = {
     __lacord_set_file_description = function(self, value) self.description = value end,
 }
 
-function plaintext(str, name) return setm({str, name = name}, txt) end
+function M.plaintext(str, name) return setm({str, name = name}, txt) end
 
 
 local bin = {
-    __lacord_content_type = _ENV.content_types.BYTES,
+    __lacord_content_type = M.content_types.BYTES,
     __lacord_payload = function(x) return x[1] end,
     __tostring = function(x) return x[1] end,
     __lacord_file_name = function(x) return x.name end,
@@ -159,7 +160,7 @@ local bin = {
     __lacord_set_file_description = function(self, value) self.description = value end,
 }
 
-function binary(str, name) return setm({str, name = name}, bin) end
+function M.binary(str, name) return setm({str, name = name}, bin) end
 
 
 local virtual_filenames = setm({}, {__mode = "k"})
@@ -187,7 +188,7 @@ function urlencoded_t:__lacord_set_file_description(value)
     virtual_descriptions[self] = value
 end
 
-function urlencoded(t) return setm(t or {}, urlencoded_t) end
+function M.urlencoded(t) return setm(t or {}, urlencoded_t) end
 
 
 local form_t = {__lacord_content_type = "form"}
@@ -200,7 +201,7 @@ function form_t:__lacord_set_file_name(value)
     virtual_filenames[self] = value
 end
 
-function form(t)
+function M.form(t)
     return setm(t or {}, form_t)
 end
 
@@ -211,7 +212,7 @@ function form_t:__newindex(k, v)
     set(self, k, to_s(v))
 end
 
-function is_form(f) return getm(f) == form_t end
+function M.is_form(f) return getm(f) == form_t end
 
 
 local png_t = {
@@ -224,13 +225,13 @@ local png_t = {
     __lacord_set_file_description = function(self, value) self.description = value end,
 }
 
-function png(str, name)
+function M.png(str, name)
     return setm({str, name = name ..".png"}, png_t)
 end
 
 
 local json_str = {
-    __lacord_content_type = _ENV.content_types.JSON,
+    __lacord_content_type = M.content_types.JSON,
     __lacord_payload = function(x) return x[1] end,
     __tostring = function(x) return x[1] end,
     __lacord_file_name = function(x) return x.name end,
@@ -239,12 +240,12 @@ local json_str = {
     __lacord_set_file_description = function(self, value) self.description = value end,
 }
 
-function json_string(data, name)
+function M.json_string(data, name)
     return setm({data, name = name}, json_str)
 end
 
 
-function file_name(cted)
+function M.file_name(cted)
     local mt = getm(cted)
     local curname = mt and mt.__lacord_file_name and mt.__lacord_file_name(cted) or ""
 
@@ -255,7 +256,7 @@ function file_name(cted)
             ext = curname
         else
             base = curname
-            local ct = _ENV.the_content_type(cted)
+            local ct = M.the_content_type(cted)
             local lookup = ct and ct:match"^[^;]+"
             if ct and mime.exts[lookup] then
                 ext = mime.exts[lookup]
@@ -267,7 +268,7 @@ function file_name(cted)
     return base .. ext, base, ext
 end
 
-function set_file_name(cted, name)
+function M.set_file_name(cted, name)
     local mt = getm(cted)
     return mt and mt.__lacord_set_file_name and mt.__lacord_set_file_name(cted, name)
 end
@@ -291,17 +292,17 @@ local function new_mime_blob(content_type)
     end
 end
 
-mime_blob_ts[_ENV.content_types.JSON] = json_str
-mime_blob_ts[_ENV.content_types.TEXT] = txt
-mime_blob_ts[_ENV.content_types.BYTES] = bin
-mime_blob_ts[_ENV.content_types.PNG] = png_t
+mime_blob_ts[M.content_types.JSON] = json_str
+mime_blob_ts[M.content_types.TEXT] = txt
+mime_blob_ts[M.content_types.BYTES] = bin
+mime_blob_ts[M.content_types.PNG] = png_t
 
-function a_blob_of(content_type, data, name)
+function M.a_blob_of(content_type, data, name)
     return setm({data, name = name}, new_mime_blob(content_type))
 end
 
-function blob_for_file(blob, name)
-    local _, curname, curext = _ENV.file_name(blob)
+function M.blob_for_file(blob, name)
+    local _, curname, curext = M.file_name(blob)
     if not curname or curname == "" then curname = name or "" end
 
     local base,ext = curname:match"^(.+)(%..+)"
@@ -315,7 +316,7 @@ function blob_for_file(blob, name)
             ext = curext
         else
             base = curname
-            local ct = _ENV.the_content_type(blob)
+            local ct = M.the_content_type(blob)
             local lookup = ct:match"^[^;]+"
             if mime.exts[lookup] then
                 ext = mime.exts[lookup]
@@ -324,24 +325,24 @@ function blob_for_file(blob, name)
             end
         end
     end
-    return base .. ext, (_ENV.content_typed(blob))
+    return base .. ext, (M.content_typed(blob))
 end
 
-function file_description(cted)
+function M.file_description(cted)
     local mt = getm(cted)
     local desc = mt and mt.__lacord_file_description and mt.__lacord_file_description(cted)
     return desc or "", not not desc
 end
 
-function set_file_description(cted, name)
+function M.set_file_description(cted, name)
     local mt = getm(cted)
     return mt and mt.__lacord_set_file_description and mt.__lacord_set_file_description(cted, name)
 end
 
-function compute_attachments(files)
+function M.compute_attachments(files)
     local att = { }
     for i, file in iiter(files) do
-        local d, was_set = _ENV.file_description(file)
+        local d, was_set = M.file_description(file)
         if was_set then
             insert(att, {
                 id = i -1,
@@ -363,7 +364,7 @@ local function merget(t, other, conflict)
     end
 end
 
-_ENV.merge = merget
+M.merge = merget
 
 local positives = {
     yes = true,
@@ -450,7 +451,7 @@ local function commandline_args(...)
                     goto continue
                 end
             end
-            warn("lacord.util.commandline_args: Unrecognized option passed to --"..key)
+            --warn("lacord.util.commandline_args: Unrecognized option passed to --"..key)
         elseif expecting then
            -- if we're expecting an argument then set the current argument as the value
            out[key] = item
@@ -464,12 +465,9 @@ local function commandline_args(...)
             elseif f == 45 then
                 list[i] = nil
                 local chrs = {item:byte(2, -1)}
-                for j, c in iiter(chrs) do
+                for _, c in iiter(chrs) do
                     key, expecting = commandline_item(out, char(c))
-                    if expecting then
-                        if j ~= #chrs then warn("lacord.util.commandline_args: shorthands which both admit an argument were used, dropping: ".. char(unpak(chrs, j+1))) end
-                        break
-                    end
+                    if expecting then break end
                 end
             else
                 move(list, i, list.n, 1)
@@ -481,7 +479,7 @@ local function commandline_args(...)
     return out, list
 end
 
-function cli_options(...)
+function M.cli_options(...)
     local flags, remaining = commandline_args(...)
 
     for envname, flagname in iter(expected_env) do
@@ -489,9 +487,9 @@ function cli_options(...)
         if was_set then flags[flagname] = flags[flagname] or value end
     end
 
-    pkgloaded['lacord.cli'] = setm(flags, preload['lacord._.cli_metatable'])
+    pkgloaded['lacord.cli'] = setm(flags, preload['lacord._.cli_metatable']())
 
     return remaining, flags
 end
 
-return _ENV
+return M

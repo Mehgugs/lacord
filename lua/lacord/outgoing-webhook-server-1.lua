@@ -28,7 +28,7 @@ local openf = io.open
 local date = os.date
 local fmt = string.format
 local char = string.char
-local unpak = table.unpack
+local unpak = unpack
 local content_typed = util.content_typed
 local default_server = "lacord " .. const.version
 local iiter = ipairs
@@ -36,7 +36,7 @@ local JSON =  util.content_types.JSON
 local TEXT =  util.content_types.TEXT
 
 --luacheck: ignore 111
-local _ENV = {}
+local M = {}
 
 -- required for TLS context creation.
 local function alpn_select(ssl, protos, version)
@@ -359,8 +359,8 @@ function new(options, crtfile, keyfile)
     return myserver
 end
 
-_ENV.init = _ENV.new
+M.init = M.new
 
-_ENV.diy_tls = new_ctxlit
+M.diy_tls = new_ctxlit
 
-return _ENV
+return M

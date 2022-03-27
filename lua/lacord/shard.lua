@@ -16,7 +16,7 @@ local intents = require"lacord.util.intents"
 local USER_AGENT = require"lacord.api".USER_AGENT
 local LACORD_DEPRECATED = require"lacord.cli".deprecated
 
-
+local to_n = tonumber
 local setmetatable = setmetatable
 local pairs = pairs
 local poll = cqueues.poll
@@ -35,7 +35,7 @@ local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
 local null = require"lacord.util.json".null
 
-local _ENV = {}
+local M = {}
 
 local shard = {__name = "lacord.shard"}
 
@@ -64,7 +64,7 @@ local _ops = {
 
 local ops = {} for k, v in pairs(_ops) do ops[k] = v ops[v] = k end
 
-_ENV.ops = ops
+M.ops = ops
 
 local function load_options(into, o)
     for k, v in pairs(o) do
@@ -79,7 +79,7 @@ local messages, send, read_message, resume, identify, reconnect
 -- @tab options Options to pass to the shard please see `options`.
 -- @mutex session_limit The session_limit used to synchronize identify between multiple shards.
 -- @treturn tab The shard object.
-function new(options, session_limit)
+function M.new(options, session_limit)
     if not (options.token and options.token:sub(1,4) == "Bot ") then
         return logger.fatal("Please supply a bot token")
     end
@@ -106,7 +106,7 @@ function new(options, session_limit)
     return state
 end
 
-if LACORD_DEPRECATED then _ENV.init = _ENV.new end
+if LACORD_DEPRECATED then M.init = M.new end
 
 --- Connects a shard to discord.
 -- This can be called in method form `s:connect()`.
@@ -446,7 +446,7 @@ function identify(self)
         large_threshold = self.options.large_threshold,
         shard = {self.options.id, self.options.total_shard_count},
         presence = self.options.presence,
-        intents = self.options.intents
+        intents = to_n(self.options.intents)
     }, true)
 end
 
@@ -500,4 +500,4 @@ function shard:update_voice(guild_id, channel_id, self_mute, self_deaf)
     })
 end
 
-return _ENV
+return M

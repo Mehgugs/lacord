@@ -6,6 +6,6 @@ function climt.__call(_,...)
     return cli_options(...)
 end
 
-package.preload['lacord._.cli_metatable'] = climt
+package.preload['lacord._.cli_metatable'] = function() return climt end
 
 return setmetatable({}, climt)

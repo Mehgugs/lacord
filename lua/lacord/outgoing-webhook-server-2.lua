@@ -1,14 +1,9 @@
 local asserts = assert
-local iiter   = ipairs
 local iter    = pairs
-local try     = pcall
-local setm    = setmetatable
 local to_n    = tonumber
-local to_s    = tostring
-local typ     = type
+local unpak = unpack
 
 local insert = table.insert
-local unpak = table.unpack
 
 local char = string.char
 
@@ -27,8 +22,7 @@ local content_typed = util.content_typed
 local JSON          = util.content_types.JSON
 local TEXT          = util.content_types.TEXT
 
---luacheck: ignore 111
-local _ENV = {}
+local M = {}
 
 -- decode a hexadecimal string into bytes
 local function decode_hex(str)
@@ -88,7 +82,7 @@ do
     end
 end
 
-function new(options, ...)
+function M.new(options, ...)
     local data = {key = asserts(options.public_key,
         "Please provide your application's public key for signature verfication.")}
 
@@ -115,4 +109,4 @@ function new(options, ...)
     }, ...)
 end
 
-return _ENV
+return M

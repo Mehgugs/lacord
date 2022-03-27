@@ -1,5 +1,3 @@
-local warn = warn or function()end
-
 for k in pairs(_G.arg) do
     if k < 0 then goto okay end
 end
@@ -8,8 +6,5 @@ error"The -lacord module was loaded without being in script mode, you must provi
 
 ::okay::
 
-warn"@on"
+require"lacord.cli"(unpack(_G.arg, 1))
 
-require"lacord.cli"(table.unpack(_G.arg, 1))
-
-warn"@off"

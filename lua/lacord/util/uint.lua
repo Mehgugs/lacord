@@ -1,22 +1,38 @@
 --- Unsigned integer encoding and utilities.
--- @module util.uint
 
-local ult, mtoint, mntype, max_int = math.ult, math.tointeger, math.type, math.maxinteger
-local setmetatable = setmetatable
-local tonumber = tonumber
-local type = type
+local setm = setmetatable
+local to_n = tonumber
+local to_s = tostring
+local typ  = type
+
+local band   = bit.band
+local bnot   = bit.bnot
+local bor    = bit.bor
+local lshift = bit.lshift
+local rshift = bit.rshift
+
 local time = os.time
+
+local ffi       = require"ffi"
 local constants = require"lacord.const"
 
-local _ENV = setmetatable({}, {__call = function(self,s) return self.touint(s) end})
+local cast = ffi.cast
+local ctype = ffi.istype
+
+
+local M = setm({}, {__call = function(self,s) return self.touint(s) end})
+
+local max_int = bnot(0)
+
+local uint64_t = ffi.typeof'uint64_t'
 
 local function to_integer_worker(s) -- string -> uint64
-    local n = 0
+    local n = 0ULL
     local l = #s
-    local place = 1
+    local place = 1LL
     for i = l -1,0, -1  do
-        n = n + tonumber(s:sub(i+1,i+1)) * place
-        place = place * 10
+        n = n + to_n(s:sub(i+1,i+1)) * place
+        place = place * 10ULL
     end
     return n
 end
@@ -24,19 +40,11 @@ end
 local two_63 = 2^63
 local two_64 = 2^64
 
-local function float_to_uint(f)
+local function lnum_to_uint(f)
     if f > max_int then
-        return mtoint(((f + two_63) % two_64) - two_63)
+        return cast(uint64_t, ((f + two_63) % two_64) - two_63)
     else
-        return mtoint(f)
-    end
-end
-
-local function lnum_to_uint(l)
-    if mntype(l) == 'integer' then
-        return l
-    else
-        return float_to_uint(l)
+        return cast(uint64_t, f)
     end
 end
 
@@ -49,76 +57,51 @@ end
 -- @tparam number|string s
 -- @treturn[1] integer The encoded uint64.
 -- @treturn[2] nil
-function touint(s)
-    if type(s) == 'number' then return lnum_to_uint(s)
-    elseif type(s) == 'string' and numeral(s) then
+function M.touint(s)
+    local the_type = typ(s)
+    if the_type == 'number' then return lnum_to_uint(s)
+    elseif the_type == 'string' and numeral(s) then
         return to_integer_worker(s)
+    elseif the_type == 'cdata' and ctype(uint64_t, s) then
+        return s
+    elseif the_type == 'cdata' and ctype('int64_t', s) then
+        return s < 0 and cast(uint64_t, -s) or cast(uint64_t, s)
     end
 end
 
---- uint64 tostring
--- @int i An encoded uint64.
-function tostring(i) return type(i) == 'string' and i or ("%u"):format(i) end
+M.tostring = to_s
 
-local function udiv (n, d)
-    if d < 0 then
-      if ult(n, d) then return 0
-      else return 1
-      end
-    end
-    local q = ((n >> 1) // d) << 1
-    local r = n - q * d
-    if not ult(r, d) then q = q + 1 end
-    return q
-end
-
-do
-    local fnv_basis = -3750763034362895579
-    local fnv_prime = 1099511628211
-    --- Computes the FNV-1a 64bit hash of the given string.
-    -- @str str The input string.
-    -- @treturn integer The hash.
-    function hash(str)
-        local hash = fnv_basis
-        for i = 1, #str do
-        hash = hash ~ str:byte(i)
-        hash = (hash * fnv_prime)
-        end
-        return hash
-    end
-end
-
-local epoch = constants.discord_epoch * 1000
+local epoch = cast(uint64_t, constants.discord_epoch) * 1000ULL
 
 --- Computes the UNIX timestamp of a given uint64, using discord's bitfield format.
 -- @tparam string|number s The snowflake.
 -- @treturn integer The timestamp.
-function timestamp(s)
-    return udiv((touint(s) >> 22) + epoch , 1000)
+function M.timestamp(s)
+    return (rshift(M.touint(s) , 22) + epoch) / 1000ULL
 end
 
 --- Creates an artificial snowflake from a given UNIX timestamp.
 -- @tparam[opt=current time] integer s The timestamp.
 -- @treturn integer The resulting snowflake.
-function fromtime(s)
-    s = by10(s or time(), 3)
-    return (s - epoch) << 22
+function M.fromtime(s)
+    s = (s or M.touint(time())) * 1000ULL
+    return lshift(s - epoch,  22)
 end
 
 --- Gets the timestamp, worker ID, process ID and increment from a snowflake.
 -- @tparam number|string s The snowflake.
 -- @treturn table
-function decompose(s)
-    s = touint(s)
+function M.decompose(s)
+    s = M.touint(s)
     return {
-         timestamp = timestamp(s)
-        ,worker = (s & 0x3E0000) >> 17
-        ,pid = (s & 0x1F000) >> 12
-        ,increment = s & 0xFFF
+         timestamp = M.timestamp(s)
+        ,worker = rshift(band(s , 0x3E0000), 17)
+        ,pid = rshift(band(s , 0x1F000) , 12)
+        ,increment = band(s , 0xFFF)
     }
 end
 
-local inc = -1
+local inc = -1LL
 
 --- Creates an artifical snowflake from the given timestamp, worker and pid.
 -- @int s The timestamp.
@@ -126,18 +109,18 @@ local inc = -1
 -- @int pid The process ID.
 -- @int[opt] incr The increment. An internal incremented value is used if one is not provided.
 -- @treturn integer The snowflake.
-function synthesize(s, worker, pid, incr)
-    inc = (inc + 1) & 0xFFF
-    incr = (incr or inc) &  0xFFF
-    worker = ((worker or 0) & 63) << 17
-    pid = ((pid or 0) & 63) << 12
-    return fromtime(s) | worker | pid | incr
+function M.synthesize(s, worker, pid, incr)
+    inc = band((inc + 1) , 0xFFF)
+    incr = band((incr or inc) ,  0xFFF)
+    worker = lshift(band((worker or 0) , 63) , 17)
+    pid = lshift(band((pid or 0) , 63) , 12)
+    return bor(M.fromtime(s) , worker , pid , incr)
 end
 
 ---sort two snowflake objects.
-function snowflake_sort(i,j) return ult(touint(i.id) , touint(j.id)) end
+function M.snowflake_sort(i,j) return M.touint(i.id) < M.touint(j.id) end
 
 ---sort two snowflake ids.
-function id_sort(i,j) return ult(touint(i) , touint(j)) end
+function M.id_sort(i,j) return M.touint(i) < M.touint(j) end
 
-return _ENV
+return M

@@ -1,30 +1,23 @@
-local insert, unpack = table.insert, table.unpack
 local f = string.format
 local date, exit = os.date, os.exit
 local _stdout, _stderr = io.stdout, io.stderr
 local openf = io.open
 local to_n = tonumber
 local err = error
-local iter = pairs
-local iiter = ipairs
-local setm = setmetatable
 
 local cli = require"lacord.cli"
 local LACORD_DEBUG = cli.debug
 local LACORD_LOG_MODE = cli.log_mode
 local LACORD_LOG_FILE = cli.log_file
 
-local _ENV = {}
+local M = {}
 
---luacheck: ignore 111
-
-stdout = _stdout
-stderr = _stderr
+M.stdout = _stdout
+M.stderr = _stderr
 
 local _mode = 0
 
 --- An optional lua file object to write output to, must be opened in a write mode.
-fd = nil
 
 local colors = {}
 
@@ -87,8 +80,8 @@ local function unpaint(str) return (str:gsub("$([^;]+);", "%1")) end
 
 local function check_fd(s, msg, code)
     if not s then
-        fd = nil
-        _ENV.warn("removed $logger.fd; because $(%q, %#x);.", msg , code)
+        M.fd = nil
+        M.warn("removed $logger.fd; because $(%q, %#x);.", msg , code)
         return false
     end
     return true
@@ -98,12 +91,12 @@ local fmts = { }
 
 local function writef(ifd, level, content)
     local timestamp = date"!%c"
-    if fd then
-        if check_fd(fd:write(timestamp, " ")) then
+    if M.fd then
+        if check_fd(M.fd:write(timestamp, " ")) then
             if level then
-                if not check_fd(fd:write(fmts[level], " ")) then goto finished end
+                if not check_fd(M.fd:write(fmts[level], " ")) then goto finished end
             end
-            check_fd(fd:write(content, "\n"))
+            check_fd(M.fd:write(content, "\n"))
             ::finished::
         end
     end
@@ -127,18 +120,18 @@ end
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 fmts.info = "INF"
-function info(...)
-    return writef(_ENV.stdout, 'info', f(...))
+function M.info(...)
+    return writef(M.stdout, 'info', f(...))
 end
 
 fmts.debug = "DBG"
 
 if LACORD_DEBUG then
-    function _ENV.debug(...)
-        return writef(_ENV.stdout, 'debug', f(...))
+    function M.debug(...)
+        return writef(M.stdout, 'debug', f(...))
     end
 else
-    function _ENV.debug()
+    function M.debug()
     end
 end
 
@@ -147,49 +140,49 @@ end
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 fmts.warn = "WRN"
-function warn(...)
-    return writef(_ENV.stdout, 'warn', f(...))
+function M.warn(...)
+    return writef(M.stdout, 'warn', f(...))
 end
 
 --- Logs to stderr, and the output file if set, using the ERR error channel.
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
 fmts.error = "ERR"
-function error(...)
-    return writef(_ENV.stderr, 'error', f(...))
+function M.error(...)
+    return writef(M.stderr, 'error', f(...))
 end
 
 --- Logs an error using `logger.error` and then throws a lua error with the same message.
 -- @string str A format string
 -- @param[opt] ... Values passed into `string.format`.
-function throw(...)
+function M.throw(...)
     local content = f(...)
-    writef(_ENV.stderr, 'error', content)
+    writef(M.stderr, 'error', content)
     return err(unpaint(content), 2)
 end
 
 --- Logs an error using `logger.error` and then exits with a non-zero exit code.
 -- @string str A format string.
 -- @param[opt] ... Values passed into `string.format`.
-function fatal(...)
+function M.fatal(...)
     error(...)
     error"Fatal error: quitting!"
     return exit(1, true)
 end
 
 --- Similar to lua's assert but uses logger.throw when an assertion fails.
-function _ENV.assert(v, ...)
+function M.assert(v, ...)
     if v then return v
-    else return _ENV.throw(...)
+    else return M.throw(...)
     end
 end
 
-function ferror(...) return err(f(...), 2) end
+function M.ferror(...) return err(f(...), 2) end
 
 --- Logs to stdout, and the output file if set.
 -- @string str A format string.
 -- @param[opt] ... Values passed into `string.format`.
-function printf(...) return writef(_ENV.stdout, nil, f(...)) end
+function M.printf(...) return writef(M.stdout, nil, f(...)) end
 
 local modes = {
     [0] = true,
@@ -204,18 +197,18 @@ local modes = {
 -- - `24` for `24 bit true color`.
 -- Setting it to `0` disables coloured output.
 -- @tparam number m The mode.
-function mode(m)
+function M.mode(m)
     m = m or 0
     _mode = modes[m] and m or 0
     return _mode
 end
 
 if LACORD_LOG_FILE then
-    fd = openf(LACORD_LOG_FILE, "a")
+    M.fd = openf(LACORD_LOG_FILE, "a")
 end
 
 if LACORD_LOG_MODE then
-    mode(to_n(LACORD_LOG_MODE))
+    M.mode(to_n(LACORD_LOG_MODE))
 end
 
-return _ENV
+return M

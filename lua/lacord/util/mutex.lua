@@ -9,7 +9,7 @@ local cond = require"cqueues.condition"
 local setmetatable = setmetatable
 local max = math.max
 
-local _ENV = {}
+local M = {}
 
 local mutex = {}
 
@@ -91,7 +91,7 @@ end
 
 --- Creates a new mutex
 -- @treturn mutex
-function new()
+function M.new()
     return setmetatable({
          pollfd = cond.new()
         ,inuse= false
@@ -104,4 +104,4 @@ end
 -- @bool inuse
 -- @field cond The condition variable.
 
-return _ENV
+return M

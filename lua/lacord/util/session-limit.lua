@@ -2,17 +2,14 @@ local cond = require"cqueues.condition"
 local me = require"cqueues".running
 local sleep = require"cqueues".sleep
 local setm = setmetatable
-local err = error
 
-local _ENV = {}
-
---luacheck: ignore 111
+local M = {}
 
 local session_limit = {__name = "lacord.session-limit"}
 
 session_limit.__index = session_limit
 
-function new(availability)
+function M.new(availability)
     return setm({
         v = availability,
         cv = cond.new(false),
@@ -34,4 +31,4 @@ function session_limit:exit_after(secs)
     me():wrap(waiter, self, secs)
 end
 
-return _ENV
+return M
