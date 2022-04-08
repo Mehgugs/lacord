@@ -12,7 +12,6 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local util = require"lacord.util"
 local logger = require"lacord.util.logger"
-local auditable = require"lacord.util.audit-log-methods"
 local inspect = require"inspect"
 local cli = require"lacord.cli"
 local LACORD_DEBUG = cli.debug
@@ -342,7 +341,7 @@ function api.request(state,
     end
 
     local reasons = reason_thrs[reqthr]
-    if reasons and reasons[1] and auditable[name] then
+    if reasons and reasons[1] then
         req.headers:append("x-audit-log-reason", tostring(remove(reasons)))
     end
 
@@ -710,6 +709,34 @@ function api:start_thread_without_message(channel_id, payload)
     return self:request('start_thread_without_message', 'POST', '/channels/:channel_id/threads', {
        channel_id = channel_id
     }, payload)
+end
+
+local HAS_MESSAGE_QUERY = {has_message=true}
+local GUILD_PUBLIC_THREAD = 11
+
+if LACORD_DEBUG then
+    function api:start_thread_in_forum(channel_id, payload, files)
+        if files then
+            merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+        end
+        if payload.type ~= GUILD_PUBLIC_THREAD then
+            logger.warn("$api:start_thread_in_forum; can only be used to create public threads; overwriting type in payload.")
+            payload.type = GUILD_PUBLIC_THREAD
+        end
+        return self:request('start_thread_in_forum', 'POST', '/channels/:channel_id/threads', {
+            channel_id = channel_id
+        }, payload, HAS_MESSAGE_QUERY, files)
+    end
+else
+    function api:start_thread_in_forum(channel_id, payload, files)
+        if files then
+            merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+        end
+        payload.type = GUILD_PUBLIC_THREAD
+        return self:request('start_thread_in_forum', 'POST', '/channels/:channel_id/threads', {
+            channel_id = channel_id
+        }, payload, HAS_MESSAGE_QUERY, files)
+    end
 end
 
 function api:join_thread(channel_id)

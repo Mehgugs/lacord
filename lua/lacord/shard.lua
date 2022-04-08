@@ -12,10 +12,11 @@ local util = require"lacord.util"
 local logger = require"lacord.util.logger"
 local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
+local session_limiter = require"lacord.util.session-limit".new
 local intents = require"lacord.util.intents"
 local USER_AGENT = require"lacord.api".USER_AGENT
 local LACORD_DEPRECATED = require"lacord.cli".deprecated
-
+local LACORD_UNSTABLE   = require"lacord.cli".unstable
 
 local setmetatable = setmetatable
 local pairs = pairs
@@ -47,6 +48,12 @@ function shard:__tostring() return "lacord.shard: "..self.options.id end
 local ZLIB_SUFFIX = '\x00\x00\xff\xff'
 local GATEWAY_DELAY = constants.gateway.delay
 local IDENTIFY_DELAY = constants.gateway.identify_delay
+
+local GATEWAY_NUM, GATEWAY_PER, GATEWAY_ALLOWANCE if LACORD_UNSTABLE then
+    GATEWAY_NUM, GATEWAY_PER = constants.gateway.ratelimit[1], constants.gateway.ratelimit[2]
+    GATEWAY_ALLOWANCE = constants.gateway.allowance
+end
+
 local _ops = {
   DISPATCH              = 0
 , HEARTBEAT             = 1
@@ -73,7 +80,7 @@ local function load_options(into, o)
     return into
 end
 
-local messages, send, read_message, resume, identify, reconnect
+local messages, send, send_heartbeat, read_message, resume, identify, reconnect
 
 --- Construct a new shard object using the given options and identify mutex.
 -- @tab options Options to pass to the shard please see `options`.
@@ -84,8 +91,12 @@ function new(options, session_limit)
         return logger.fatal("Please supply a bot token")
     end
     local state = setmetatable({options = load_options({intents = intents.normal}, options)}, shard)
-
-    state.shard_mutex = mutex() --+
+    if LACORD_UNSTABLE then
+        state.shard_mutex = session_limiter(GATEWAY_NUM - GATEWAY_ALLOWANCE)
+        state.heartbeat_mutex = session_limiter(GATEWAY_ALLOWANCE)
+    else
+        state.shard_mutex = mutex() --+
+    end
     state.stop_heart = cond.new()
     state.is_ready = promise.new()
     state.ready_failed = false
@@ -161,7 +172,7 @@ local function beat_loop(state, interval)
     while state.connected do
         logger.debug("Outgoing heart beating.")
         state.beats = state.beats + 1
-        send(state, hb, state._seq or null, true)
+        send_heartbeat(state, hb, state._seq or null, true)
         local r1,r2 = poll(state.stop_heart, interval)
         if r1 == state.stop_heart or r2 == state.stop_heart then
             logger.warn("%s heart was stopped via signal.", state)
@@ -229,20 +240,54 @@ function read_message(state, message, op)
     end
 end
 
-function send(state, op, d, ident)
-    state.shard_mutex:lock()
-    local success, err
-    if ident or state.session_id then
-        if state.connected then
-            success, err = state.socket:send(encode {op = op, d = d}, 0x1, state.options.rec_timeout or 60)
+if LACORD_UNSTABLE then
+    function send(state, op, d, ident)
+        state.shard_mutex:enter()
+        local success, err
+        if ident or state.session_id then
+            if state.connected then
+                success, err = state.socket:send(encode {op = op, d = d}, 0x1, state.options.rec_timeout or 60)
+            else
+                success, err = false, 'Not connected to gateway'
+            end
         else
-            success, err = false, 'Not connected to gateway'
+            success, err = false, 'Invalid session'
         end
-    else
-        success, err = false, 'Invalid session'
+        state.shard_mutex:exit_after(GATEWAY_PER)
+        return success, err
     end
-    state.shard_mutex:unlock_after(GATEWAY_DELAY)
-    return success, err
+    function send_heartbeat(state, op, d, ident)
+        state.heartbeat_mutex:enter()
+        local success, err
+        if ident or state.session_id then
+            if state.connected then
+                success, err = state.socket:send(encode {op = op, d = d}, 0x1, state.options.rec_timeout or 60)
+            else
+                success, err = false, 'Not connected to gateway'
+            end
+        else
+            success, err = false, 'Invalid session'
+        end
+        state.heartbeat_mutex:exit_after(GATEWAY_PER)
+        return success, err
+    end
+else
+    function send(state, op, d, ident)
+        state.shard_mutex:lock()
+        local success, err
+        if ident or state.session_id then
+            if state.connected then
+                success, err = state.socket:send(encode {op = op, d = d}, 0x1, state.options.rec_timeout or 60)
+            else
+                success, err = false, 'Not connected to gateway'
+            end
+        else
+            success, err = false, 'Invalid session'
+        end
+        state.shard_mutex:unlock_after(GATEWAY_DELAY)
+        return success, err
+    end
+    send_heartbeat = send
 end
 
 local never_reconnect = {
