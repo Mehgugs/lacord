@@ -1432,11 +1432,18 @@ function api:edit_application_command_permissions(application_id, guild_id, comm
     }, payload)
 end
 
-function api:batch_edit_application_command_permissions(application_id, guild_id, payload)
-    return self:request('batch_edit_application_command_permissions', 'PUT', '/applications/:application_id/guilds/:guild_id/commands/permissions', {
-       application_id = application_id,
-       guild_id = guild_id
-    }, payload)
+if LACORD_DEPRECATED and not LACORD_UNSTABLE then
+    function api:batch_edit_application_command_permissions(application_id, guild_id, payload)
+        return self:request('batch_edit_application_command_permissions', 'PUT', '/applications/:application_id/guilds/:guild_id/commands/permissions', {
+        application_id = application_id,
+        guild_id = guild_id
+        }, payload)
+    end
+elseif not LACORD_DEPRECATED and not LACORD_UNSTABLE then
+    function api.batch_edit_application_command_permissions(state)
+        logger.warn("%s cannot batch_edit_application_command_permissions because it has been disabled.", state)
+        return false, nil, "This endpoint has been disabled by discord."
+    end
 end
 
 function api:get_token(data)
