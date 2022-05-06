@@ -108,6 +108,30 @@ function prefix(s, suf)
   return s:sub(-len) == suf and s:sub(1, -len -1) or s
 end
 
+function _ENV.set(...)
+    local out = pak(...)
+    for _ , k in iiter(out) do
+        out[k] = true
+    end
+    return out
+end
+
+function map(f, t, ...)
+    local out = {}
+    for i = 1, #t do
+        out[i] = f(t[i], ...)
+    end
+    return out
+end
+
+function map_bang(f, t, ...)
+    for i = 1, #t do
+        t[i] = f(t[i], ...)
+    end
+
+    return t
+end
+
 --- Resolve a prospective payload w.r.t lacord content types.
 --  Users can check the 2nd return value to see if any processing was done.
 function content_typed(payload, ...)

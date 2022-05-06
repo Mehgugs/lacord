@@ -55,6 +55,7 @@ local _ENV = {}
 
 local api = {__name = "lacord.api"}
 api.__index = api
+api.__lacord_is_api = true
 
 
 --- The api URL the client uses connect.
@@ -712,12 +713,14 @@ function api:start_thread_without_message(channel_id, payload)
 end
 
 local HAS_MESSAGE_QUERY = {has_message=true}
+local NESTED_QUERY = {use_nested_fields = true, has_message=true}
 local GUILD_PUBLIC_THREAD = 11
 
 if LACORD_DEBUG then
     function api:start_thread_in_forum(channel_id, payload, files)
+        local nested = payload.message
         if files then
-            merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+            merge(nested or payload, compute_attachments(files), _ENV.attachments_resolution)
         end
         if payload.type ~= GUILD_PUBLIC_THREAD then
             logger.warn("$api:start_thread_in_forum; can only be used to create public threads; overwriting type in payload.")
@@ -725,17 +728,18 @@ if LACORD_DEBUG then
         end
         return self:request('start_thread_in_forum', 'POST', '/channels/:channel_id/threads', {
             channel_id = channel_id
-        }, payload, HAS_MESSAGE_QUERY, files)
+        }, payload, nested and NESTED_QUERY or HAS_MESSAGE_QUERY, files)
     end
 else
     function api:start_thread_in_forum(channel_id, payload, files)
+        local nested = payload.message
         if files then
-            merge(payload, compute_attachments(files), _ENV.attachments_resolution)
+            merge(nested or payload, compute_attachments(files), _ENV.attachments_resolution)
         end
         payload.type = GUILD_PUBLIC_THREAD
         return self:request('start_thread_in_forum', 'POST', '/channels/:channel_id/threads', {
             channel_id = channel_id
-        }, payload, HAS_MESSAGE_QUERY, files)
+        }, payload, nested and NESTED_QUERY or HAS_MESSAGE_QUERY, files)
     end
 end
 
@@ -758,8 +762,15 @@ function api:leave_thread(channel_id)
     })
 end
 
-function api:remove_thread_member(channel_id,user_id)
+function api:remove_thread_member(channel_id, user_id)
     return self:request('remove_thread_member', 'DELETE', '/channels/:channel_id/thread-members/:user_id', {
+       channel_id = channel_id,
+       user_id = user_id
+    })
+end
+
+function api:get_thread_member(channel_id, user_id)
+    return self:request('get_thread_member', 'GET', '/channels/:channel_id/thread-members/:user_id', {
        channel_id = channel_id,
        user_id = user_id
     })
@@ -771,11 +782,25 @@ function api:list_thread_members(channel_id)
     })
 end
 
-function api:list_active_threads(channel_id)
-    return self:request('list_active_threads', 'GET', '/channels/:channel_id/threads/active', {
-       channel_id = channel_id,
+function api:list_active_guild_threads(guild_id)
+    return self:request('list_active_threads', 'GET', '/guilds/:guild_id/threads/active', {
+        guild_id = guild_id,
     })
 end
+
+if LACORD_DEPRECATED and not LACORD_UNSTABLE then
+    function api:list_active_threads(channel_id)
+        return self:request('list_active_threads', 'GET', '/channels/:channel_id/threads/active', {
+            channel_id = channel_id,
+        })
+    end
+elseif not LACORD_DEPRECATED and not LACORD_UNSTABLE then
+    function api:list_active_threads()
+        logger.warn("%s cannot $list_active_threads; because it has been disabled. Try $list_active_guild_threads; instead.", self)
+        return false, nil, "This endpoint has been disabled by discord."
+    end
+end
+
 
 function api:list_public_archived_threads(channel_id,  query)
     return self:request('list_public_archived_threads', 'GET', '/channels/:channel_id/threads/archived/public', {
@@ -1441,7 +1466,7 @@ if LACORD_DEPRECATED and not LACORD_UNSTABLE then
     end
 elseif not LACORD_DEPRECATED and not LACORD_UNSTABLE then
     function api.batch_edit_application_command_permissions(state)
-        logger.warn("%s cannot batch_edit_application_command_permissions because it has been disabled.", state)
+        logger.warn("%s cannot $batch_edit_application_command_permissions; because it has been disabled.\n See <https://discord.com/developers/docs/interactions/application-commands#permissions>.", state)
         return false, nil, "This endpoint has been disabled by discord."
     end
 end
@@ -1729,6 +1754,16 @@ if LACORD_DEBUG then
         if not thr then err("Cannot grab contextual request object. (using api methods outside a coroutine?).") end
         pre_pushes[thr] = true
     end
+end
+
+local INVITE_URL = URL .. "/oauth2/authorize"
+
+function invite_url(id, permissions, bot_only)
+    return INVITE_URL .. "?" .. httputil.dict_to_query(mapquery{
+        client_id = id,
+        scope = bot_only and 'bot' or 'bot applications.commands',
+        permissions = permissions,
+    })
 end
 
 return _ENV
