@@ -115,9 +115,11 @@ local function writef(ifd, level, content)
         )
         if level then ifd:write(colors[_mode][level .. "_highlight"], fmts[level], " ")
         else ifd:write("LOG", " ") end
-        ifd:write(
-            "\27[0m", str, "\27[0m\n"
-        )
+        if _mode > 0 then
+            ifd:write("\27[0m", str, "\27[0m\n")
+        else
+            ifd:write(str, "\n")
+        end
     end
 end
 

@@ -23,6 +23,9 @@ local to_s = tostring
 local to_int = math.tointeger
 local iter = pairs
 
+local getlocal = debug and debug.getlocal
+local pick     = select
+
 local decode = require"lacord.util.json".decode
 
 local _ENV = {}
@@ -35,6 +38,7 @@ local USER_AGENT = api.USER_AGENT
 
 local img_exts = {
     jpeg = ".jpg",
+    jpg = ".jpg",
     png = ".png",
     webp = ".webp",
     gif = ".gif",
@@ -79,9 +83,9 @@ cdn.__index = cdn
 
 function new(options)
     return setm({
-        http_version = options.http_version or 1.1,
-        accept_encoding = options.accept_encoding and "gzip, deflate, x-gzip" or nil,
-        api_timeout = options.api_timeout
+        http_version = options and options.http_version or 1.1,
+        accept_encoding = options and options.accept_encoding and "gzip, deflate, x-gzip" or nil,
+        api_timeout = options and options.api_timeout or nil
     }, cdn)
 end
 
@@ -89,7 +93,7 @@ local function resolve_parameters(ep, p)
     return (ep:gsub(":([a-z_]+)", p))
 end
 
-function cdn:request(name, url)
+function cdn:request(name, url, file_name)
     local req = newreq.new_from_uri(httputil.encodeURI(url))
     req.version = self.http_version
 
@@ -100,10 +104,10 @@ function cdn:request(name, url)
         req.headers:append("accept-encoding", self.accept_encoding)
     end
 
-    return self:push(name, req, 0)
+    return self:push(name, req, 0, file_name)
 end
 
-function cdn:push(name, req, retries)
+function cdn:push(name, req, retries, file_name)
     local headers , stream , eno = req:go(self.api_timeout or 10)
 
     if not headers and retries < constants.api.max_retries then
@@ -112,7 +116,7 @@ function cdn:push(name, req, retries)
             self, name, to_s(stream), eno and errno[eno] or "?", eno and errno.strerror(eno) or "??", rsec
         )
         cqueues.sleep(rsec)
-        return self:push(name, req, retries+1)
+        return self:push(name, req, retries+1, file_name)
     elseif not headers and retries >= constants.api.max_retries then
         return nil, errno.strerror(eno)
     end
@@ -122,17 +126,15 @@ function cdn:push(name, req, retries)
     stat = headers:get":status"
     rawcode, code = stat, to_n(stat)
 
-    logger.debug("Getting raw body")
     local raw = stream:get_body_as_string()
 
     if headers:get"content-encoding" == "gzip"
     or headers:get"content-encoding" == "deflate"
     or headers:get"content-encoding" == "x-gzip" then
-        logger.info("Decompressing body")
         raw = inflate()(raw, true)
     end
     if code < 300 then
-        return a_blob_of(headers:get"content-type" or BYTES, raw)
+        return a_blob_of(headers:get"content-type" or BYTES, raw, file_name)
     else
         local data = headers:get"content-type" == JSON and decode(raw) or raw
         local extra
@@ -250,7 +252,7 @@ function application_cover_url(application_id, cover_image, ext, size)
     end
 end
 
-function applicaion_asset_url(application_id, asset_id, ext, size)
+function application_asset_url(application_id, asset_id, ext, size)
     local base = URL ..
         resolve_parameters(cdn_endpoints.applicaion_asset,
             { application_id = application_id, asset_id = asset_id, img_ext = logger.assert(img_exts[ext], "Image extension %s not supported!", ext)})
@@ -306,6 +308,7 @@ function sticker_url(sticker_id, ext, size)
 end
 
 function attachment_url(channel_id, attachment_id, file_name, ext, size)
+    ext = img_exts[ext] or ext or '' if ext ~= "" and ext:byte() ~= 46 then ext = "." .. ext end
     local base = URL ..
         resolve_parameters(cdn_endpoints.attachment,
             { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
@@ -341,9 +344,10 @@ end
 
 if LACORD_UNSTABLE then
     function ephemeral_attachment_url(channel_id, attachment_id, file_name, ext, size)
+        ext = img_exts[ext] or ext or '' if ext ~= "" and ext:byte() ~= 46 then ext = "." .. ext end
         local base = URL ..
             resolve_parameters(cdn_endpoints.attachment,
-                { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = img_exts[ext] or ext})
+                { channel_id = channel_id, attachment_id = attachment_id, file_name = file_name, img_ext = ext})
         if size then
             return httputil.encodeURI(base .. '?size' .. to_s(logger.assert(to_int(size), "Must provide an integer size which is a power of 2!")))
         else
@@ -354,8 +358,26 @@ end
 
 for k in iter(cdn_endpoints) do
     local the_url = _ENV[k .. "_url"]
-    local function the_method(self, ...)
-        return self:request(k, the_url(...))
+    if not the_url then logger.fatal("cdn[get_%s] has no url function.", k) end
+    local has_file
+    local the_method
+    if getlocal then
+        for i = 1, 5 do
+            local param_name = getlocal(the_url, i)
+            if param_name == 'file_name' then has_file = i
+            elseif param_name == nil then break
+            end
+        end
+    end
+
+    if has_file then
+        function the_method(self, ...)
+            return self:request(k, the_url(...), (pick(has_file, ...)))
+        end
+    else
+        function the_method(self, ...)
+            return self:request(k, the_url(...))
+        end
     end
     cdn['get_'..k] = the_method
 end

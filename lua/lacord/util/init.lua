@@ -387,7 +387,7 @@ local function merget(t, other, conflict)
     end
 end
 
-_ENV.merge = merget
+_ENV.merge = function(t, ...) merget(t, ...) return t end
 
 local positives = {
     yes = true,

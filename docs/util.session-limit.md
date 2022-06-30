@@ -2,7 +2,7 @@
 
 This module provides an object to control concurrent shards identifying.
 
-### If you're wanting to run shards across multiple processes/threads please open an issue/ticket.
+##### If you're wanting to run shards across multiple processes/threads please open an issue/ticket.
 
 ### *session-limit*
 

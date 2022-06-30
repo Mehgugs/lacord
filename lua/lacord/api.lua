@@ -1735,6 +1735,7 @@ local function webhook_init(webhook_id, webhook_token)
     webhook_api.api_timeout = 60
     webhook_api.accept_encoding = "gzip, deflate, x-gzip"
     webhook_api.webhook_token = webhook_token
+    webhook_api.global_deadline = 0
     webhook_api.id = webhook_id
     return webhook_api
 end

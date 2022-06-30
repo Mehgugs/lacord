@@ -462,9 +462,9 @@ function shard:DISPATCH(_, d, t, s)
 end
 
 local IDENTIFY_PROPERTIES = {
-    ['$os'] = the_platform,
-    ['$browser'] = "lacord",
-    ['$device'] = "lacord",
+    os      = the_platform,
+    browser = "lacord",
+    device  = "lacord",
 }
 
 function identify(self)
