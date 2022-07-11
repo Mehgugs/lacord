@@ -1,6 +1,6 @@
 ## lacord
 
-lacord is a small discord library providing low level clients for the discord rest and gateway API.
+lacord is a small Discord library providing low level clients for the Discord rest and gateway API.
 All data is given to the user as raw JSON.
 
 Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.
@@ -12,7 +12,7 @@ Lacord comes with a higher level client for running simple bots which you can fi
 
 ## Example
 
-This example sends lines inputed at the terminal to discord over a supplied webhook.
+This example sends lines inputed at the terminal to Discord over a supplied webhook.
 
 ```lua
 local api = require"lacord.api"
@@ -128,7 +128,7 @@ Once you have the pre-requisites in order you can install this library with luar
 
 This library provides support for slash commands naturally over the gateway and
 also provides a https server module under `lacord.outoing-webhook-server` for interfacing
-with discord over outgoing webhook. When using this method there are a couple of things to keep in mind:
+with Discord over outgoing webhook. When using this method there are a couple of things to keep in mind:
 
 - You must use TLS. By default this module accepts two file paths after the server options table.
   The first one should be your full certificate chain in pem format and the second should be your private key in pem format.
@@ -142,9 +142,9 @@ with discord over outgoing webhook. When using this method there are a couple of
     - The string field `route` is the path component of the URL you configure your application to use.
       In the URL `https://example.com/interactions` this would be `/interactions`. Once again if you're
       redirecting traffic to lacord from an external service make sure the path is adjusted if necessary.
-    - The function field `interact` is called when a discord interaction event is received by the webhook.
-      The first argument is the json object payload discord sent, the next argument is the https response object.
-      Return a valid json object from the function to send it to discord; if you do not it will respond with 500.
+    - The function field `interact` is called when a Discord interaction event is received by the webhook.
+      The first argument is the json object payload Discord sent, the next argument is the https response object.
+      Return a valid json object from the function to send it to Discord; if you do not it will respond with 500.
       Any error in this function is caught and will respond with 503, logging the message internally.
       You can also manipulate the response object to set the body directly, but this should be avoided unless necessary.
     - The function field `fallthrough` receives a response object, and is called with any other request (i.e requests to paths other than the `route`).
