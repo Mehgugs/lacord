@@ -23,8 +23,6 @@ dependencies = {
     ,'http'
     ,'lua-zlib'
     ,'lua-cjson-219'
-    ,'dkjson'
-    ,'luatweetnacl'
     ,'inspect'
 }
 

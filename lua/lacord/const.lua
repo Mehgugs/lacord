@@ -29,7 +29,7 @@ api.endpoint = ("%s/v%s"):format(api.base_endpoint, api.version)
 
 default_avatars = 5
 
-use_cjson = true
+json_provider = "cjson"
 
 supported_cli_options = {
     debug = "flag",
@@ -47,6 +47,9 @@ supported_cli_options = {
     ['log-file'] = "log_file",
     ['log-mode'] = "log_mode",
     ['accept-everything'] = "accept",
+    ['quiet'] = "flag",
+    ['quieter'] = "quiet",
+    ['file'] = "value",
     --shorthand
     d = "debug",
     u = "unstable",
@@ -57,6 +60,8 @@ supported_cli_options = {
     l = "log_file",
     L = "log_mode",
     a = "accept",
+    q = "quiet",
+    f = "file"
 }
 
 supported_environment_variables = {
@@ -67,7 +72,8 @@ supported_environment_variables = {
     LACORD_SECRET = "client_secret",
     LACORD_TOKEN = "token",
     LACORD_LOG_MODE = "log_mode",
-    LACORD_LOG_FILE = "log_file"
+    LACORD_LOG_FILE = "log_file",
+    LACORD_QUIET = "quiet"
 }
 
 return _ENV

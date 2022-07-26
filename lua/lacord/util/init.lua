@@ -8,29 +8,16 @@ local set    = rawset
 local to_n   = tonumber
 local to_s   = tostring
 local typ    = type
-local warn   = warn or function()end
 
 local random = math.random
 
-local getenv = os.getenv
-
-local pkgloaded= package.loaded
-local preload  = package.preload
-
-local char     = string.char
-
 local insert = table.insert
-local concat = table.concat
-local move   = table.move
 local pak    = table.pack
-local unpak  = table.unpack
 
 local _VERSION = _VERSION
 
 local archp_loaded, archp = pcall(require, "lacord.util.archp")
 local dict_to_query = require"http.util".dict_to_query
-local expected_args = require"lacord.const".supported_cli_options
-local expected_env = require"lacord.const".supported_environment_variables
 local mime = require"lacord.util.mime"
 
 
@@ -389,133 +376,5 @@ end
 
 _ENV.merge = function(t, ...) merget(t, ...) return t end
 
-local positives = {
-    yes = true,
-    no = false,
-    y = true,
-    n = false,
-    on = true,
-    off = false,
-    ['true'] = true,
-    ['false'] = false,
-    ['1'] = true,
-    ['0'] = false,
-    [0] = false,
-    true,
-}
-
-local function boolean_environment_variable(value)
-    if value ~= nil then
-        if typ(value) == "string" then value = value:lower() end
-        local flag = positives[value]
-        return flag, flag ~= nil
-    end
-    return nil, false
-end
-
-local function value_environment_variable(value)
-    return value, value ~= nil
-end
-
-local function enum_environment_variable(enum, value)
-    if value ~= nil then
-        if typ(value) == "string" then value = value:lower() end
-
-        for _, v in iiter(enum) do
-            if v == value then return v, true end
-        end
-    end
-    return nil, false
-end
-
-local function read_environment_variable(cfg, flagname, ...)
-    if typ(cfg[flagname]) == "table" then return enum_environment_variable(cfg[flagname], ...)
-    elseif cfg[flagname] == "flag" then return boolean_environment_variable(...)
-    else return value_environment_variable(...)
-    end
-end
-
-local function commandline_item(out, rest)
-    local eval = false ::evaluate::
-    local key, expecting
-    if expected_args[rest] == "flag" then
-        out[rest] = true
-    elseif expected_args[rest] == "value" then
-        key = rest
-        expecting = true
-    elseif typ(expected_args[rest]) == "table" then
-        key = rest
-        expecting = 1
-    elseif expected_args[expected_args[rest]] and not eval then
-        rest = expected_args[rest]
-        eval = true
-        goto evaluate
-    elseif out.accept then
-        key = rest
-        expecting = true
-    end
-    return key, expecting
-end
-
-local function commandline_args(...)
-    local list = pak(...)
-    local out = {}
-    local expecting = false
-    local key
-    for i = 1, list.n do
-        local item = list[i]
-        local f,s = item:byte(1, 2) -- check for double `-`
-        if expecting == 1 then
-            expecting = false
-            list[i] = nil
-            for _ , option in iiter(expected_args[key]) do
-                if option == item then
-                    out[key] = item
-                    goto continue
-                end
-            end
-            warn("lacord.util.commandline_args: Unrecognized option passed to --"..key)
-        elseif expecting then
-           -- if we're expecting an argument then set the current argument as the value
-           out[key] = item
-           expecting = false
-           list[i] = nil
-        else -- if this is a new key
-            if f == 45 and s == 45 then -- if at least a `-` is found
-                list[i] = nil
-                                                     -- cut off the -- prefix
-                key, expecting = commandline_item(out, char(item:byte(3, -1)))
-            elseif f == 45 then
-                list[i] = nil
-                local chrs = {item:byte(2, -1)}
-                for j, c in iiter(chrs) do
-                    key, expecting = commandline_item(out, char(c))
-                    if expecting then
-                        if j ~= #chrs then warn("lacord.util.commandline_args: shorthands which both admit an argument were used, dropping: ".. char(unpak(chrs, j+1))) end
-                        break
-                    end
-                end
-            else
-                move(list, i, list.n, 1)
-                return out, list
-            end
-        end
-        ::continue::
-    end
-    return out, list
-end
-
-function cli_options(...)
-    local flags, remaining = commandline_args(...)
-
-    for envname, flagname in iter(expected_env) do
-        local value, was_set = read_environment_variable(expected_args, flagname, getenv(envname))
-        if was_set then flags[flagname] = flags[flagname] or value end
-    end
-
-    pkgloaded['lacord.cli'] = setm(flags, preload['lacord._.cli_metatable'])
-
-    return remaining, flags
-end
 
 return _ENV
