@@ -11,8 +11,8 @@ return function(module, api, auth)
     for method in iter(auth.map.webhook) do
         local fn = api[method]
         webhook_client[prefix(method, '_with_token')] = function(self, ...)
-            self = self[1]
-            return fn(self, self.webhook_id, self.webhook_token, ...)
+            local the_api = self[1]
+            return fn(the_api, self.id, self.token, ...)
         end
     end
 
@@ -21,12 +21,12 @@ return function(module, api, auth)
         webhook_client[method] = function(self, ...) self = self[1] return fn(self, ...) end
     end
 
-    webhook_client.request = api.request
+    module.webhook_mt = webhook_client
 
     function module.new_webhook(id, token, options)
         options = options or {}
-        options.webhook = {id, token}
+        options.webhook = true
         local client = module.new(options)
-        return setm({client}, webhook_client)
+        return setm({client, id = id, token = token}, webhook_client)
     end
 end

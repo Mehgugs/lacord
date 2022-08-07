@@ -126,11 +126,15 @@ if LACORD_DEPRECATED then _ENV.init = _ENV.new end
 function shard:connect()
     -- step 1: get a gateway url.
     local final_url
-    if type(self.options.gateway) == 'function' then
-        logger.info("%s is regenerating gateway url.", self)
-        final_url = self.options.gateway(self) .. '?' .. self.url_options
+    if self.resume_url then
+        final_url = self.resume_url .. '?' .. self.url_options
     else
-        final_url = self.options.gateway .. '?' .. self.url_options
+        if type(self.options.gateway) == 'function' then
+            logger.info("%s is regenerating gateway url.", self)
+            final_url = self.options.gateway(self) .. '?' .. self.url_options
+        else
+            final_url = self.options.gateway .. '?' .. self.url_options
+        end
     end
 
     -- step 2: connect
@@ -199,7 +203,10 @@ end
 function shard:disconnect(why, code)
     -- reset our session if we're not requesting a restart.
     code = code or 4009
-    if code ~= 1012 and code < 4000 then self.session_id = nil end
+    if code ~= 1012 and code < 4000 then
+        self.session_id = nil
+        self.resume_url = nil
+    end
     self.socket:close(code, why or 'requested')
     return self
 end
@@ -412,6 +419,7 @@ end
 function shard:READY(_, d)
     logger.info("%s is ready.", self)
     self.session_id = d.session_id
+    self.resume_url = d.resume_url
     self.loop:wrap(self.emitter,self, 'SHARD_READY', d)
     self.is_ready:set(true, d)
     if self.session_limit then
@@ -426,7 +434,10 @@ end
 
 function shard:INVALID_SESSION(_, d)
     logger.warn("%s has an invalid session, ($resumable=%s;).", self, d and "true" or "false")
-    if not d then self.session_id = nil end
+    if not d then
+        self.session_id = nil
+        self.resume_url = nil
+    end
     self.loop:wrap(self.emitter, self, 'INVALID_SESSION', d)
     return reconnect(self, not not d)
 end
@@ -483,6 +494,7 @@ function identify(self)
 
     self._seq = nil ---
     self.session_id = nil
+    self.resume_url = nil
     logger.info("%s has intents: %0#x", self, self.options.intents)
     send(self, ops.IDENTIFY, {
         token = self.options.token,

@@ -23,7 +23,7 @@ local constants   = require"lacord.const"
 local cqueues     = require"cqueues"
 local decode      = require"lacord.util.json".decode
 local errno       = require"cqueues.errno"
-local httputil    = require "http.util"
+local httputil    = require"http.util"
 local inspect     = require"inspect"
 local logger      = require"lacord.util.logger"
 local newreq      = require"http.request"
@@ -104,7 +104,6 @@ function new(options)
         auth = options.token
         state.auth_kind = "bearer"
     elseif options.webhook then
-        state.webhook_id, state.webhook_token = options.webhook[1], options.webhook[2]
         state.auth_kind = "webhook"
     else
         return logger.fatal("Please supply a token, client credentials, or webhook! It must start with $white;'Bot|Bearer '$error;.")
@@ -122,7 +121,7 @@ function new(options)
         state.accept_encoding = "gzip, deflate, x-gzip"
         logger.debug("%s is using $whiteaccept-encoding: %q;", state, state.accept_encoding)
     end
-    logger.debug("Initialized %s with TOKEN-%x", state, util.hash(state.token or state.webhook_token))
+    logger.debug("Initialized %s with TOKEN-%x", state, state.token and util.hash(state.token) or 0)
 
     if options.checks == false then
         api:remove_checks()
@@ -244,7 +243,7 @@ function push2(state, name, req, retries)
     rawcode, code = stat, tonumber(stat)
 
     local reset_after = headers:get"x-ratelimit-reset-after"
-    local delay_limit = tonumber(headers:get"x-ratelimit-limit")
+    local delay_limit = tonumber(headers:get"x-ratelimit-limit" or nil)
 
     if reset_after then
         reset_after = tonumber(reset_after)
@@ -274,17 +273,18 @@ function push2(state, name, req, retries)
         end
         if type(data) == 'table' then
             local retry;
+            local retry_after = data.retry_after or headers:get"retry-after"
             if code == 429 then
 
                 if data.global or headers:get"x-ratelimit-global" then
-                    state.global:exit_after(data.retry_after)
+                    state.global:exit_after(retry_after or 1.0)
                 else
-                    delay_s = data.retry_after
+                    delay_s = retry_after
                     state.global:exit_after(1.0)
                 end
                 retry = retries < 5
             else
-                state.global:exit_after(data.retry_after)
+                state.global:exit_after(retry_after or 1.0)
             end
 
             if retry then

@@ -128,11 +128,13 @@ function api:delete_reactions(channel_id, message_id, emoji)
     {channel_id = channel_id, message_id = message_id, emoji = emoji})
 end
 
-function api:edit_message(channel_id, message_id, edits)
+api.delete_all_reactions_for_emoji =  api.delete_reactions
+
+function api:edit_message(channel_id, message_id, edits, files)
     return self:request('edit_message', 'PATCH', '/channels/:channel_id/messages/:message_id', {
         channel_id = channel_id,
         message_id = message_id
-    }, edits)
+    }, edits, nil, files)
 end
 
 function api:delete_message(channel_id, message_id)

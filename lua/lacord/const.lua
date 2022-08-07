@@ -4,12 +4,10 @@ version = "1637789515"
 homepage = "https://github.com/Mehgugs/lacord"
 time_unit = "seconds"
 discord_epoch = 1420070400
-gateway_delay = .5
-identify_delay = 5
 api_version = 10
 
 api = {
-    base_endpoint = "https://discord.com/api"
+    base_endpoint = "https://discord.com"
    ,cdn_endpoint = "https://cdn.discordapp.com"
    ,version = api_version
    ,max_retries = 6
@@ -25,7 +23,11 @@ gateway = {
    ,compress = "zlib-stream"
 }
 
-api.endpoint = ("%s/v%s"):format(api.base_endpoint, api.version)
+models = {
+    remove_unused_keys = true
+}
+
+api.endpoint = ("%s/api/v%s"):format(api.base_endpoint, api.version)
 
 default_avatars = 5
 

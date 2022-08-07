@@ -1,5 +1,5 @@
 package = 'lacord'
-version = 'scm-2'
+version = 'scm-3'
 
 source = {
     url = "git+https://github.com/Mehgugs/lacord.git"
