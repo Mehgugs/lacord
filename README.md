@@ -6,10 +6,6 @@ All data is given to the user as raw JSON.
 Documentation is sparsely provided in the form of LDoc comments which can be processed into a document using LDoc.
 There's hand written documentation in markdown format [here](docs) which can be viewed online [here](https://mehgugs.github.io/lacord/index.html).
 
-## I need a bot client
-
-Lacord comes with a higher level client for running simple bots which you can find here: [lacord-client](https://github.com/Mehgugs/lacord-client). This is published as separate project to allow the core library to be maintained independently.
-
 ## Example
 
 This example sends lines inputed at the terminal to discord over a supplied webhook.
@@ -26,7 +22,7 @@ local webhook_id, webhook_token = webhook:match"^(.+):(.+)$"
 
 local loop = cqs.new()
 
-local discord = api.webhook_init(webhook_id,webhook_token)
+local discord = api.new_webhook(webhook_id,webhook_token)
 
 local function starts(s, prefix)
     return s:sub(1, #prefix) == prefix

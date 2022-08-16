@@ -24,7 +24,10 @@ gateway = {
 }
 
 models = {
-    remove_unused_keys = true
+    remove_unused_keys = true,
+    timeouts = {
+        remove_reaction = 30.0
+    }
 }
 
 api.endpoint = ("%s/api/v%s"):format(api.base_endpoint, api.version)

@@ -12,3 +12,4 @@
 /site/**
 /compiles/**
 make-lacord.lua
+/lua/lacord/models/webhook.lua
