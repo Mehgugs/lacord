@@ -80,7 +80,7 @@ local function load_options(into, o)
     return into
 end
 
-local messages, send, send_heartbeat, read_message, resume, identify, reconnect
+local messages, send, send_heartbeat, read_message, resume, identify, reconnect, push, push_sync
 
 --- Construct a new shard object using the given options and identify mutex.
 -- @tab options Options to pass to the shard please see `options`.
@@ -114,6 +114,12 @@ function new(options, session_limit)
     })
     state.loop = state.options.loop
     state.emitter = state.options.output
+
+    if state.options.sync then
+        state.push = push_sync
+    else
+        state.push = push
+    end
     return state
 end
 
@@ -128,12 +134,16 @@ function shard:connect()
     local final_url
     if self.resume_url then
         final_url = self.resume_url .. '?' .. self.url_options
+        self.connected_to = self.resume_url
     else
         if type(self.options.gateway) == 'function' then
             logger.info("%s is regenerating gateway url.", self)
-            final_url = self.options.gateway(self) .. '?' .. self.url_options
+            local url = self.options.gateway(self)
+            final_url = url  .. '?' .. self.url_options
+            self.connected_to = url
         else
             final_url = self.options.gateway .. '?' .. self.url_options
+            self.connected_to = self.options.gateway
         end
     end
 
@@ -318,6 +328,14 @@ local function should_reconnect(state, code)
    return state.do_reconnect or state.options.auto_reconnect
 end
 
+function push(self, ...)
+    self.loop:wrap(self.emitter, self, ...)
+end
+
+function push_sync(self, ...)
+    self:emitter(...)
+end
+
 function messages(state)
     local rec_timeout = state.options.receive_timeout or 60
     local err, lua_err
@@ -373,7 +391,7 @@ function messages(state)
         end
     end
 
-    state.loop:wrap(state.emitter,state, 'DISCONNECT', {
+    state:push('DISCONNECT', {
          code = state.socket.got_close_code
         ,lua_err = lua_err
         ,error = err
@@ -420,7 +438,7 @@ function shard:READY(_, d)
     logger.info("%s is ready.", self)
     self.session_id = d.session_id
     self.resume_url = d.resume_url
-    self.loop:wrap(self.emitter,self, 'SHARD_READY', d)
+    self:push('SHARD_READY', d)
     self.is_ready:set(true, d)
     if self.session_limit then
         self.session_limit:exit_after(IDENTIFY_DELAY)
@@ -429,17 +447,35 @@ end
 
 function shard:RESUMED(_, d)
     logger.info("%s has resumed.", self)
-    self.loop:wrap(self.emitter,self, 'SHARD_RESUMED', d)
+    self:push('SHARD_RESUMED', d)
 end
 
 function shard:INVALID_SESSION(_, d)
     logger.warn("%s has an invalid session, ($resumable=%s;).", self, d and "true" or "false")
+    local resumeurl = self.resume_url
+
     if not d then
         self.session_id = nil
         self.resume_url = nil
     end
-    self.loop:wrap(self.emitter, self, 'INVALID_SESSION', d)
-    return reconnect(self, not not d)
+    self:push('INVALID_SESSION', d)
+
+    if d then
+        if self.connected_to ~= resumeurl then
+            logger.debug('%s has a resume_url=%s; reconnecting to it.', self, resumeurl)
+            return reconnect(self)
+        else
+            logger.debug('%s is connected to its resume_url; resuming diretly.', self)
+            return resume(self)
+        end
+    else
+        if self.connected_to == resumeurl then
+            logger.debug('%s is connected to its resume_url; dropping back to main gateway.', self)
+            reconnect(self)
+        else
+            return identify(self)
+        end
+    end
 end
 
 function shard:HEARTBEAT_ACK()
@@ -448,7 +484,7 @@ function shard:HEARTBEAT_ACK()
         logger.warn("%s is missing heartbeat acknowledgement! ($deficit=%s;)", self, -self.beats)
     end
     winddown(self)
-    self.loop:wrap(self.emitter, self, "HEARTBEAT", self.beats)
+    self:push("HEARTBEAT", self.beats)
     return self
 end
 
@@ -469,7 +505,7 @@ function shard:DISPATCH(_, d, t, s)
     if t == 'READY' then return self:READY(_, d, t)
     elseif t == 'RESUMED' then return self:RESUMED(_,d, t)
     end
-    return self.loop:wrap(self.emitter,self, t, d)
+    return self:push(t, d)
 end
 
 local IDENTIFY_PROPERTIES = {

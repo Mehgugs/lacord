@@ -94,6 +94,11 @@ end
 function new(options)
     local state = setm({}, api)
     local auth
+
+    if type(options) == 'string' then
+        options = {token = options}
+    end
+
     if options.client_credentials then
         auth = "Basic " .. base64(("%s:%s"):format(options.client_credentials[1], options.client_credentials[2]))
         state.auth_kind = "client_credentials"
@@ -119,7 +124,7 @@ function new(options)
     if LACORD_DEBUG then state.expect_100_timeout = options.expect_100_timeout end
     if not not options.accept_encoding then
         state.accept_encoding = "gzip, deflate, x-gzip"
-        logger.debug("%s is using $whiteaccept-encoding: %q;", state, state.accept_encoding)
+        logger.debug("%s is using $accept-encoding: %q;", state, state.accept_encoding)
     end
     logger.debug("Initialized %s with TOKEN-%x", state, state.token and util.hash(state.token) or 0)
 
@@ -353,10 +358,15 @@ local function failure(self)
     return self
 end
 
-local function continue(self, func)
+local function continue(self, func, a)
     if self.success then
-        local r = func(self, unpack(self.result))
-        if r then
+        local r
+
+        if a then r = func(self, a, unpack(self.result))
+        else r = func(self, unpack(self.result))
+        end
+
+        if r and r ~= self then
             insert(self.result, r)
         end
         return self
