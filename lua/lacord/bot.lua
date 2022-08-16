@@ -327,7 +327,7 @@ function events.THREAD_LIST_SYNC(d)
     local len = #d.threads
     local ctx = context.get()
     for i = 1, len do
-        d.threads[i] = context.create(ctx, 'channel', d, 'create')
+        d.threads[i] = context.create(ctx, 'channel', d.threads[i], 'create')
     end
     return d
 end
