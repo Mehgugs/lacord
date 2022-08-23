@@ -119,12 +119,26 @@ function map_bang(f, t, ...)
     return t
 end
 
+local function filtered_iter(invar, oldstate)
+    local state, value = invar[2](invar[3], oldstate)
+    if state then
+        if invar[1](value, state) then return state, value
+        else return filtered_iter(invar, state)
+        end
+    end
+end
+
+function selected_pairs(f, t)
+    local fn, invar, state = iter(t)
+    return filtered_iter, {f, fn, invar}, state
+end
+
 --- Resolve a prospective payload w.r.t lacord content types.
 --  Users can check the 2nd return value to see if any processing was done.
-function content_typed(payload, ...)
+function content_typed(payload)
     local mt = getm(payload)
     if mt and mt.__lacord_content_type then
-        return mt.__lacord_payload(payload, ...),mt.__lacord_content_type
+        return mt.__lacord_payload(payload),mt.__lacord_content_type
     else
         return payload
     end

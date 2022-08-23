@@ -191,7 +191,7 @@ local function make_request(self, name, method, endpoint, route_parameters, payl
         req.headers:append("x-audit-log-reason", tostring(remove(reasons)))
     end
 
-    add_payload(req, method, name, payload, files)
+    add_payload(req, method, payload, files)
 
     -- Ratelimiting --
 

@@ -22,16 +22,25 @@ end
 
 local function get_bucket(self, id, major_params)
     local buckets = self.buckets[id]
-    if buckets and buckets[major_params] then
-        return buckets[major_params]
-    else
-        if buckets then
-            local obj = limiter(self.ratelimit_data[id].limit)
-            obj.name = "bucket-"..id
-            buckets[major_params] = obj
-            return obj
+    if major_params == "" then
+        if buckets then return buckets
         else
-            return logger.throw("lacord.api.request: Bucket id missing from cache.")
+            buckets = limiter(self.ratelimit_data[id].limit)
+            self.buckets[id] = buckets
+            return buckets
+        end
+    else
+        if buckets and buckets[major_params] then
+            return buckets[major_params]
+        else
+            if buckets then
+                local obj = limiter(self.ratelimit_data[id].limit)
+                obj.name = "bucket-"..id
+                buckets[major_params] = obj
+                return obj
+            else
+                return logger.throw("lacord.api.request: Bucket id missing from cache.")
+            end
         end
     end
 end
@@ -45,13 +54,13 @@ function handle_delay(self, delay, name, major_params, bucket, first_time, from_
         if first_time then
             if delay_id and delay_limit then
                 self.bucket_names[name] = delay_id
-                local identifier = delay_id
+                --local identifier = delay_id
 
-                self.ratelimit_data[delay_id] = self.ratelimit_data[delay_id] or {limit = delay_limit, id = delay_id}
+                self.ratelimit_data[delay_id] = self.ratelimit_data[delay_id] or {limit = delay_limit, id = delay_id, delay = delay_s}
 
-                if not self.buckets[identifier] then self.buckets[identifier] = setm({}, WEAK_CACHE) end
+                if not self.buckets[delay_id] and major_params ~= "" then self.buckets[delay_id] = setm({}, WEAK_CACHE) end
 
-                bucket = get_bucket(self, identifier, major_params)
+                bucket = get_bucket(self, delay_id, major_params)
 
                 bucket:enter()
             end

@@ -1,3 +1,6 @@
 [submodule "ext/shs"]
 	path = ext/shs
 	url = https://github.com/Mehgugs/shs
+[submodule "ext/internationalize"]
+	path = ext/internationalize
+	url = https://github.com/Mehgugs/internationalize

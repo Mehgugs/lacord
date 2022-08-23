@@ -7,11 +7,12 @@ local methodify = require"lacord.util.models".methodify
 local mod       = require"lacord.models.channel"
 local fetch_chl = mod.fetch
 
-local store    = context.store
 local unstore  = context.unstore
 local create   = context.create
 local property = context.property
 local DEL      = context.DEL
+local upsert  = context.upsert
+local TABLE   = context.upserters.TABLE
 
 local _ENV = {}
 
@@ -63,7 +64,10 @@ function channel_mt:__lacord_model_delete(api)
         unstore('channel', self.id)
         if self.recipient_id then
             property('dms', self.recipient_id, DEL)
+        elseif self.guild_id then
+            upsert('guild->role', self.guild_id, TABLE)[self.id] = nil
         end
+
         return true
     else
         return nil, e
@@ -92,6 +96,7 @@ function channel_mt:__lacord_model_update(api, edit)
     local success, data, e = api:modify_channel(self.id, edit)
 
     if success then
+        data.guild_id = self.guild_id
         local chl = create('channel', data)
         return chl
     else

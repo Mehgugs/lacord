@@ -33,6 +33,10 @@ build = {
         ["lacord.cli"] = "lua/lacord/util/cli_default.lua",
         ["acord"] = "lua/lacord/util/cli_auto.lua",
         ["lacord.ext.shs"] = "ext/shs/shs.lua",
-        ["lacord.outgoing-webhook-server"] = "lua/lacord/wrapper/outgoing-webhook-server.lua"
+        ["lacord.outgoing-webhook-server"] = "lua/lacord/wrapper/outgoing-webhook-server.lua",
+
+        ["internationalize"] = "ext/internationalize/internationalize/init.lua",
+        ["internationalize.interpolation"] = "ext/internationalize/internationalize/interpolation.lua",
+        ["internationalize.plural"] = "ext/internationalize/internationalize/plural.lua"
     }
 }

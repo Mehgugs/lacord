@@ -14,7 +14,6 @@ local getapi  = context.api
 local getctx  = context.get
 local create  = context.create
 local request = context.request
-local store   = context.store
 local property = context.property
 local upsert   = context.upsert
 local TABLE    = context.upserters.TABLE
@@ -28,7 +27,6 @@ local _ENV = {}
 local function guild_property(type, guild_id, obj_id)
     local set = upsert('guild->'..type, guild_id, TABLE)
     set[obj_id] = true
-    property(type..'->guild', obj_id, guild_id)
 end
 
 function fetch(g)
@@ -54,6 +52,7 @@ local function swap3(a, b, c, f)
 end
 
 local function build_channels(data, ctx, g)
+    data.guild_id = g
     local chl = create(ctx, 'channel', data)
     guild_property('channel', g, chl.id)
     return chl
@@ -91,6 +90,7 @@ function new_channel(g, payload)
     local success, data, e = api:create_guild_channel(g, payload)
 
     if success then
+        data.guild_id = g
         local chl = create(ctx, 'channel', data)
 
         guild_property('channel', g, chl.id)
@@ -280,7 +280,7 @@ function unban(g, u)
     end
 end
 
-function roles(g)
+function load_roles(g)
     g = model_id(g, 'guild')
 
     local ctx = getctx()
@@ -289,9 +289,12 @@ function roles(g)
 
     if success then
         local n = #data
+        local item
         for i = 1, n do
-           data[i] = create(ctx, 'role', data[i])
-           guild_property('role', g, data[i].id)
+            item = data[i]
+            item.guild_id = g
+            data[i] = create(ctx, 'role', item)
+            guild_property('role', g, item.id)
         end
         return data
     else
@@ -307,7 +310,7 @@ function new_role(g, payload)
     local success, data, e = api:create_guild_role(g, payload)
 
     if success then
-
+        data.guild_id = g
         local rol = create(ctx, 'role', data)
         guild_property('role', g, rol.id)
         return rol

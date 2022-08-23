@@ -1,8 +1,8 @@
 -- luacheck: ignore 111 113
 
-local _ENV, iota, powers_of_two, iota1 = require"lacord.util.models.magic-numbers"()
+local _ENV, iota, powers_of_two, iota1, boundary = require"lacord.util.models.magic-numbers"()
 
-channel_types = iota{
+channel_type = iota{
     TEXT,
     DM,
     VOICE,
@@ -18,7 +18,7 @@ channel_types = iota{
 }
 
 
-message_flags = powers_of_two{
+message_flag = powers_of_two{
     CROSSPOSTED,
     IS_CROSSPOST,
     SUPPRESS_EMBEDS,
@@ -30,7 +30,7 @@ message_flags = powers_of_two{
     MENTIONS_FAILED,
 }
 
-permissions = powers_of_two{
+permission = powers_of_two{
     CREATE_INSTANT_INVITE,
     KICK_MEMBERS,
     BAN_MEMBERS,
@@ -86,20 +86,31 @@ interaction_response = iota1{
     PONG,
     MESSAGE,
     LOADING,
-    ACKOWLEDGE,
+    ACKNOWLEDGE,
     UPDATE_MESSAGE,
     AUTOCOMPLETE_RESULT,
     CREATE_MODAL
 }
 
 command_type = iota1{
-    CHAT,
+    boundary(APP_COMMAND, CHAT),
     USER_CONTEXT,
-    MESSAGE_CONTEXT,
+    boundary(CONTEXT_COMMAND, MESSAGE_CONTEXT),
 }
 
-
-
+command_option_type = iota1{
+    SUB_COMMAND,
+    boundary(SUB_COMMANDS, SUB_COMMAND_GROUP),
+    STRING,
+    INTEGER,
+    BOOLEAN,
+    USER,
+    CHANNEL,
+    ROLE,
+    MENTIONABLE,
+    NUMBER,
+    ATTACHMENT,
+}
 
 return _ENV
 

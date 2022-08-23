@@ -88,10 +88,10 @@ local function attach_files(payload, files, ct)
     return attach(payload, files, ct, util.content_types.BYTES)
 end
 
-return function(req, method, name, payload, files)
+return function(req, method, payload, files)
     if with_payload[method] then
         local content_type
-        payload,content_type = content_typed(payload, name)
+        payload,content_type = content_typed(payload)
         if not content_type then
             payload = payload and encode(payload) or '{}'
             content_type = JSON

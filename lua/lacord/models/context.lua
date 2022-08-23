@@ -281,6 +281,7 @@ end
 
 function simple_mt:__lacord_model_context_upsert(table, k, default)
     local pcache = self.props[table]
+    if k == nil or k == "*" then err("lacord.models.context: Cannot upsert using key=*", 2) end
     if pcache then
         if pcache[k] then
             return pcache[k]

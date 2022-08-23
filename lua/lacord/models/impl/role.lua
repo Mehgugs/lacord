@@ -6,8 +6,8 @@ local mtostring = require"lacord.util.models".tostring
 
 local create  = context.create
 local unstore = context.unstore
-local property = context.property
-local DEL      = context.DEL
+local upsert  = context.upsert
+local TABLE   = context.upserters.TABLE
 
 local role_mt = {
     __lacord_model_id = function(obj) return obj.id end,
@@ -18,11 +18,12 @@ local role_mt = {
 
 function role_mt:__lacord_model_update(api, edit)
 
-    local g = property('guild_roles', self.id)
+    local g = self.guild_id
 
     local success, data, e = api:modify_guild_role(g, self.id, edit)
 
     if success then
+        data.guild_id = g
         local rol = create('role', data)
         return rol
     else
@@ -31,12 +32,12 @@ function role_mt:__lacord_model_update(api, edit)
 end
 
 function role_mt:__lacord_model_delete(api)
-    local g = property('guild_roles', self.id)
+    local g = self.guild_id
     local success, data, e = api:delete_guild_role(g, self.id)
 
     if success and data then
         unstore('role', self.id)
-        property('guild_roles', self.id, DEL)
+        upsert('guild->role', g, TABLE)[self.id] = nil
         return true
     else
         return nil, e

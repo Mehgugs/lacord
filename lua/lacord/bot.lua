@@ -20,7 +20,6 @@ local TABLE = context.upserters.TABLE
 local function guild_property(type, guild_id, obj_id)
     local set = context.upsert('guild->'..type, guild_id, TABLE)
     set[obj_id] = true
-    context.property(type..'->guild', obj_id, guild_id)
 end
 
 
@@ -147,31 +146,38 @@ end
 
 local function populate_channels(d)
     local chls, thds = d.channels, d.threads
+    local guild_id = d.id
     local lenc, lent = #chls, #thds
     local bigger = max(lenc, lent)
     local smaller = bigger == lenc and lent or lenc
 
     for i = 1, smaller do
+        chls[i].guild_id = guild_id
+        thds[i].guild_id = guild_id
         local c = context.create('channel', chls[i])
         local t = context.create('channel', thds[i])
-        guild_property('channel', d.id, c.id)
-        guild_property('channel', d.id, t.id)
+        guild_property('channel', guild_id, c.id)
+        guild_property('channel', guild_id, t.id)
     end
 
     local left = bigger == lenc and chls or thds
     for i = smaller + 1, bigger do
+        left[i].guild_id = guild_id
         local c = context.create('channel', left[i])
-        guild_property('channel', d.id, c.id)
+        guild_property('channel', guild_id, c.id)
     end
 end
 
 local function populate_others(d)
     local chls, thds = d.roles, d.emojis
+    local guild_id = d.id
     local lenc, lent = #chls, #thds
     local bigger = max(lenc, lent)
     local smaller = bigger == lenc and lent or lenc
 
     for i = 1, smaller do
+        chls[i].guild_id = guild_id
+        thds[i].guild_id = guild_id
         local c = context.create('role', chls[i])
         local t = context.create('emoji', thds[i])
         guild_property('role', d.id, c.id)
@@ -181,6 +187,7 @@ local function populate_others(d)
     local left = bigger == lenc and chls or thds
     local typ = left == chls and 'role' or 'emoji'
     for i = smaller + 1, bigger do
+        left[i].guild_id = guild_id
         local c = context.create(typ, left[i])
         guild_property(typ, d.id, c.id)
     end
@@ -222,11 +229,7 @@ end
 function events._GUILD_CLEANUP(d)
     local ctx = context.get()
     for type in iter(guild_entities) do
-        local old = context.property(ctx, 'guild->'..type, d.id, context.DEL)
-        for obj_id in iter(old) do
-            context.property(ctx, type..'->guild', obj_id, context.DEL)
-            context.unstore(ctx, type, obj_id)
-        end
+        context.property(ctx, 'guild->'..type, d.id, context.DEL)
     end
 end
 
@@ -249,10 +252,11 @@ function events.GUILD_EMOJIS_UPDATE(d)
     local old = context.property(ctx, 'guild->emoji', guild_id, set)
 
     for i = 1, #emojis do
+        emojis[i].guild_id = guild_id
         local t = context.create('emoji', emojis[i])
         local ID = t.id
 
-        context.property(ctx, 'emoji->guild', ID, guild_id)
+
         emojis[i] = t
         set[ID] = true
         old[ID] = nil
@@ -260,7 +264,6 @@ function events.GUILD_EMOJIS_UPDATE(d)
 
     for k in pairs(old) do
         context.unstore(ctx, 'emoji', k)
-        context.property(ctx, 'emoji->guild', k, context.DEL)
     end
 
     return d
@@ -268,18 +271,19 @@ end
 
 function events.GUILD_ROLE_CREATE(d)
     guild_property('role', d.guild_id, d.role.id)
-    d.role = context.create('role', d, 'create')
+    d.role.guild_id = d.guild_id
+    d.role = context.create('role', d.role, 'create')
     return d
 end
 
 function events.GUILD_ROLE_UPDATE(d)
-    d.role = context.create('role', d, 'update')
+    d.role.guild_id = d.guild_id
+    d.role = context.create('role', d.role, 'update')
     return d
 end
 
 function events.GUILD_ROLE_DELETE(d)
     context.property('guild->role', d.guild_id)[d.id] = nil
-    context.property('role->guild', d.role_id, context.DEL)
     d.role = context.unstore('role', d.role_id)
     return d
 end
@@ -294,6 +298,8 @@ function events.CHANNEL_CREATE(d)
 end
 
 function events.CHANNEL_UPDATE(d)
+    --local old = context.request('channel', d.id)
+    --if old and old.guild_id then d.guild_id = old.guild_id end
     return context.create('channel', d, 'update')
 end
 
@@ -301,7 +307,6 @@ function events.CHANNEL_DELETE(d)
     local chl = context.unstore('channel', d.id)
     if chl.guild_id then
         context.property('guild->channel', d.guild_id)[d.id] = nil
-        context.property('channel->guild', d.id, context.DEL)
     end
     return chl
 end
@@ -312,13 +317,14 @@ function events.THREAD_CREATE(d)
 end
 
 function events.THREAD_UPDATE(d)
+    --local old = context.request('channel', d.id)
+    --if old and old.guild_id then d.guild_id = old.guild_id end
     return context.create('channel', d, 'update')
 end
 
 function events.THREAD_DELETE(d)
     if d.guild_id then
         context.property('guild->channel', d.guild_id)[d.id] = nil
-        context.property('channel->guild', d.id, context.DEL)
     end
     return context.unstore('channel', d.id)
 end
@@ -326,7 +332,9 @@ end
 function events.THREAD_LIST_SYNC(d)
     local len = #d.threads
     local ctx = context.get()
+    local guild_id = d.guild_id
     for i = 1, len do
+        d.threads[i].guild_id = guild_id
         d.threads[i] = context.create(ctx, 'channel', d.threads[i], 'create')
     end
     return d
