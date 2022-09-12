@@ -18,6 +18,7 @@ local content_typed = util.content_typed
 local file_name     = util.file_name
 local JSON          = util.content_types.JSON
 local LACORD_DEBUG  = cli.debug
+local LACORD_INSPECT = cli.inspect_payload
 local monotime      = cqueues.monotime
 
 local BOUNDARY1 = "lacord" .. ("%x"):format(util.hash(tostring(time())))
@@ -102,7 +103,7 @@ return function(req, method, payload, files)
         else
             req.headers:append('content-type', content_type)
         end
-        if LACORD_DEBUG then
+        if LACORD_DEBUG and LACORD_INSPECT then
             local file = openf("test/payload" .. util.hash(tostring(monotime())), "wb")
             file:write(payload)
             file:close()

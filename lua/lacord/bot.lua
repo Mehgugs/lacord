@@ -4,14 +4,21 @@ local type = type
 
 local max = math.max
 
-local api     = require"lacord.api"
-local context = require"lacord.models.context"
-local cqs     = require"cqueues"
-local intents = require"lacord.util.intents"
-local logger  = require"lacord.util.logger"
-local setup   = require"lacord.models.impl"
-local shard   = require"lacord.shard"
-local signal  = require"cqueues.signal"
+local api            = require"lacord.api"
+local command        = require"lacord.command"
+local cond           = require"cqueues.condition"
+local context        = require"lacord.models.context"
+local cqs            = require"cqueues"
+local intents        = require"lacord.util.intents"
+local logger         = require"lacord.util.logger"
+local numbers        = require"lacord.models.magic-numbers"
+local setup          = require"lacord.models.impl"
+local interaction    = require"lacord.models.interaction"
+local shard          = require"lacord.shard"
+local signal         = require"cqueues.signal"
+local in_environment = require"lacord.ui".in_environment
+
+local itypes = numbers.interaction_type
 
 local new_sessionlimit = require"lacord.util.session-limit".new
 
@@ -25,10 +32,11 @@ end
 
 --local _ENV = {}
 
-local bot_t = {__name = "lacord.gateway-bot"}
+local bot = {__name = "lacord.gateway-bot"}
 
-bot_t.__index = bot_t
+bot.__index = bot
 
+local interaction_filter
 function new(token, options)
     if type(options) == 'function' then options = {output = options}
     elseif not options then options = {}
@@ -37,11 +45,13 @@ function new(token, options)
     if options.api then options.api.token = token end
     local discord = api.new(options.api or token)
 
+
     return setm({
         api = discord,
         shards = {},
-        options = options
-    }, bot_t)
+        options = options,
+        global_handlers = {},
+    }, bot)
 end
 
 local function handlesignals(self)
@@ -55,8 +65,6 @@ local function handlesignals(self)
     end
 
     local me = cqs.running()
-
-    logger.info("There are %d cqueues objects still processing.", me:count())
 
     me:wrap(self.options.output, 'SIGNAL', int)
 
@@ -76,6 +84,11 @@ local function runner(self)
 
     if R.success then
         self.app = R.result[1]
+        if self.options.commands then
+            command.deploy(self.app.id, self.options.commands.global, self.options.commands.guilds)
+        else
+            command.load(self.app.id)
+        end
         local gateway = R.result[2] or self.options.gateway
         local sessionlimit = new_sessionlimit(gateway.session_start_limit.max_concurrency)
 
@@ -98,6 +111,8 @@ local function runner(self)
             s:connect()
         end
 
+        context.property('shards-alive', '*', gateway.shards)
+
         self.gateway = gateway
         self.gateway.session_limiter = sessionlimit
 
@@ -110,7 +125,20 @@ local function runner(self)
     end
 end
 
-function bot_t:run(loop)
+
+local function executor(loop, ref)
+    while not (loop:empty() or ref.value)  do
+        if cqs.poll(loop, ref.cv) == loop then
+            local success, why = loop:step(0.0)
+            if not success then
+                logger.error(why)
+                break
+            end
+        end
+    end
+end
+
+function bot:run(loop)
     loop = loop or cqs.new()
     self.loop = loop
 
@@ -125,14 +153,35 @@ function bot_t:run(loop)
 
     loop:wrap(runner, self)
 
-    return assert(loop:loop())
+    local outer = cqs.new()
+    local cancel = {cv = cond.new()}
+
+    context.property(_ctx, 'cancellation-cv', '*', cancel)
+
+    outer:wrap(executor, loop, cancel)
+
+    return assert(outer:loop())
 end
 
-function bot_t.me()
-    return context.property('me', '*')
+function bot.me()
+    return context.property'me'
 end
 
 local events = { }
+
+_ENV.event_handlers = events
+
+function events.DISCONNECT(d)
+    if not d.reconnect then
+        local count = context.property'shards-alive'
+        context.property('shards-alive', '*', count - 1)
+        if (count - 1) == 0 then
+            local ref = context.property'cancellation-cv'
+            ref.value = true
+            ref.cv:signal()
+        end
+    end
+end
 
 function events.SHARD_READY(d)
     local glds = d.guilds
@@ -193,7 +242,7 @@ local function populate_others(d)
     end
 end
 
-function events.GUILD_CREATE(d)
+function events.GUILD_CREATE(d, handlers)
     if d.unavailable then
         return context.create('guild', d, 'create'), 'outage'
     end
@@ -201,6 +250,11 @@ function events.GUILD_CREATE(d)
     d._status = 'connected'
     populate_channels(d)
     populate_others(d)
+
+    if handlers and not context.property('guild->command', d.id) then
+        cqs.running():wrap(command.load, context.property('application', 'id'), d.id)
+    end
+
     if old and old.unavailable then
         return context.create('guild', d, 'create'), 'connected'
     else
@@ -228,6 +282,7 @@ end
 
 function events._GUILD_CLEANUP(d)
     local ctx = context.get()
+    context.property(ctx, 'guild->command', d.id, context.DEL)
     for type in iter(guild_entities) do
         context.property(ctx, 'guild->'..type, d.id, context.DEL)
     end
@@ -350,6 +405,10 @@ function events.MESSAGE_UPDATE(d)
     return context.create('message', d, 'update')
 end
 
+function events.INTERACTION_CREATE(d)
+    return context.create('interaction', d, 'create')
+end
+
 --- Misc. ---
 
 function events.USER_UPDATE(d)
@@ -367,19 +426,106 @@ local function follow_with(outputf, followup, d, ...)
     events[followup](d)
 end
 
-function bot_t:output()
+function bot:output()
     local outputf = self.options.output
+    local filters = self.options.filters
+    local has_handlers = not not self.guild_handlers
     return function(the_shard, the_event, d)
         if events[the_event] then
-            local d_, state, followup = events[the_event](d)
+            local d_, state, followup = events[the_event](d, has_handlers)
             if followup then
                 the_shard.loop:wrap(follow_with, outputf, followup, d, the_event, d_, state, the_shard)
             else
-                the_shard.loop:wrap(outputf, the_event, d_, state, the_shard)
+                if filters and filters[the_event] then
+                    local filter = filters[the_event]
+                    local cb, A = filter(self, d_)
+                    if cb then
+                        the_shard.loop:wrap(cb, d_, state, the_shard, A)
+                    else
+                        the_shard.loop:wrap(outputf, the_event, d_, state, the_shard)
+                    end
+                else
+                    the_shard.loop:wrap(outputf, the_event, d_, state, the_shard)
+                end
             end
         else
             the_shard.loop:wrap(outputf, the_event, d, nil, the_shard)
         end
+    end
+end
+
+
+local function find_handler(self, d, hnd)
+    local name = d.command_name
+    if hnd[name] then return hnd[name]
+    elseif self.options.command_fallback then
+        local root = d.root
+        local group = d.group and (d.root.." "..d.group)
+        if group and hnd[group] then
+            return hnd[group]
+        else return hnd[root]
+        end
+    end
+end
+
+
+local function run_instance(I, _, _, inst)
+    local action = inst._actions[I.data.custom_id]
+    if action then
+        in_environment(inst)
+        inst._interface._actions[action](inst, I, interaction.values(I))
+    elseif inst.interface._callback then
+        in_environment(inst)
+        inst._interface._callback(inst, I, interaction.values(I))
+    end
+end
+
+local function ignore(I)
+    return interaction.ack(I)
+end
+
+function interaction_filter(self, d)
+    if d.type == itypes.COMMAND then
+        if d.data.guild_id then
+            if self.guild_handlers and self.guild_handlers[d.data.guild_id] then
+                return find_handler(self, d, self.guild_handlers[d.data.guild_id])
+            end
+        else
+            return find_handler(self, d, self.global_handlers)
+        end
+    elseif d.type == itypes.COMPONENT then
+        local instance_id do
+            local start = d.data.custom_id:find('.', 1, true)
+            instance_id = d.data.custom_id:sub(1, start - 1)
+        end
+
+        local inst = context.property('ui', instance_id)
+
+        if inst then
+            if inst._target and ((d.member and d.member.user or d.user).id ~= inst._target) then
+                return ignore, d
+            elseif inst._filter and (not inst._filter(d)) then
+                return ignore, d
+            end
+            return run_instance, inst
+        end
+    end
+end
+
+--- handle("name", fn)
+--- handle("name", guild_id, fn)
+function bot:handle(name, fn, extra)
+    self.options.filters = self.options.filters or {}
+
+    self.options.filters.INTERACTION_CREATE
+    = self.options.filters.INTERACTION_CREATE or interaction_filter
+
+    if extra then
+        self.guild_handlers  = self.guild_handlers or {}
+        self.guild_handlers[fn] = self.global_handlers[fn] or {}
+        self.global_handlers[fn][name] = extra
+    else
+        self.global_handlers[name] = fn
     end
 end
 

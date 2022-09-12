@@ -46,15 +46,18 @@ supported_cli_options = {
     log_file = "value",
     log_mode = {"0","3","8"},
     accept = "flag",
+    inspect_payload = "flag",
     ['unstable-features'] = "unstable",
     ['client-id'] = "client_id",
     ['client-secret'] = "client_secret",
     ['log-file'] = "log_file",
     ['log-mode'] = "log_mode",
     ['accept-everything'] = "accept",
+    ['inspect-payload'] = "inspect_payload",
     ['quiet'] = "flag",
     ['quieter'] = "quiet",
     ['file'] = "value",
+
     --shorthand
     d = "debug",
     u = "unstable",

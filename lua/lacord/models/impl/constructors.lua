@@ -1,9 +1,10 @@
 local impl = {
-    user    = require"lacord.models.impl.user",
-    channel  = require"lacord.models.impl.channel",
-    guild   = require"lacord.models.impl.guild",
-    message = require"lacord.models.impl.message",
-    role    = require"lacord.models.impl.role",
+    user        = require"lacord.models.impl.user",
+    channel     = require"lacord.models.impl.channel",
+    guild       = require"lacord.models.impl.guild",
+    message     = require"lacord.models.impl.message",
+    role        = require"lacord.models.impl.role",
+    interaction = require"lacord.models.impl.interaction"
 }
 
 local ctors = { }
