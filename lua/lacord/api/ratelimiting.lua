@@ -52,6 +52,7 @@ function handle_delay(self, delay, name, major_params, bucket, first_time, from_
         local delay_s, delay_id, delay_limit = delay[1], delay[2], delay[3]
 
         if first_time then
+            logger.debug("Creating new ratelimit: %s %s %s", delay_s, delay_id, delay_limit)
             if delay_id and delay_limit then
                 self.bucket_names[name] = delay_id
                 --local identifier = delay_id
@@ -65,13 +66,14 @@ function handle_delay(self, delay, name, major_params, bucket, first_time, from_
                 bucket:enter()
             end
         elseif bucket.total ~= delay_limit then
-            logger.warning("lacord.api: Ratelimit for %s has changed: %s -> %s", delay_id, bucket.total, delay_limit)
+            logger.warn("lacord.api: Ratelimit for %s (%s) has changed: %s -> %s", delay_id, name, bucket.total, delay_limit)
             local diff = bucket.total - delay_limit
             bucket.v = bucket.v - diff
             self.ratelimit_data[delay_id].limit = delay_limit
         end
         if bucket then bucket:exit_after(delay_s) end
     else
+        logger.debug("lacord.api: There wasn't any ratelimit information when performing %s.", name)
         if bucket then bucket:exit_after(0) end
     end
 

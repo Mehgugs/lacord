@@ -1,6 +1,6 @@
 -- luacheck: ignore 111 113
 
-local _ENV, iota, powers_of_two, iota1, boundary = require"lacord.util.models.magic-numbers"()
+local _ENV, iota, powers_of_two, iota1, iotaN, boundary = require"lacord.util.models.magic-numbers"()
 
 channel_type = iota{
     TEXT,
@@ -82,9 +82,9 @@ interaction_type = iota1{
     MODAL_RESPONSE,
 }
 
-interaction_response = iota1{
-    PONG,
-    MESSAGE,
+interaction_response = iotaN{
+    PONG = 1,
+    MESSAGE = 4,
     LOADING,
     ACKNOWLEDGE,
     UPDATE_MESSAGE,
@@ -110,6 +110,26 @@ command_option_type = iota1{
     MENTIONABLE,
     NUMBER,
     ATTACHMENT,
+}
+
+component_type = iota1{
+    ACTION_ROW,
+    BUTTON,
+    SELECT_MENU,
+    TEXT_BOX
+}
+
+button_style = iota1{
+    PRIMARY,
+    SECONDARY,
+    SUCCESS,
+    boundary(INTERACTIVE, DANGER),
+    LINK,
+}
+
+textbox_style = iota1{
+    SHORT,
+    PARAGRAPH
 }
 
 return _ENV

@@ -227,7 +227,7 @@ function simple_mt:__lacord_model_context_request(table, primary_id)
     end
 end
 
-function simple_mt:__lacord_model_context_store(object, table)
+function simple_mt:__lacord_model_context_store(table, object)
     local mcache = self[table]
     if mcache then
         mcache[object.id] = object
@@ -299,7 +299,7 @@ function simple_mt:__lacord_model_context_upsert(table, k, default)
 end
 
 function simple_context(api, ctors)
-    return setm({api, ctors; channel = {}, guild = {}, props = {}}, simple_mt)
+    return setm({api, ctors; channel = {}, guild = {}, command = {}, props = {}}, simple_mt)
 end
 
 return _ENV

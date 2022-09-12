@@ -29,6 +29,8 @@ local function guild_property(type, guild_id, obj_id)
     set[obj_id] = true
 end
 
+_ENV.set_guild_property = guild_property
+
 function fetch(g)
     g = model_id(g, 'guild')
     local gld = request('guild', g)

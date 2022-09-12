@@ -14,6 +14,7 @@ local constants = require"lacord.const"
 local mutex = require"lacord.util.mutex".new
 local session_limiter = require"lacord.util.session-limit".new
 local intents = require"lacord.util.intents"
+local uripattern = require"lpeg_patterns.uri".absolute_uri
 local USER_AGENT = require"lacord.api".USER_AGENT
 local LACORD_DEPRECATED = require"lacord.cli".deprecated
 local LACORD_UNSTABLE   = require"lacord.cli".unstable
@@ -26,11 +27,14 @@ local insert, concat = table.insert, table.concat
 local type = type
 local traceback = debug.traceback
 local xpcall = xpcall
-local toquery = httputil.dict_to_query
+local dict_to_query = httputil.dict_to_query
+local query_pairs = httputil.query_args
 local tostring = tostring
 local min, max = math.min, math.max
+local random   = math.random
 local monotime = cqueues.monotime
 local the_platform = util.platform
+
 
 local encode = require"lacord.util.json".encode
 local decode = require"lacord.util.json".decode
@@ -107,11 +111,11 @@ function new(options, session_limit)
     if not (state.options.compress or state.options.transport_compression) then
         state.options.transport_compression = true
     end
-    state.url_options = toquery({
+    state.url_options = {
         v = tostring(constants.gateway.version),
         encoding = constants.gateway.encoding,
         compress = state.options.transport_compression and constants.gateway.compress or nil
-    })
+    }
     state.loop = state.options.loop
     state.emitter = state.options.output
 
@@ -125,6 +129,34 @@ end
 
 if LACORD_DEPRECATED then _ENV.init = _ENV.new end
 
+local function build_url(self, url_in) --TODO
+    local parts = uripattern:match(url_in)
+    local out = {parts.scheme, "://", parts.host}
+
+    if parts.port then
+        insert(out, ":")
+        insert(out, parts.port)
+    end
+
+    insert(out, parts.path)
+
+    local query = {}
+
+    if parts.query and parts.query ~= "" then
+        for k ,v in query_pairs(parts.query) do
+            query[k] = v
+        end
+    end
+
+    for k , v in pairs(self.url_options) do
+        query[k] = v
+    end
+
+    insert(out, "?"..dict_to_query(query))
+
+    return concat(out)
+end
+
 --- Connects a shard to discord.
 -- This can be called in method form `s:connect()`.
 -- This function is asynchronous and should be run inside a continuation queue. (usually state.loop)
@@ -133,16 +165,16 @@ function shard:connect()
     -- step 1: get a gateway url.
     local final_url
     if self.resume_url then
-        final_url = self.resume_url .. '?' .. self.url_options
+        final_url = build_url(self, self.resume_url)
         self.connected_to = self.resume_url
     else
         if type(self.options.gateway) == 'function' then
             logger.info("%s is regenerating gateway url.", self)
             local url = self.options.gateway(self)
-            final_url = url  .. '?' .. self.url_options
+            final_url = build_url(self, url)
             self.connected_to = url
         else
-            final_url = self.options.gateway .. '?' .. self.url_options
+            final_url = build_url(self, self.options.gateway)
             self.connected_to = self.options.gateway
         end
     end
@@ -183,6 +215,7 @@ end
 
 local hb = ops.HEARTBEAT
 local function beat_loop(state, interval)
+    sleep(interval * random())
     while state.connected do
         logger.debug("Outgoing heart beating.")
         state.beats = state.beats + 1
@@ -395,6 +428,8 @@ function messages(state)
          code = state.socket.got_close_code
         ,lua_err = lua_err
         ,error = err
+        ,reconnect = decided
+        ,ready = state.is_ready:status()
     })
 
     logger.warn("%s $%s; reconnect.", state, decided and "will" or "will not")
@@ -450,6 +485,13 @@ function shard:RESUMED(_, d)
     self:push('SHARD_RESUMED', d)
 end
 
+
+local function and_then(time, f, ...)
+    sleep(time)
+    return f(...)
+end
+
+
 function shard:INVALID_SESSION(_, d)
     logger.warn("%s has an invalid session, ($resumable=%s;).", self, d and "true" or "false")
     local resumeurl = self.resume_url
@@ -471,9 +513,9 @@ function shard:INVALID_SESSION(_, d)
     else
         if self.connected_to == resumeurl then
             logger.debug('%s is connected to its resume_url; dropping back to main gateway.', self)
-            reconnect(self)
+            return reconnect(self)
         else
-            return identify(self)
+            return self.loop:wrap(and_then, math.random()*4 + 1, identify, self)
         end
     end
 end

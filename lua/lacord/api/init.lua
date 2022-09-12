@@ -175,6 +175,7 @@ local function make_request(self, name, method, endpoint, route_parameters, payl
     end
 
     local req = newreq.new_from_uri(httputil.encodeURI(url))
+    req.version = self.api_http_version
 
     req.headers:upsert(":method", method)
     req.headers:upsert("user-agent", USER_AGENT)
@@ -299,10 +300,6 @@ function push2(state, name, req, retries)
 
                 sleep(delay_s)
                 return push2(state, name, req, retries+1)
-            else
-                local scope = headers:get"x-ratelimit-scope"
-                logger.warn("($%i;, %q%s) : %s",
-                    code, reason[rawcode], scope and (", scope: "..scope) or "", name)
             end
 
             local msg
@@ -321,7 +318,9 @@ function push2(state, name, req, retries)
         else
             state.global:exit_after(1.0)
         end
-        logger.error("($%i;, %q) : %s", code, reason[rawcode], name)
+        local scope = headers:get"x-ratelimit-scope"
+        logger.error("($%i;, %q%s) : %s",
+            code, reason[rawcode], scope and (", scope: "..scope) or "", name)
         return nil, data, {delay_s, delay_id, delay_limit}, extra
     end
 end

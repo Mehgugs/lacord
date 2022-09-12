@@ -4,6 +4,8 @@ local getm  = getmetatable
 local set   = rawset
 local setm  = setmetatable
 
+local max = math.max
+
 local bound = {}
 local enum  = {__name = "lacord.models.enum"}
 
@@ -53,6 +55,22 @@ local function iota1(t)
     return resolve_bound(out)
 end
 
+local function iotaN(t)
+    local out = {}
+    local M = 0
+    for k, v in iter(t) do
+        if type(k) == 'number' then goto continue end
+        out[k] = v
+        M = max(v, M)
+        ::continue::
+    end
+    for i , v in iiter(t) do
+        v = check_bound(v, out)
+        out[v] = i + M
+    end
+    return resolve_bound(out)
+end
+
 local function boundary(name, field)
     return setm({field, name}, bound)
 end
@@ -80,5 +98,6 @@ return function()
         iota,
         powers_of_two,
         iota1,
+        iotaN,
         boundary
 end

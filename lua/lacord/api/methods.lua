@@ -812,10 +812,13 @@ function api:execute_webhook(webhook_id, webhook_token, payload, wait, files)
     if files then
         merge(payload, compute_attachments(files), _ENV.attachments_resolution)
     end
+
+    if type(wait) == 'boolean' then wait = wait and WAIT or NOWAIT end
+
     return self:request('execute_webhook', 'POST', '/webhooks/:webhook_id/:webhook_token', {
        webhook_id = webhook_id,
        webhook_token = webhook_token
-    }, payload, wait and WAIT or (wait == false) and NOWAIT or nil, files)
+    }, payload, wait, files)
 end
 
 auth('execute_slack_compatible_webhook', 'webhook')
@@ -836,24 +839,35 @@ function api:execute_github_compatible_webhook(webhook_id, webhook_token, payloa
     }, payload, query)
 end
 
+auth('get_webhook_message', 'webhook')
+
+function api:get_webhook_message(webhook_id, webhook_token, message_id, query)
+    return self:request('get_webhook_message', 'GET', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
+       webhook_id = webhook_id,
+       webhook_token = webhook_token,
+       message_id = message_id
+    }, nil,  query)
+end
+
+
 auth('edit_webhook_message', 'webhook')
 
-function api:edit_webhook_message(webhook_id, webhook_token, message_id, payload)
+function api:edit_webhook_message(webhook_id, webhook_token, message_id, payload, query, files)
     return self:request('edit_webhook_message', 'PATCH', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
        webhook_id = webhook_id,
        webhook_token = webhook_token,
        message_id = message_id
-    }, payload)
+    }, payload, query, files)
 end
 
 auth('delete_webhook_message', 'webhook')
 
-function api:delete_webhook_message(webhook_id, webhook_token, message_id)
+function api:delete_webhook_message(webhook_id, webhook_token, message_id, query)
     return self:request('delete_webhook_message', 'DELETE', '/webhooks/:webhook_id/:webhook_token/messages/:message_id', {
         webhook_id = webhook_id,
         webhook_token = webhook_token,
         message_id = message_id
-     })
+     }, nil, query)
 end
 
 function api:list_voice_regions()

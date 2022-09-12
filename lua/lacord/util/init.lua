@@ -9,6 +9,10 @@ local to_n   = tonumber
 local to_s   = tostring
 local typ    = type
 
+local inspect = require"inspect"
+
+local null = require"lacord.util.json".null
+
 local random = math.random
 
 local insert = table.insert
@@ -132,6 +136,20 @@ function selected_pairs(f, t)
     local fn, invar, state = iter(t)
     return filtered_iter, {f, fn, invar}, state
 end
+
+local function copy_(t, into)
+    if type(t) == 'table' then
+        into = into or setm({}, getm(t))
+        for k , v in iter(t) do
+            into[k] = copy_(v, into[k])
+        end
+        return into
+    else
+        return t
+    end
+end
+
+_ENV.copy = copy_
 
 --- Resolve a prospective payload w.r.t lacord content types.
 --  Users can check the 2nd return value to see if any processing was done.
@@ -389,6 +407,29 @@ local function merget(t, other, conflict)
 end
 
 _ENV.merge = function(t, ...) merget(t, ...) return t end
+
+
+local function processor(item, path)
+    if item == null then return 'null' end
+    if path[#path] ~= inspect.METATABLE then return item end
+end
+
+local opts = {process = processor}
+
+function _ENV.inspect(t)
+    return inspect(t, opts)
+end
+
+
+function run_methods(self, ctor, flat)
+    for k , v in iter(ctor) do
+        if flat and flat[k] then
+            self[k](self, unpack(v))
+        else
+            self[k](self, v)
+        end
+    end
+end
 
 
 return _ENV
